@@ -1,0 +1,12 @@
+import { Theme, Screen } from "ui/theme.slint";
+import { Osd } from "ui/components/osd.slint";
+import { PowerDialog } from "ui/components/power.slint";
+export component Sheet inherits Window {
+    width: 900px; height: 520px;
+    background: #8aa0c8;
+    Osd { x: 20px; y: 20px; preview-shown: true; kind: "volume"; value: 0.62; label: "Volume 62%"; }
+    Osd { x: 216px; y: 20px; preview-shown: true; kind: "brightness"; value: 0.3; label: "Brightness 30%"; }
+    Osd { x: 412px; y: 20px; preview-shown: true; kind: "text"; label: "EN"; }
+    PowerDialog { x: 0px; y: 220px; width: 450px; height: 300px; open: true; user-name: "Aria"; preview-hover: "restart"; }
+    PowerDialog { x: 450px; y: 220px; width: 450px; height: 300px; open: true; pending: "restart"; remaining: 22; countdown: 30; }
+}

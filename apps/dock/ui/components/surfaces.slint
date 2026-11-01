@@ -1,0 +1,98 @@
+import { Theme } from "../theme.slint";
+
+// A soft shadow that stays outside its parent, as rings that fade outward. A blur-based shadow
+// would also darken the inside of translucent glass; rings never do. Put it as a child of the
+// shape it shadows, filling it.
+export component ShadowRings inherits Rectangle {
+    in property <length> corner: 22px;
+    in property <int> reach: 22;
+    // How far the shadow is pushed away from the light (down, for a dock at the bottom).
+    in property <length> drop-x: 0px;
+    in property <length> drop-y: 8px;
+    // The strongest alpha, already scaled by how much of it shows.
+    in property <float> strength: 0.3;
+    background: transparent;
+    for i in root.reach: Rectangle {
+        property <float> near: 1.0 - i / root.reach;
+        // The drop lengthens a ring on the side it falls toward, so none ever lies inside the shape.
+        x: -(i + 1) * 1px - max(-root.drop-x, 0px);
+        y: -(i + 1) * 1px - max(-root.drop-y, 0px);
+        width: root.width + (i + 1) * 2px + abs(root.drop-x);
+        height: root.height + (i + 1) * 2px + abs(root.drop-y);
+        border-radius: root.corner + (i + 1) * 1px;
+        border-width: 1px;
+        border-color: Theme.shadow.with-alpha(root.strength * near * near * near * 0.42);
+    }
+}
+
+// A quiet plate under what the pointer is over (the menu's rows).
+export component HoverPlate inherits Rectangle {
+    in property <float> amount: 0;
+    in property <length> corner: Theme.radius-small;
+    visible: amount > 0.005;
+    border-radius: min(corner, min(self.width, self.height) / 2);
+    background: Theme.text.with-alpha(Theme.plate-alpha * min(max(amount, 0.0), 1.0));
+}
+
+// The dock's glass: a shadow outside, the blurred backdrop (when there is one) and a tint inside,
+// a light edge and a bright line on top. Wider than tall for a bottom dock, taller than wide beside.
+export component GlassPlate inherits Rectangle {
+    in property <length> corner: 22px;
+    // 1 for the full shadow, 0 for none.
+    in property <float> shadow: 1.0;
+    // The backdrop: an image the size of the screen, whose top-left is at (backdrop-x, backdrop-y)
+    // in this plate's coordinates.
+    in property <image> backdrop;
+    in property <bool> has-backdrop: false;
+    in property <length> backdrop-x: 0px;
+    in property <length> backdrop-y: 0px;
+    in property <length> backdrop-width: 0px;
+    in property <length> backdrop-height: 0px;
+
+    border-radius: corner;
+    border-width: 1px;
+    border-color: Theme.shadow.with-alpha(Theme.glass-hairline * 0.35);
+
+    ShadowRings {
+        width: parent.width;
+        height: parent.height;
+        corner: root.corner;
+        reach: 24;
+        drop-y: 10px;
+        strength: Theme.glass-shadow * root.shadow;
+    }
+
+    Rectangle {
+        border-radius: root.corner;
+        clip: true;
+        if root.has-backdrop: Image {
+            x: root.backdrop-x;
+            y: root.backdrop-y;
+            width: root.backdrop-width;
+            height: root.backdrop-height;
+            source: root.backdrop;
+            image-fit: fill;
+        }
+        Rectangle {
+            background: @linear-gradient(180deg, Theme.glass-top, Theme.glass-bottom);
+        }
+    }
+    // The light edge just inside the glass.
+    Rectangle {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: parent.height - 2px;
+        border-radius: root.corner - 1px;
+        border-width: 1px;
+        border-color: #FFFFFF.with-alpha(Theme.glass-rim * 0.55);
+    }
+    // The bright line along the top.
+    Rectangle {
+        x: root.corner;
+        y: 1px;
+        width: max(0px, parent.width - root.corner * 2);
+        height: 1px;
+        background: #FFFFFF.with-alpha(Theme.glass-sheen * 0.8);
+    }
+}

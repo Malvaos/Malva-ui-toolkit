@@ -1,0 +1,227 @@
+import { Theme, Motion } from "../theme.slint";
+import { FileEntry } from "../types.slint";
+import { ListRow, ListColumns } from "list-row.slint";
+import { Scroller } from "scroller.slint";
+import { SymbolIcon } from "icon.slint";
+
+// A column's heading: it names the column, says which way the list is sorted by it, and sorts by
+// it when pressed.
+component Heading inherits Rectangle {
+    in property <string> text;
+    in property <bool> sorted: false;
+    in property <bool> ascending: true;
+    in property <TextHorizontalAlignment> align: left;
+    callback clicked();
+
+    property <float> hover: ta.has-hover ? 1 : 0;
+    animate hover { duration: ta.has-hover ? Motion.hover-in : Motion.hover-out; }
+    label := Text {
+        x: 0;
+        y: 0;
+        width: parent.width - (root.sorted ? 16px : 0px);
+        height: parent.height;
+        text: root.text;
+        color: root.sorted ? Theme.text : Theme.disabled;
+        font-size: Theme.font-size;
+        font-weight: 600;
+        horizontal-alignment: root.align;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    if root.sorted: SymbolIcon {
+        x: root.align == TextHorizontalAlignment.right ? parent.width - 12px : min(parent.width - 12px, min(label.preferred-width, parent.width - 16px) + 8px);
+        y: (parent.height - 11px) / 2;
+        width: 11px;
+        height: 11px;
+        name: root.ascending ? "chevron-up" : "chevron-down";
+        tint: Theme.text;
+    }
+    ta := TouchArea {
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// The list view: a heading that stays put, and rows beneath it. Only the rows in (or just beside)
+// the window exist.
+export component FileList inherits Rectangle {
+    in property <[FileEntry]> entries;
+    in property <length> top-inset: 56px;
+    in property <length> bottom-inset: 56px;
+    // "name", "modified", "size" or "kind".
+    in property <string> sort-column: "name";
+    in property <bool> sort-ascending: true;
+    in property <int> force-hover: -1;
+    in property <bool> animate-entrance: true;
+
+    callback item-pressed(int, bool, bool);
+    callback item-activated(int);
+    callback item-context(int, length, length);
+    callback background-pressed();
+    callback background-context(length, length);
+    callback sort-requested(string);
+
+    out property <length> scroll-offset: -flick.content-y;
+
+    public function folder-opening() {
+        if (root.animate-entrance) {
+            root.entering = true;
+            entering-timer.running = false;
+            entering-timer.running = true;
+        }
+        flick.content-y = 0px;
+    }
+    public function reveal(index: int) {
+        if (index < 0 || index >= root.entries.length) {
+            return;
+        }
+        let row-top = root.rows-top + index * root.pitch;
+        let row-bottom = row-top + ListColumns.row-height;
+        if (row-top < -flick.content-y + root.rows-top) {
+            flick.content-y = -(row-top - root.rows-top);
+        } else if (row-bottom > -flick.content-y + root.height - root.bottom-inset) {
+            flick.content-y = -(row-bottom - root.height + root.bottom-inset);
+        }
+    }
+
+    property <bool> entering: false;
+    property <length> heading-height: 28px;
+    property <length> rows-top: top-inset + heading-height + 2px;
+    property <length> pitch: ListColumns.row-height + 2px;
+    property <length> content-height: rows-top + entries.length * pitch + bottom-inset;
+    property <length> margin: 120px;
+
+    entering-timer := Timer {
+        interval: Motion.enter + Motion.stagger * Motion.stagger-limit + 120ms;
+        running: false;
+        triggered => {
+            root.entering = false;
+            self.running = false;
+        }
+    }
+
+    flick := Flickable {
+        width: parent.width;
+        height: parent.height;
+        content-width: parent.width;
+        content-height: max(root.content-height, parent.height);
+        // The wheel, the trackpad and touch scroll it; dragging with the mouse does not.
+        mouse-drag-pan-enabled: false;
+
+        TouchArea {
+            width: parent.width;
+            height: parent.height;
+            pointer-event(e) => {
+                if (e.kind == PointerEventKind.down) {
+                    if (e.button == PointerEventButton.left) {
+                        root.background-pressed();
+                    } else if (e.button == PointerEventButton.right) {
+                        root.background-context(self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+                    }
+                }
+            }
+        }
+
+        for entry[i] in root.entries: Rectangle {
+            property <length> top: root.rows-top + i * root.pitch;
+            if top + ListColumns.row-height > -flick.content-y - root.margin && top < -flick.content-y + root.height + root.margin: ListRow {
+                x: ListColumns.side;
+                y: top;
+                width: root.width - ListColumns.side * 2 - 8px;
+                index: i;
+                entry: entry;
+                banded: mod(i, 2) == 1;
+                entering: root.entering;
+                force-hover: i == root.force-hover;
+                pressed(ctrl, shift) => {
+                    root.item-pressed(i, ctrl, shift);
+                }
+                activated => {
+                    root.item-activated(i);
+                }
+                context(x, y) => {
+                    root.item-context(i, x, y);
+                }
+            }
+        }
+    }
+
+    // The heading sits over the rows, on the page's own colour, so they slide beneath it.
+    Rectangle {
+        y: root.top-inset;
+        height: root.heading-height + 2px;
+        width: parent.width;
+        background: @linear-gradient(180deg, Theme.page-top, Theme.page-top.with-alpha(0.94));
+        Rectangle {
+            y: parent.height - 1px;
+            height: 1px;
+            background: Theme.text.with-alpha(0.08);
+        }
+
+        Rectangle {
+            x: ListColumns.side;
+            width: parent.width - ListColumns.side * 2 - 8px;
+            height: root.heading-height;
+            Heading {
+                x: 44px;
+                width: parent.width - 44px - ListColumns.modified - ListColumns.size - ListColumns.kind;
+                text: "Name";
+                sorted: root.sort-column == "name";
+                ascending: root.sort-ascending;
+                clicked => {
+                    root.sort-requested("name");
+                }
+            }
+
+            Heading {
+                x: parent.width - ListColumns.modified - ListColumns.size - ListColumns.kind;
+                width: ListColumns.modified - 8px;
+                text: "Date Modified";
+                sorted: root.sort-column == "modified";
+                ascending: root.sort-ascending;
+                clicked => {
+                    root.sort-requested("modified");
+                }
+            }
+
+            Heading {
+                x: parent.width - ListColumns.size - ListColumns.kind;
+                width: ListColumns.size - 16px;
+                text: "Size";
+                align: right;
+                sorted: root.sort-column == "size";
+                ascending: root.sort-ascending;
+                clicked => {
+                    root.sort-requested("size");
+                }
+            }
+
+            Heading {
+                x: parent.width - ListColumns.kind + 8px;
+                width: ListColumns.kind - 20px;
+                text: "Kind";
+                sorted: root.sort-column == "kind";
+                ascending: root.sort-ascending;
+                clicked => {
+                    root.sort-requested("kind");
+                }
+            }
+        }
+    }
+
+    Scroller {
+        x: parent.width - self.width;
+        y: 0;
+        height: parent.height;
+        content-height: flick.content-height;
+        view-height: root.height;
+        offset: -flick.content-y;
+        inset-top: root.rows-top;
+        inset-bottom: 8px;
+        scrolled(o) => {
+            flick.content-y = -o;
+        }
+    }
+}

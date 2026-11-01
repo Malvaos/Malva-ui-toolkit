@@ -1,0 +1,29 @@
+// What the backend hands the UI. Every field is plain data; the UI owns no files, paths or state
+// beyond what the pointer is doing.
+
+// A file or folder in the browsed folder.
+export struct FileEntry {
+    name: string,
+    // "folder", "image", "pdf", "text", "archive", "audio", "video" or "file".
+    kind: string,
+    // Shown instead of the kind's icon when has-thumbnail.
+    thumbnail: image,
+    has-thumbnail: bool,
+    selected: bool,
+    hidden: bool,
+    // Shown in the list view: "2.4 MB", "Today at 14:02", "PNG image".
+    size: string,
+    modified: string,
+    kind-label: string,
+}
+
+// A row of the sidebar: a place, or a section's heading.
+export struct Place {
+    name: string,
+    // "home", "desktop", "documents", "downloads", "music", "pictures", "videos", "trash",
+    // "drive", "usb", "network" or "recent".
+    icon: string,
+    is-header: bool,
+    // A disk that can be ejected or unmounted shows the eject button.
+    ejectable: bool,
+}

@@ -1,0 +1,311 @@
+// Feedback: Badge, Banner, Toast, ToastStack and Skeleton.
+import { Theme, Size, Radius, Space, Typo, Motion, Elevation } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+import { Tone } from "base.slint";
+
+// The colours of a tone: fill (soft), text on that fill, and the strong colour.
+export global ToneColors {
+    pure public function soft(t: Tone) -> color {
+        return t == Tone.accent ? Theme.accent.with-alpha(Theme.dark ? 0.24 : 0.14)
+            : t == Tone.success ? Theme.success-soft
+            : t == Tone.warning ? Theme.warning-soft
+            : t == Tone.danger ? Theme.danger-soft
+            : t == Tone.info ? Theme.info-soft
+            : Theme.line;
+    }
+    pure public function text(t: Tone) -> color {
+        return t == Tone.accent ? Theme.accent
+            : t == Tone.success ? Theme.success-text
+            : t == Tone.warning ? Theme.warning-text
+            : t == Tone.danger ? Theme.danger-text
+            : t == Tone.info ? Theme.info-text
+            : Theme.text-2;
+    }
+    pure public function strong(t: Tone) -> color {
+        return t == Tone.accent ? Theme.accent
+            : t == Tone.success ? Theme.success
+            : t == Tone.warning ? Theme.warning
+            : t == Tone.danger ? Theme.danger
+            : t == Tone.info ? Theme.info
+            : Theme.muted;
+    }
+    pure public function glyph(t: Tone) -> string {
+        return t == Tone.success ? "success" : t == Tone.warning ? "alert" : t == Tone.danger ? "error" : t == Tone.info ? "info" : t == Tone.accent ? "sparkle" : "info";
+    }
+}
+
+// A small status pill: Synced, Low battery, Offline, New.
+export component Badge inherits Rectangle {
+    in property <string> text;
+    in property <Tone> tone: Tone.neutral;
+    in property <string> icon;
+    height: 24px;
+    border-radius: self.height / 2;
+    background: ToneColors.soft(tone);
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        spacing: 4px;
+        if root.icon != "": Icon {
+            name: root.icon;
+            tint: ToneColors.text(root.tone);
+            width: 14px;
+            height: 14px;
+            y: (parent.height - self.height) / 2;
+        }
+        Text {
+            text: root.text;
+            font-family: Typo.ui;
+            font-size: Typo.caption-size;
+            font-weight: 600;
+            color: ToneColors.text(root.tone);
+            vertical-alignment: center;
+        }
+    }
+}
+
+// An inline message that stays on the page: icon, title, text, an optional action and a close button.
+export component Banner inherits Rectangle {
+    in property <Tone> tone: Tone.info;
+    in property <string> title;
+    in property <string> text;
+    in property <string> action;
+    in property <bool> closable: false;
+    callback action-clicked();
+    callback closed();
+    border-radius: Radius.m;
+    background: ToneColors.soft(tone);
+    border-width: 1px;
+    border-color: ToneColors.strong(tone).with-alpha(0.30);
+    HorizontalLayout {
+        padding: Space.m - 2px;
+        spacing: Space.s;
+        Icon {
+            name: ToneColors.glyph(root.tone);
+            tint: ToneColors.text(root.tone);
+            width: Size.icon-l;
+            height: Size.icon-l;
+        }
+        VerticalLayout {
+            spacing: 2px;
+            alignment: center;
+            if root.title != "": Text {
+                text: root.title;
+                font-family: Typo.ui;
+                font-size: Typo.body-size;
+                font-weight: Typo.body-strong-weight;
+                color: Theme.text;
+                wrap: word-wrap;
+            }
+            if root.text != "": Text {
+                text: root.text;
+                font-family: Typo.ui;
+                font-size: Typo.body-size;
+                color: Theme.text-2;
+                wrap: word-wrap;
+            }
+        }
+        if root.action != "": Rectangle {
+            width: act-label.preferred-width + 20px;
+            height: 32px;
+            y: (parent.height - self.height) / 2;
+            border-radius: Radius.s - 2px;
+            background: act.has-hover ? ToneColors.strong(root.tone).with-alpha(0.16) : transparent;
+            act-label := Text {
+                x: 10px;
+                text: root.action;
+                font-family: Typo.ui;
+                font-size: Typo.label-size;
+                font-weight: 600;
+                color: ToneColors.text(root.tone);
+                vertical-alignment: center;
+            }
+            act := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.action-clicked();
+                }
+            }
+        }
+        if root.closable: Rectangle {
+            width: 28px;
+            height: 28px;
+            y: (parent.height - self.height) / 2;
+            border-radius: 14px;
+            background: cl.has-hover ? Theme.icon-hover : transparent;
+            Icon {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                name: "close";
+                tint: Theme.text-2;
+                width: Size.icon-s;
+                height: Size.icon-s;
+            }
+            cl := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.closed();
+                }
+            }
+        }
+    }
+}
+
+// A transient notice: "Backup finished — 2,184 files saved to Studio Drive". It slides up as it arrives and
+// calls `dismissed` after `life` (0 keeps it until closed).
+export component Toast inherits Rectangle {
+    in property <Tone> tone: Tone.accent;
+    in property <string> title;
+    in property <string> text;
+    in property <string> icon;
+    in property <string> action;
+    in property <duration> life: 5200ms;
+    // For design sheets: draw it settled, without waiting a frame.
+    in property <bool> settled: false;
+    callback action-clicked();
+    callback dismissed();
+
+    property <bool> appeared: settled;
+    property <float> appear: appeared ? 1 : 0;
+    animate appear { duration: Motion.slow; easing: Motion.curve-spring; }
+    width: Size.toast-width;
+    min-height: 76px;
+    border-radius: Radius.m + 4px;
+    background: Theme.raised;
+    border-width: 1px;
+    border-color: Theme.border;
+    drop-shadow-color: Theme.shadow.with-alpha(Theme.shadow-alpha2);
+    drop-shadow-blur: Elevation.blur2;
+    drop-shadow-offset-y: Elevation.y2;
+    opacity: min(appear * 1.6, 1.0);
+    transform-scale: 0.96 + 0.04 * min(appear, 1.0);
+
+    Timer {
+        interval: 16ms;
+        running: !root.appeared;
+        triggered => {
+            root.appeared = true;
+        }
+    }
+    // Says `dismissed` once, when its time is up; the program removes the toast.
+    property <bool> sent: false;
+    Timer {
+        interval: root.life;
+        running: root.life > 0ms && root.appeared && !root.sent;
+        triggered => {
+            root.sent = true;
+            root.dismissed();
+        }
+    }
+    HorizontalLayout {
+        padding: Space.m - 2px;
+        spacing: Space.s + 2px;
+        Rectangle {
+            width: 44px;
+            height: 44px;
+            y: (parent.height - self.height) / 2;
+            border-radius: Radius.s + 2px;
+            background: root.tone == Tone.accent ? Theme.accent : root.tone == Tone.neutral ? Theme.search-fill : ToneColors.strong(root.tone);
+            Icon {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                width: Size.icon-l;
+                height: Size.icon-l;
+                name: root.icon != "" ? root.icon : root.tone == Tone.accent ? "check" : ToneColors.glyph(root.tone);
+                tint: root.tone == Tone.neutral ? Theme.text-2 : root.tone == Tone.warning ? #1D1D1F : root.tone == Tone.accent ? Theme.on-accent : (Theme.dark ? #1D1D1F : #FFFFFF);
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 2px;
+            Text {
+                text: root.title;
+                font-family: Typo.ui;
+                font-size: Typo.body-size;
+                font-weight: Typo.body-strong-weight;
+                color: Theme.text;
+                overflow: elide;
+            }
+            if root.text != "": Text {
+                text: root.text;
+                font-family: Typo.ui;
+                font-size: Typo.caption-size;
+                color: Theme.text-2;
+                wrap: word-wrap;
+            }
+        }
+        if root.action != "": Rectangle {
+            width: act-label.preferred-width + 20px;
+            height: 32px;
+            y: (parent.height - self.height) / 2;
+            border-radius: Radius.s - 2px;
+            background: act.has-hover ? Theme.ghost-hover : transparent;
+            act-label := Text {
+                x: 10px;
+                text: root.action;
+                font-family: Typo.ui;
+                font-size: Typo.label-size;
+                font-weight: 600;
+                color: Theme.accent;
+                vertical-alignment: center;
+            }
+            act := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.action-clicked();
+                }
+            }
+        }
+    }
+}
+
+export struct ToastItem {
+    id: int,
+    tone: Tone,
+    title: string,
+    text: string,
+    icon: string,
+    action: string,
+}
+
+// A column of toasts, newest at the bottom. The program removes an item from `model` when `dismissed(id)` fires.
+export component ToastStack inherits Rectangle {
+    in property <[ToastItem]> model;
+    in property <duration> life: 5200ms;
+    callback dismissed(int);
+    callback action-clicked(int);
+    width: Size.toast-width;
+    VerticalLayout {
+        spacing: Space.xs + 2px;
+        alignment: end;
+        for t in root.model: Toast {
+            tone: t.tone;
+            title: t.title;
+            text: t.text;
+            icon: t.icon;
+            action: t.action;
+            life: root.life;
+            dismissed => {
+                root.dismissed(t.id);
+            }
+            action-clicked => {
+                root.action-clicked(t.id);
+            }
+        }
+    }
+}
+
+// A placeholder for content that is still loading: a quiet block with a light that sweeps across it.
+export component Skeleton inherits Rectangle {
+    in property <length> corner: Radius.xs + 2px;
+    height: 14px;
+    border-radius: corner;
+    background: Theme.line;
+    clip: true;
+    property <float> phase: mod(animation-tick() / 1ms, 1400.0) / 1400.0;
+    Rectangle {
+        x: -root.width * 0.6 + root.phase * root.width * 2.2;
+        width: root.width * 0.6;
+        background: @linear-gradient(90deg, transparent 0%, Theme.surface.with-alpha(Theme.dark ? 0.10 : 0.65) 50%, transparent 100%);
+    }
+}

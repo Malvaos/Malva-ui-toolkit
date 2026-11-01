@@ -1,0 +1,64 @@
+import { Theme } from "ui/theme.slint";
+import { WifiPopover, BluetoothPopover, BatteryPopover, VolumePopover, CalendarPopover } from "ui/components/popovers.slint";
+export component Sheet inherits Window {
+    width: 1500px; height: 840px;
+    background: #8aa0c8;
+    WifiPopover { x: 20px; y: 20px; open: true; origin-x: 160px;
+        networks: [{name: "Mangrove 5G", strength: 3, secured: true, connected: true, connecting: false, saved: true},
+                   {name: "Cafe Guest", strength: 2, secured: false, connected: false, connecting: false, saved: false},
+                   {name: "Neighbour_2.4", strength: 1, secured: true, connected: false, connecting: true, saved: true},
+                   {name: "Printer-Direct", strength: 1, secured: true, connected: false, connecting: false, saved: false}]; }
+    BluetoothPopover { x: 370px; y: 20px; open: true;
+        devices: [{name: "Studio Buds", icon: "headphones", connected: true, connecting: false, battery: 82},
+                  {name: "MX Master", icon: "mouse", connected: true, connecting: false, battery: 45},
+                  {name: "Pixel 8", icon: "phone", connected: false, connecting: false, battery: -1},
+                  {name: "Kitchen Speaker", icon: "speaker", connected: false, connecting: true, battery: -1}]; }
+    BatteryPopover { x: 720px; y: 20px; open: true; percent: 82; charging: true; status: "Charging"; detail: "38 min until full"; source: "Power adapter"; mode: 1;
+        facts: [{label: "Health", value: "94 %"}, {label: "Cycles", value: "212"}]; }
+    VolumePopover { x: 1050px; y: 20px; open: true; volume: 0.62;
+        outputs: [{name: "Speakers", icon: "speaker", selected: true}, {name: "Studio Buds", icon: "headphones", selected: false}]; }
+    CalendarPopover { x: 20px; y: 330px; open: true; title: "October 2026"; weekdays: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]; day-title: "Wednesday, 28 October";
+        cells: [{day: 28, in-month: false, today: false, selected: false, events: 0},
+{day: 29, in-month: false, today: false, selected: false, events: 0},
+{day: 30, in-month: false, today: false, selected: false, events: 0},
+{day: 1, in-month: true, today: false, selected: false, events: 0},
+{day: 2, in-month: true, today: false, selected: false, events: 0},
+{day: 3, in-month: true, today: false, selected: false, events: 2},
+{day: 4, in-month: true, today: false, selected: false, events: 0},
+{day: 5, in-month: true, today: false, selected: false, events: 0},
+{day: 6, in-month: true, today: false, selected: false, events: 0},
+{day: 7, in-month: true, today: false, selected: false, events: 1},
+{day: 8, in-month: true, today: false, selected: false, events: 0},
+{day: 9, in-month: true, today: false, selected: false, events: 2},
+{day: 10, in-month: true, today: false, selected: false, events: 0},
+{day: 11, in-month: true, today: false, selected: false, events: 0},
+{day: 12, in-month: true, today: false, selected: false, events: 0},
+{day: 13, in-month: true, today: false, selected: false, events: 0},
+{day: 14, in-month: true, today: false, selected: false, events: 1},
+{day: 15, in-month: true, today: false, selected: false, events: 0},
+{day: 16, in-month: true, today: false, selected: false, events: 0},
+{day: 17, in-month: true, today: false, selected: false, events: 0},
+{day: 18, in-month: true, today: false, selected: false, events: 0},
+{day: 19, in-month: true, today: false, selected: false, events: 0},
+{day: 20, in-month: true, today: false, selected: false, events: 0},
+{day: 21, in-month: true, today: false, selected: false, events: 1},
+{day: 22, in-month: true, today: false, selected: false, events: 0},
+{day: 23, in-month: true, today: false, selected: false, events: 0},
+{day: 24, in-month: true, today: false, selected: false, events: 0},
+{day: 25, in-month: true, today: false, selected: false, events: 0},
+{day: 26, in-month: true, today: false, selected: false, events: 0},
+{day: 27, in-month: true, today: false, selected: false, events: 0},
+{day: 28, in-month: true, today: true, selected: true, events: 2},
+{day: 29, in-month: true, today: false, selected: false, events: 0},
+{day: 30, in-month: true, today: false, selected: false, events: 0},
+{day: 31, in-month: true, today: false, selected: false, events: 0},
+{day: 1, in-month: false, today: false, selected: false, events: 0},
+{day: 2, in-month: false, today: false, selected: false, events: 0},
+{day: 3, in-month: false, today: false, selected: false, events: 0},
+{day: 4, in-month: false, today: false, selected: false, events: 0},
+{day: 5, in-month: false, today: false, selected: false, events: 0},
+{day: 6, in-month: false, today: false, selected: false, events: 0},
+{day: 7, in-month: false, today: false, selected: false, events: 0},
+{day: 8, in-month: false, today: false, selected: false, events: 0}];
+        events: [{time: "09:30 – 10:00", title: "Design review", place: "Room 4", tone: 0}, {time: "13:00", title: "Lunch with Aria", place: "Corner Cafe", tone: 1}, {time: "17:30", title: "Gym", place: "", tone: 2}]; }
+}

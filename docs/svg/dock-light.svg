@@ -1,0 +1,190 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1040" height="220" viewBox="0 0 1040 220" font-family="Inter, 'Segoe UI', system-ui, sans-serif">
+<defs><filter id="e1" x="-40%" y="-40%" width="180%" height="190%"><feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.08"/></filter><filter id="e2" x="-40%" y="-40%" width="180%" height="190%"><feDropShadow dx="0" dy="6" stdDeviation="9" flood-color="#000000" flood-opacity="0.12"/></filter><filter id="e3" x="-40%" y="-40%" width="180%" height="190%"><feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.18"/></filter><clipPath id="all"><rect width="1040" height="220" rx="0"/></clipPath></defs>
+<svg x="0" y="0" width="1040" height="220" viewBox="0 0 1920 1200" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="i1base" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7F7F9"/><stop offset="0.55" stop-color="#ECECF0"/><stop offset="1" stop-color="#E3E3E9"/></linearGradient>
+    <radialGradient id="i1a" cx="0.16" cy="0.1" r="0.55"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+    <radialGradient id="i1b" cx="0.84" cy="1.02" r="0.6"><stop offset="0" stop-color="#B84F9F" stop-opacity="0.22"/><stop offset="1" stop-color="#B84F9F" stop-opacity="0"/></radialGradient>
+    <radialGradient id="i1c" cx="0.5" cy="1.05" r="0.55"><stop offset="0" stop-color="#C763B0" stop-opacity="0.14"/><stop offset="1" stop-color="#C763B0" stop-opacity="0"/></radialGradient>
+    <radialGradient id="i1d" cx="0.96" cy="0.1" r="0.4"><stop offset="0" stop-color="#D6D6DE" stop-opacity="0.7"/><stop offset="1" stop-color="#D6D6DE" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1920" height="1200" fill="url(#i1base)"/>
+  <rect width="1920" height="1200" fill="url(#i1a)"/>
+  <rect width="1920" height="1200" fill="url(#i1b)"/>
+  <rect width="1920" height="1200" fill="url(#i1c)"/>
+  <rect width="1920" height="1200" fill="url(#i1d)"/>
+</svg>
+<g filter="url(#e3)">
+<rect x="184.67" y="92" width="670.66" height="84" rx="22" fill="#FFFFFF" fill-opacity="0.65"/>
+</g>
+<rect x="185.17" y="92.5" width="669.66" height="83" rx="22" fill="none" stroke="#000000" stroke-width="1" stroke-opacity="0.14"/>
+<rect x="186.17" y="93.5" width="667.66" height="81" rx="21" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.7"/>
+<svg x="198.67" y="105.7" width="56.3" height="56.3" viewBox="0 0 128 128">
+<defs>
+<linearGradient id="i2g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a4a50"/><stop offset="1" stop-color="#1b1b1e"/></linearGradient>
+<linearGradient id="i2gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.5"/><stop offset="0.55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<clipPath id="i2c"><rect width="128" height="128" rx="29"/></clipPath>
+
+</defs>
+<rect width="128" height="128" rx="29" fill="url(#i2g)"/>
+<g clip-path="url(#i2c)">
+<circle cx="36" cy="36" r="9.5" fill="#ff6b6b"/>
+<circle cx="64" cy="36" r="9.5" fill="#ffb347"/>
+<circle cx="92" cy="36" r="9.5" fill="#ffe066"/>
+<circle cx="36" cy="64" r="9.5" fill="#51cf66"/>
+<circle cx="64" cy="64" r="9.5" fill="#3bc9db"/>
+<circle cx="92" cy="64" r="9.5" fill="#4dabf7"/>
+<circle cx="36" cy="92" r="9.5" fill="#9775fa"/>
+<circle cx="64" cy="92" r="9.5" fill="#dc73c2"/>
+<circle cx="92" cy="92" r="9.5" fill="#ffffff"/>
+
+<rect width="128" height="76" fill="url(#i2gl)"/>
+</g>
+<rect x="1" y="1" width="126" height="126" rx="28" fill="none" stroke="#fff" stroke-opacity=".38" stroke-width="2"/>
+<rect x=".5" y=".5" width="127" height="127" rx="28.5" fill="none" stroke="#000" stroke-opacity=".22"/>
+</svg>
+<svg x="264.97" y="95.17" width="66.83" height="66.83" viewBox="0 0 128 128">
+<defs>
+<linearGradient id="i3g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e4e4ea"/></linearGradient>
+<linearGradient id="i3gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.0"/><stop offset="0.55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<clipPath id="i3c"><rect width="128" height="128" rx="29"/></clipPath>
+
+</defs>
+<rect width="128" height="128" rx="29" fill="url(#i3g)"/>
+<g clip-path="url(#i3c)">
+<g transform="translate(14 17) scale(1.5)">
+<defs><linearGradient id="i3fb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b84f9f"/><stop offset="1" stop-color="#8c3274"/></linearGradient>
+<linearGradient id="i3ff" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e58bd0"/><stop offset="1" stop-color="#c95fae"/></linearGradient></defs>
+<path d="M5 14a5 5 0 0 1 5-5h14l6 6h24a5 5 0 0 1 5 5v31a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5z" fill="url(#i3fb)"/>
+<rect x="5" y="22" width="54" height="33" rx="5" fill="url(#i3ff)"/>
+<rect x="5.5" y="22.5" width="53" height="1" fill="#fff" opacity=".55"/></g>
+<rect width="128" height="76" fill="url(#i3gl)"/>
+</g>
+<rect x="1" y="1" width="126" height="126" rx="28" fill="none" stroke="#fff" stroke-opacity=".38" stroke-width="2"/>
+<rect x=".5" y=".5" width="127" height="127" rx="28.5" fill="none" stroke="#000" stroke-opacity=".22"/>
+</svg>
+<circle cx="298.39" cy="171" r="2.2" fill="#1D1D1F" fill-opacity="0.8"/>
+<svg x="341.8" y="69.6" width="92.4" height="92.4" viewBox="0 0 128 128">
+<defs>
+<linearGradient id="i4g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#52b0ff"/><stop offset="1" stop-color="#1d5be0"/></linearGradient>
+<linearGradient id="i4gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.5"/><stop offset="0.55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<clipPath id="i4c"><rect width="128" height="128" rx="29"/></clipPath>
+
+</defs>
+<rect width="128" height="128" rx="29" fill="url(#i4g)"/>
+<g clip-path="url(#i4c)">
+<g fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round">
+<circle cx="64" cy="64" r="34"/>
+<ellipse cx="64" cy="64" rx="14" ry="34"/>
+<path d="M32 52 Q64 62 96 52 M32 76 Q64 66 96 76 M30 64 H98" stroke-width="5"/></g>
+<rect width="128" height="76" fill="url(#i4gl)"/>
+</g>
+<rect x="1" y="1" width="126" height="126" rx="28" fill="none" stroke="#fff" stroke-opacity=".38" stroke-width="2"/>
+<rect x=".5" y=".5" width="127" height="127" rx="28.5" fill="none" stroke="#000" stroke-opacity=".22"/>
+</svg>
+<circle cx="388" cy="171" r="2.2" fill="#1D1D1F" fill-opacity="0.8"/>
+<g filter="url(#e2)">
+<rect x="350.1" y="29.6" width="75.8" height="28" rx="10" fill="#FFFFFF" stroke="#E5E5EA" stroke-width="1"/>
+</g>
+<text x="388" y="48.6" font-size="12" font-weight="600" fill="#1D1D1F" text-anchor="middle">Browser</text>
+<svg x="444.2" y="95.17" width="66.83" height="66.83" viewBox="0 0 128 128">
+<defs>
+<linearGradient id="i5g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3e3e43"/><stop offset="1" stop-color="#121214"/></linearGradient>
+<linearGradient id="i5gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.28"/><stop offset="0.55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<clipPath id="i5c"><rect width="128" height="128" rx="29"/></clipPath>
+
+</defs>
+<rect width="128" height="128" rx="29" fill="url(#i5g)"/>
+<g clip-path="url(#i5c)">
+<path d="M38 46 L64 64 L38 82" fill="none" stroke="#6dffb0" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M74 86 H98" stroke="#fff" stroke-width="10" stroke-linecap="round"/>
+<rect width="128" height="76" fill="url(#i5gl)"/>
+</g>
+<rect x="1" y="1" width="126" height="126" rx="28" fill="none" stroke="#fff" stroke-opacity=".38" stroke-width="2"/>
+<rect x=".5" y=".5" width="127" height="127" rx="28.5" fill="none" stroke="#000" stroke-opacity=".22"/>
+</svg>
+<circle cx="477.61" cy="171" r="2.2" fill="#1D1D1F" fill-opacity="0.8"/>
+<svg x="521.03" y="105.7" width="56.3" height="56.3" viewBox="0 0 128 128">
+<defs>
+<linearGradient id="i6g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#aaaab0"/><stop offset="1" stop-color="#5c5c62"/></linearGradient>
+<linearGradient id="i6gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.5"/><stop offset="0.55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<clipPath id="i6c"><rect width="128" height="128" rx="29"/></clipPath>
+
+</defs>
+<rect width="128" height="128" rx="29" fill="url(#i6g)"/>
+<g clip-path="url(#i6c)">
+<g transform="translate(64 64)" fill="#fff"><circle r="23" fill="none" stroke="#fff" stroke-width="15"/><rect x="-7" y="-41" width="14" height="17" rx="3.5" transform="rotate(0)"/><rect x="-7" y="-41" width="14" height="17" rx="3.5" transform="rotate(45)"/><rect x="-7" y="-41" width="14" height="17" rx="3.5" transform="rotate(90)"/><rect x="-7" y="-41" width="14" height="17" rx="3.5" transform="rotate(135)"/><rect x="-7" y="-41" width="14" height="17" rx="3.5" transform="rotate(180)"/><rect x="-7" y="-41" width="14" height="17" rx="3.5" transform="rotate(225)"/><rect x="-7" y="-41" width="14" height="17" rx="3.5" transform="rotate(270)"/><rect x="-7" y="-41" width="14" height="17" rx="3.5" transform="rotate(315)"/></g>
+<rect width="128" height="76" fill="url(#i6gl)"/>
+</g>
+<rect x="1" y="1" width="126" height="126" rx="28" fill="none" stroke="#fff" stroke-opacity=".38" stroke-width="2"/>
+<rect x=".5" y=".5" width="127" height="127" rx="28.5" fill="none" stroke="#000" stroke-opacity=".22"/>
+</svg>
+<svg x="587.33" y="106" width="56" height="56" viewBox="0 0 128 128">
+<defs>
+<linearGradient id="i7g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7a98"/><stop offset="1" stop-color="#dc1f5c"/></linearGradient>
+<linearGradient id="i7gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.5"/><stop offset="0.55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<clipPath id="i7c"><rect width="128" height="128" rx="29"/></clipPath>
+
+</defs>
+<rect width="128" height="128" rx="29" fill="url(#i7g)"/>
+<g clip-path="url(#i7c)">
+<g fill="#fff"><path d="M58 36 L100 26 V84 H88 V44 L70 48 V94 H58 Z" />
+<ellipse cx="50" cy="94" rx="15" ry="11.5" transform="rotate(-18 50 94)"/>
+<ellipse cx="92" cy="84" rx="15" ry="11.5" transform="rotate(-18 92 84)"/></g>
+<rect width="128" height="76" fill="url(#i7gl)"/>
+</g>
+<rect x="1" y="1" width="126" height="126" rx="28" fill="none" stroke="#fff" stroke-opacity=".38" stroke-width="2"/>
+<rect x=".5" y=".5" width="127" height="127" rx="28.5" fill="none" stroke="#000" stroke-opacity=".22"/>
+</svg>
+<svg x="653.33" y="106" width="56" height="56" viewBox="0 0 128 128">
+<defs>
+<linearGradient id="i8g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fd3ff"/><stop offset="1" stop-color="#2f7be6"/></linearGradient>
+<linearGradient id="i8gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.5"/><stop offset="0.55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<clipPath id="i8c"><rect width="128" height="128" rx="29"/></clipPath>
+
+</defs>
+<rect width="128" height="128" rx="29" fill="url(#i8g)"/>
+<g clip-path="url(#i8c)">
+<circle cx="92" cy="44" r="13" fill="#ffe27a"/>
+<path d="M0 96 L38 52 L62 80 L82 62 L128 104 V128 H0 Z" fill="#2f4ea8"/>
+<path d="M0 108 Q40 84 76 100 T128 98 V128 H0 Z" fill="#2fb27a"/>
+<rect width="128" height="76" fill="url(#i8gl)"/>
+</g>
+<rect x="1" y="1" width="126" height="126" rx="28" fill="none" stroke="#fff" stroke-opacity=".38" stroke-width="2"/>
+<rect x=".5" y=".5" width="127" height="127" rx="28.5" fill="none" stroke="#000" stroke-opacity=".22"/>
+</svg>
+<svg x="719.33" y="106" width="56" height="56" viewBox="0 0 128 128">
+<defs>
+<linearGradient id="i9g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5cbcff"/><stop offset="1" stop-color="#2363e8"/></linearGradient>
+<linearGradient id="i9gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.5"/><stop offset="0.55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<clipPath id="i9c"><rect width="128" height="128" rx="29"/></clipPath>
+
+</defs>
+<rect width="128" height="128" rx="29" fill="url(#i9g)"/>
+<g clip-path="url(#i9c)">
+<rect x="25" y="38" width="78" height="54" rx="10" fill="#fff"/>
+<path d="M30 47 L64 72 L98 47" fill="none" stroke="#2c6be6" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect width="128" height="76" fill="url(#i9gl)"/>
+</g>
+<rect x="1" y="1" width="126" height="126" rx="28" fill="none" stroke="#fff" stroke-opacity=".38" stroke-width="2"/>
+<rect x=".5" y=".5" width="127" height="127" rx="28.5" fill="none" stroke="#000" stroke-opacity=".22"/>
+</svg>
+<svg x="785.33" y="106" width="56" height="56" viewBox="0 0 128 128">
+<defs>
+<linearGradient id="i10g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#ececf1"/></linearGradient>
+<linearGradient id="i10gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.0"/><stop offset="0.55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<clipPath id="i10c"><rect width="128" height="128" rx="29"/></clipPath>
+<linearGradient id="i10rd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6459"/><stop offset="1" stop-color="#e5352b"/></linearGradient>
+</defs>
+<rect width="128" height="128" rx="29" fill="url(#i10g)"/>
+<g clip-path="url(#i10c)">
+<rect width="128" height="40" fill="url(#i10rd)"/>
+<rect x="30" y="14" width="22" height="7" rx="3.5" fill="#fff" opacity=".9"/>
+<rect x="76" y="14" width="22" height="7" rx="3.5" fill="#fff" opacity=".9"/>
+<path d="M36 62 h22 v20.0 h-22 v20.0 h22" fill="none" stroke="#1d1d1f" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><path d="M70 62 h22 v40" fill="none" stroke="#1d1d1f" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+<rect width="128" height="76" fill="url(#i10gl)"/>
+</g>
+<rect x="1" y="1" width="126" height="126" rx="28" fill="none" stroke="#fff" stroke-opacity=".38" stroke-width="2"/>
+<rect x=".5" y=".5" width="127" height="127" rx="28.5" fill="none" stroke="#000" stroke-opacity=".22"/>
+</svg>
+</svg>

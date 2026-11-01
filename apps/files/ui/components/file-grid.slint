@@ -1,0 +1,141 @@
+import { Theme, Motion } from "../theme.slint";
+import { FileEntry } from "../types.slint";
+import { GridItem } from "grid-item.slint";
+import { Scroller } from "scroller.slint";
+
+// The icon view. Only the rows in (or just beside) the window exist, so a folder of tens of
+// thousands of files costs what a screenful does.
+export component FileGrid inherits Rectangle {
+    in property <[FileEntry]> entries;
+    in property <length> icon-size: 64px;
+    // The height of what floats over the top of the view (the header), which the items start under.
+    in property <length> top-inset: 56px;
+    in property <length> bottom-inset: 56px;
+    // For design previews: the item drawn as if the pointer were on it.
+    in property <int> force-hover: -1;
+    // Drawn as it is when its folder opens; off, items are simply there.
+    in property <bool> animate-entrance: true;
+
+    // The index, and whether Ctrl and Shift were down.
+    callback item-pressed(int, bool, bool);
+    callback item-activated(int);
+    callback item-context(int, length, length);
+    callback background-pressed();
+    callback background-context(length, length);
+
+    // How many items sit on a row, for the arrow keys.
+    out property <int> columns: max(1, floor((root.width - 6px - 12px) / (icon-size + 48px)));
+    out property <length> scroll-offset: -flick.content-y;
+
+    // Call before replacing the entries when a folder opens, for the items to arrive one by one.
+    public function folder-opening() {
+        if (root.animate-entrance) {
+            root.entering = true;
+            entering-timer.running = false;
+            entering-timer.running = true;
+        }
+        flick.content-y = 0px;
+    }
+    // Scrolls just far enough to show an item.
+    public function reveal(index: int) {
+        if (index < 0 || index >= root.entries.length) {
+            return;
+        }
+        let row-top = root.top-inset + floor(index / root.columns) * root.pitch-y;
+        let row-bottom = row-top + root.item-height;
+        if (row-top < -flick.content-y + root.top-inset) {
+            flick.content-y = -(row-top - root.top-inset);
+        } else if (row-bottom > -flick.content-y + root.height - root.bottom-inset) {
+            flick.content-y = -(row-bottom - root.height + root.bottom-inset);
+        }
+    }
+
+    property <bool> entering: false;
+    property <length> pitch-x: icon-size + 48px;
+    // The two-line height of an item, measured from the font so it matches the items.
+    property <length> item-height: 8px + icon-size + 6px + 2 * line.preferred-height + 8px;
+    property <length> pitch-y: item-height + 14px;
+    property <length> left: (root.width - (columns * pitch-x - 16px)) / 2;
+    property <int> rows: ceil(entries.length / columns);
+    property <length> content-height: top-inset + rows * pitch-y - 14px + bottom-inset;
+    // The scroll distance in which items exist, a little past what shows.
+    property <length> margin: 160px;
+
+    line := Text {
+        visible: false;
+        text: "Ag";
+        font-size: Theme.font-size;
+    }
+
+    entering-timer := Timer {
+        interval: Motion.enter + Motion.stagger * Motion.stagger-limit + 120ms;
+        running: false;
+        triggered => {
+            root.entering = false;
+            self.running = false;
+        }
+    }
+
+    flick := Flickable {
+        width: parent.width;
+        height: parent.height;
+        content-width: parent.width;
+        content-height: max(root.content-height, parent.height);
+        // The wheel, the trackpad and touch scroll it; dragging with the mouse does not.
+        mouse-drag-pan-enabled: false;
+
+        TouchArea {
+            width: parent.width;
+            height: parent.height;
+            pointer-event(e) => {
+                if (e.kind == PointerEventKind.down) {
+                    if (e.button == PointerEventButton.left) {
+                        root.background-pressed();
+                    } else if (e.button == PointerEventButton.right) {
+                        root.background-context(self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+                    }
+                }
+            }
+        }
+
+        for entry[i] in root.entries: Rectangle {
+            property <int> row-index: floor(i / root.columns);
+            property <int> col-index: mod(i, root.columns);
+            property <length> top: root.top-inset + row-index * root.pitch-y;
+            // Items outside what shows do not exist; the selected one always does, for the
+            // arrival of its card to be seen when it is revealed.
+            if top + root.item-height > -flick.content-y - root.margin && top < -flick.content-y + root.height + root.margin: GridItem {
+                x: root.left + col-index * root.pitch-x + 8px;
+                y: top;
+                index: i;
+                entry: entry;
+                icon-size: root.icon-size;
+                entering: root.entering;
+                force-hover: i == root.force-hover;
+                pressed(ctrl, shift) => {
+                    root.item-pressed(i, ctrl, shift);
+                }
+                activated => {
+                    root.item-activated(i);
+                }
+                context(x, y) => {
+                    root.item-context(i, x, y);
+                }
+            }
+        }
+    }
+
+    Scroller {
+        x: parent.width - self.width;
+        y: 0;
+        height: parent.height;
+        content-height: flick.content-height;
+        view-height: root.height;
+        offset: -flick.content-y;
+        inset-top: root.top-inset;
+        inset-bottom: 8px;
+        scrolled(o) => {
+            flick.content-y = -o;
+        }
+    }
+}

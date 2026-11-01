@@ -1,0 +1,200 @@
+import { Theme, Screen } from "theme.slint";
+import { MenuEntry, TrayItem, WifiNetwork, BtDevice, AudioDevice, CalCell, CalEvent, QuickTile, Notice, Weather, Media, Fact } from "types.slint";
+import { MenubarPanel } from "components/menubar-panel.slint";
+
+// The window. It holds the bar and everything that drops from it and passes all of it through, so a
+// backend deals with one flat set of properties and callbacks. Everything the backend can set or hear
+// is listed here.
+//
+// The window is the screen's whole top: the bar is its first 30 px, the rest is clear (the menus,
+// popovers, the notification centre, toasts, the volume display and the power dialog appear in it).
+// A backend sizes it to the screen, transparent, and passes pointer events through everywhere except the bar
+// and what is open (while `popup` is not empty or `power-open` is set, the whole window takes them, so a
+// click outside can close what is open). Frameless transparent windows need a compositor that
+// blends alpha. None of the window management is in this project.
+export component MenubarWindow inherits Window {
+    title: "Menu bar";
+    default-font-family: Theme.font-family;
+    no-frame: true;
+    // What shows through where nothing is drawn: clear, on a compositor that blends the window.
+    in property <brush> desk: transparent;
+    background: desk;
+    preferred-width: 1280px;
+    preferred-height: 720px;
+
+    // ---- the look. `dark` follows the system's mode; `accent` is the system's accent.
+    in-out property <bool> dark <=> Theme.dark;
+    in-out property <color> accent <=> Theme.accent;
+    // The glass shows this blurred copy of the wallpaper behind it, when there is one: an image the size
+    // of the screen (backdrop-width by backdrop-height), whose top-left is the window's.
+    in-out property <image> backdrop <=> Screen.backdrop;
+    in-out property <bool> has-backdrop <=> Screen.has-backdrop;
+    in-out property <length> backdrop-width <=> Screen.width;
+    in-out property <length> backdrop-height <=> Screen.height;
+
+    // ---- the bar
+    // The titles of the menus; the first is the app's name (drawn bold).
+    in property <[string]> menus <=> panel.menus;
+    in property <[TrayItem]> tray <=> panel.tray;
+    // The keyboard layout's short name ("EN"); empty hides it.
+    in property <string> layout-text <=> panel.layout-text;
+    // The clock as written ("Wed 28 Oct  5:01 AM"): the backend formats it, so the locale is its own.
+    in property <string> clock-text <=> panel.clock-text;
+    in property <bool> has-battery <=> panel.has-battery;
+    in property <bool> show-battery-percent <=> panel.show-battery-percent;
+    // The red dot on the bell (it is hidden while `dnd` is on).
+    in property <int> unread <=> panel.unread;
+
+    // ---- what is open: "" for nothing, else "system", "menu-N", "tray-N", "layout", "wifi", "bluetooth",
+    // "volume", "battery", "control", "bell" (the notification centre) or "clock" (the calendar).
+    // The UI sets it as the person works; `popup-changed` tells you; `show-popup(name)` and `close-popup()` do it from outside.
+    in-out property <string> popup <=> panel.popup;
+    callback popup-changed <=> panel.popup-changed;
+    public function show-popup(name: string) {
+        panel.show-popup(name);
+    }
+    public function close-popup() {
+        panel.dismiss();
+    }
+
+    // ---- menus. When one is about to open, `menu-requested(name)` fires: set `menu-entries` in its handler
+    // (it is read at once). `menu-chosen(name, row)` says which row; the menu closes itself.
+    in property <[MenuEntry]> menu-entries <=> panel.menu-entries;
+    callback menu-requested <=> panel.menu-requested;
+    callback menu-chosen <=> panel.menu-chosen;
+
+    // ---- Wi-Fi
+    in-out property <bool> wifi-enabled <=> panel.wifi-enabled;
+    in property <bool> wifi-connected <=> panel.wifi-connected;
+    in property <int> wifi-strength <=> panel.wifi-strength;
+    in property <[WifiNetwork]> wifi-networks <=> panel.wifi-networks;
+    callback wifi-toggled <=> panel.wifi-toggled;
+    callback wifi-network-clicked <=> panel.wifi-network-clicked;
+    callback wifi-settings <=> panel.wifi-settings;
+
+    // ---- Bluetooth
+    in-out property <bool> bluetooth-enabled <=> panel.bluetooth-enabled;
+    in property <[BtDevice]> bluetooth-devices <=> panel.bluetooth-devices;
+    callback bluetooth-toggled <=> panel.bluetooth-toggled;
+    callback bluetooth-device-clicked <=> panel.bluetooth-device-clicked;
+    callback bluetooth-settings <=> panel.bluetooth-settings;
+
+    // ---- battery
+    in property <int> battery <=> panel.battery;
+    in property <bool> charging <=> panel.charging;
+    // "Charging", "On battery", "Fully charged"; and the line under it: "38 min until full".
+    in property <string> battery-status <=> panel.battery-status;
+    in property <string> battery-detail <=> panel.battery-detail;
+    // "Power adapter" or "Battery"; empty hides it.
+    in property <string> battery-source <=> panel.battery-source;
+    in property <[string]> power-modes <=> panel.power-modes;
+    in-out property <int> power-mode <=> panel.power-mode;
+    in property <[Fact]> battery-facts <=> panel.battery-facts;
+    callback power-mode-picked <=> panel.power-mode-picked;
+    callback battery-settings <=> panel.battery-settings;
+
+    // ---- sound and light (0 to 1)
+    in-out property <float> volume <=> panel.volume;
+    in-out property <bool> muted <=> panel.muted;
+    in property <[AudioDevice]> audio-outputs <=> panel.audio-outputs;
+    in-out property <float> brightness <=> panel.brightness;
+    callback volume-edited <=> panel.volume-edited;
+    callback mute-toggled <=> panel.mute-toggled;
+    callback output-clicked <=> panel.output-clicked;
+    callback sound-settings <=> panel.sound-settings;
+    callback brightness-edited <=> panel.brightness-edited;
+    // The volume display: `show-osd("volume", 0.6, "Volume 60%")`, "brightness", "mute", or "text" (a word big, in `label`).
+    public function show-osd(kind: string, value: float, label: string) {
+        panel.show-osd(kind, value, label);
+    }
+
+    // ---- the calendar: 42 cells from the week's first day; the backend moves months and days
+    in property <string> cal-title <=> panel.cal-title;
+    in property <[string]> cal-weekdays <=> panel.cal-weekdays;
+    // The same, shorter ("M", "T" ...), for the small calendar in the notification centre; empty uses the long ones.
+    in property <[string]> cal-weekdays-short <=> panel.cal-weekdays-short;
+    in property <[CalCell]> cal-cells <=> panel.cal-cells;
+    in property <string> cal-day-title <=> panel.cal-day-title;
+    in property <[CalEvent]> cal-events <=> panel.cal-events;
+    callback calendar-previous <=> panel.calendar-previous;
+    callback calendar-next <=> panel.calendar-next;
+    callback calendar-today <=> panel.calendar-today;
+    callback calendar-picked <=> panel.calendar-picked;
+    callback calendar-open <=> panel.calendar-open;
+
+    // ---- Control Center
+    in property <[QuickTile]> quick-tiles <=> panel.quick-tiles;
+    in property <Media> media <=> panel.media;
+    callback tile-toggled <=> panel.tile-toggled;
+    callback tile-detail <=> panel.tile-detail;
+    callback control-action <=> panel.control-action;
+    callback media-previous <=> panel.media-previous;
+    callback media-play-pause <=> panel.media-play-pause;
+    callback media-next <=> panel.media-next;
+
+    // ---- notifications: the list for the centre, and the toasts on the screen now
+    in property <[Notice]> notices <=> panel.notices;
+    in-out property <bool> dnd <=> panel.dnd;
+    in property <string> date-text <=> panel.date-text;
+    in property <Weather> weather <=> panel.weather;
+    in property <[Notice]> toasts <=> panel.toasts;
+    callback notice-clicked <=> panel.notice-clicked;
+    callback notice-action <=> panel.notice-action;
+    // A card has slid away and closed up: drop that row.
+    callback notice-removed <=> panel.notice-removed;
+    callback group-cleared <=> panel.group-cleared;
+    callback notices-cleared <=> panel.notices-cleared;
+    callback dnd-toggled <=> panel.dnd-toggled;
+    callback toast-clicked <=> panel.toast-clicked;
+    callback toast-action <=> panel.toast-action;
+    callback toast-closed <=> panel.toast-closed;
+    // A toast has gone (its time is up, or it was closed): drop that row.
+    callback toast-expired <=> panel.toast-expired;
+
+    // ---- power
+    in-out property <bool> power-open <=> panel.power-open;
+    in property <string> power-user <=> panel.power-user;
+    in property <int> power-countdown <=> panel.power-countdown;
+    // "lock", "sleep", "restart", "logout" or "shutdown": chosen (and, for the last three, counted down).
+    callback power-chosen <=> panel.power-chosen;
+    callback power-cancelled <=> panel.power-cancelled;
+    public function open-power() {
+        panel.open-power();
+    }
+    // Opens the dialog already counting down for "restart", "logout" or "shutdown".
+    public function ask-power(action: string) {
+        panel.ask-power(action);
+    }
+
+    // ---- what it says about itself
+    out property <bool> something-open: panel.popup != "" || panel.power-open;
+    // Where things are, in window coordinates, for a backend that gives the window input only where something
+    // is (the bar, the open menu or popover, the banners) and for tests. While `something-open` the whole window
+    // takes input, so a click outside closes it.
+    // The banners' column is `toasts-height` tall, from just under the bar, against the right edge, 380 px wide.
+    out property <length> toasts-height <=> panel.toasts-height;
+    // The volume display: whether it is up, which ("volume", "brightness", "mute", "text") and how full (0 to 1).
+    out property <bool> osd-showing <=> panel.osd-showing;
+    out property <string> osd-kind <=> panel.osd-kind;
+    out property <float> osd-value <=> panel.osd-value;
+    // The power dialog: the action counting down ("restart", "logout", "shutdown"; empty while choosing) and the seconds left.
+    out property <string> power-pending <=> panel.power-pending;
+    out property <int> power-remaining <=> panel.power-remaining;
+    out property <string> power-view <=> panel.power-view;
+    // The open menu's card, the highlighted row of it (-1 for none), the row whose flyout is open (-1 for none), the
+    // highlighted row of the flyout, and the flyout's card (its width is the menu's, at least 190 px).
+    out property <length> menu-x <=> panel.menu-x;
+    out property <length> menu-y <=> panel.menu-y;
+    out property <length> menu-width <=> panel.menu-width;
+    out property <length> menu-height <=> panel.menu-height;
+    out property <int> menu-cursor <=> panel.menu-cursor;
+    out property <int> menu-sub <=> panel.menu-sub;
+    out property <int> menu-sub-cursor <=> panel.menu-sub-cursor;
+    out property <length> flyout-x <=> panel.flyout-x;
+    out property <length> flyout-y <=> panel.flyout-y;
+
+    panel := MenubarPanel {
+        width: parent.width;
+        height: parent.height;
+    }
+}

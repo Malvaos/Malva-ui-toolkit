@@ -1,0 +1,586 @@
+#!/usr/bin/env python3
+"""Turns tokens/malva-tokens.json into every artefact that carries a token.
+
+    python3 tools/gen_tokens.py            write the outputs
+    python3 tools/gen_tokens.py --check    write nothing; exit 1 if any output differs from what is on disk
+
+Outputs (all marked GENERATED, none to be edited by hand):
+    slint/tokens.slint                    Palette, Radius, Space, Size, Typo, Motion, Elevation, Theme globals
+    cpp/include/malva/tokens.h            constexpr colours for light and dark, scalars, easing curves
+    rust/malva-tokens/src/lib.rs          the same, for Rust (std only)
+    css/malva.css                         custom properties, light, dark and prefers-color-scheme
+    dist/malva.dtcg.json                  W3C design-token format, for Figma / Tokens Studio / Style Dictionary
+    dist/resolved.json                    every colour of both modes resolved to hex (the tests read this)
+    dist/malva.gpl                        palette for Inkscape / GIMP / Krita
+    docs/TOKENS.md                        reference tables
+    svg/palette.svg                       the palette sheet
+
+Colour maths is integer on purpose: mix(a,b,p) = (a*(100-p) + b*p + 50) // 100 per channel, alpha(a,p) sets
+alpha to (255*p + 50) // 100, over(a,b) = (a*alpha + b*(255-alpha) + 127) // 255. The Rust and C++ colour
+modules implement the same formulas and their tests compare against dist/resolved.json."""
+import json, os, re, sys
+
+ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+SRC = os.path.join(ROOT, "tokens", "malva-tokens.json")
+CHECK = "--check" in sys.argv
+STALE = []
+
+
+def out(path, text):
+    full = os.path.join(ROOT, path)
+    if CHECK:
+        old = open(full).read() if os.path.exists(full) else None
+        if old != text:
+            STALE.append(path)
+        return
+    os.makedirs(os.path.dirname(full), exist_ok=True)
+    with open(full, "w") as f:
+        f.write(text)
+
+
+# ---------------------------------------------------------------- colour maths
+def parse_hex(s):
+    m = re.fullmatch(r"#([0-9A-Fa-f]{6})([0-9A-Fa-f]{2})?", s)
+    if not m:
+        raise ValueError(f"bad colour {s!r}")
+    h = m.group(1)
+    return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), int(m.group(2), 16) if m.group(2) else 255)
+
+
+def to_hex(c, always_alpha=False):
+    r, g, b, a = c
+    return "#%02X%02X%02X" % (r, g, b) + ("%02X" % a if (a != 255 or always_alpha) else "")
+
+
+def mix(a, b, p):
+    return tuple((a[i] * (100 - p) + b[i] * p + 50) // 100 for i in range(4))
+
+
+def with_alpha(a, p):
+    return (a[0], a[1], a[2], (255 * p + 50) // 100)
+
+
+def over(a, b):
+    al = a[3]
+    return tuple((a[i] * al + b[i] * (255 - al) + 127) // 255 for i in range(3)) + (255,)
+
+
+def resolve_mode(spec, brand, mode):
+    raw = {k: v[mode] for k, v in spec["colors"].items()}
+    cache = {}
+
+    def get(name, stack=()):
+        if name in brand:
+            return parse_hex(brand[name])
+        if name.startswith("#"):
+            return parse_hex(name)
+        if name in cache:
+            return cache[name]
+        if name in stack:
+            raise ValueError("colour cycle: " + " -> ".join(stack + (name,)))
+        if name not in raw:
+            raise KeyError(f"unknown colour {name!r} in mode {mode}")
+        cache[name] = ev(raw[name], stack + (name,))
+        return cache[name]
+
+    def ev(expr, stack):
+        if not expr.startswith("@"):
+            return parse_hex(expr)
+        body = expr[1:]
+        m = re.fullmatch(r"(\w+)\((.*)\)", body)
+        if not m:
+            return get(body, stack)  # alias: "@accent"
+        fn, args = m.group(1), [x.strip() for x in m.group(2).split(",")]
+        if fn == "mix":
+            return mix(get(args[0], stack), get(args[1], stack), int(args[2]))
+        if fn == "alpha":
+            return with_alpha(get(args[0], stack), int(args[1]))
+        if fn == "over":
+            return over(get(args[0], stack), get(args[1], stack))
+        raise ValueError("unknown function " + fn)
+
+    return {k: get(k) for k in raw}
+
+
+# ---------------------------------------------------------------- helpers
+def wcag_luminance(c):
+    def lin(v):
+        v /= 255
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+    return 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2])
+
+
+def contrast(a, b):
+    la, lb = wcag_luminance(a), wcag_luminance(b)
+    hi, lo = max(la, lb), min(la, lb)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def cfl(x):
+    """A C++ float literal: 0 -> 0.0f, 0.34 -> 0.34f, 1 -> 1.0f."""
+    t = repr(float(x))
+    return t + "f"
+
+
+def snake(s):
+    return s.replace("-", "_")
+
+
+def num(x):
+    return str(int(x)) if float(x).is_integer() else repr(float(x))
+
+
+spec = json.load(open(SRC))
+brand = spec["brand"]
+modes = {m: resolve_mode(spec, brand, m) for m in ("light", "dark")}
+names = list(spec["colors"].keys())
+HEADER = "GENERATED by tools/gen_tokens.py from tokens/malva-tokens.json. Do not edit by hand."
+
+# ---------------------------------------------------------------- Slint
+def slint():
+    L = [f"// {HEADER}", "// Malva design tokens as Slint globals. Import what you need:",
+         '//     import { Theme, Space, Radius, Typo, Motion } from "malva.slint";',
+         "// Theme.dark switches every colour; the rest are constants.", ""]
+    L.append("export global Palette {")
+    for k, v in brand.items():
+        L.append(f"    out property <color> {k}: {v};")
+    L += ["}", ""]
+    L.append("export global Radius {")
+    for k, v in spec["radius"].items():
+        L.append(f"    out property <length> {k}: {v}px;")
+    L += ["}", ""]
+    L.append("export global Space {")
+    for k, v in spec["space"].items():
+        L.append(f"    out property <length> {k}: {v}px;")
+    L += ["}", ""]
+    L.append("export global Size {")
+    for k, v in spec["size"].items():
+        L.append(f"    out property <length> {k}: {v}px;")
+    L += ["}", ""]
+    L.append("export global Typo {")
+    fam = spec["type"]["family"]
+    L.append(f'    out property <string> ui: "{fam["ui"]}";')
+    L.append(f'    out property <string> mono: "{fam["mono"]}";')
+    for k, v in spec["type"]["scale"].items():
+        L.append(f"    out property <length> {k}-size: {v['size']}px;")
+        L.append(f"    out property <int> {k}-weight: {v['weight']};")
+        L.append(f"    out property <length> {k}-line: {v['line']}px;")
+    L += ["}", ""]
+    L.append("export global Motion {")
+    for k, v in spec["motion"]["duration"].items():
+        L.append(f"    out property <duration> {k}: {v}ms;")
+    for k, v in spec["motion"]["easing"].items():
+        L.append(f"    out property <easing> curve-{k}: cubic-bezier({', '.join(num(x) for x in v)});")
+    L += ["}", ""]
+    L.append("export global Elevation {")
+    for k, v in spec["elevation"].items():
+        L.append(f"    out property <length> y{k}: {v['y']}px;")
+        L.append(f"    out property <length> blur{k}: {v['blur']}px;")
+    L += ["}", ""]
+    L.append("export global Theme {")
+    L.append("    in-out property <bool> dark: false;")
+    for k in names:
+        lt, dk = to_hex(modes["light"][k]), to_hex(modes["dark"][k])
+        L.append(f"    out property <color> {k}: dark ? {dk} : {lt};")
+    for k, v in spec["elevation"].items():
+        L.append(f"    out property <float> shadow-alpha{k}: dark ? {num(v['alpha-dark'])} : {num(v['alpha-light'])};")
+    L.append("}")
+    return "\n".join(L) + "\n"
+
+
+# ---------------------------------------------------------------- C++
+def cpp():
+    def c(col):
+        return "{0x%02X, 0x%02X, 0x%02X, 0x%02X}" % col
+    L = [f"// {HEADER}", "#pragma once", "#include <array>", "#include <cstdint>", "#include <string_view>", "",
+         "namespace malva {", "", "struct Rgba {", "    std::uint8_t r, g, b, a;",
+         "    constexpr bool operator==(const Rgba&) const = default;", "};", "",
+         "namespace brand {"]
+    for k, v in brand.items():
+        L.append(f"inline constexpr Rgba {snake(k)} = {c(parse_hex(v))};")
+    L += ["}  // namespace brand", "", "// Every colour role, resolved, for one mode.", "struct Colors {"]
+    for k in names:
+        L.append(f"    Rgba {snake(k)};")
+    L.append("};")
+    for m in ("light", "dark"):
+        L.append("")
+        L.append(f"inline constexpr Colors {m} = {{")
+        for k in names:
+            L.append(f"    {c(modes[m][k])},  // {k}")
+        L.append("};")
+    L += ["", "enum class Mode { Light, Dark };", "",
+          "constexpr const Colors& colors(Mode m) { return m == Mode::Dark ? dark : light; }", ""]
+    L.append("struct Role { std::string_view name; Rgba Colors::*member; };")
+    L.append(f"inline constexpr std::array<Role, {len(names)}> roles = {{{{")
+    for k in names:
+        L.append(f'    {{"{k}", &Colors::{snake(k)}}},')
+    L += ["}};", ""]
+    for grp, key in (("radius", "radius"), ("space", "space"), ("size", "size")):
+        L.append(f"namespace {grp} {{")
+        for k, v in spec[key].items():
+            L.append(f"inline constexpr float {snake(k)} = {num(v)}.0f;")
+        L.append(f"}}  // namespace {grp}")
+        L.append("")
+    L.append("namespace type {")
+    fam = spec["type"]["family"]
+    L.append(f'inline constexpr std::string_view family_ui = "{fam["ui"]}";')
+    L.append(f'inline constexpr std::string_view family_mono = "{fam["mono"]}";')
+    L.append("struct Style { float size; int weight; float line; };")
+    for k, v in spec["type"]["scale"].items():
+        L.append(f"inline constexpr Style {snake(k)} = {{{num(v['size'])}.0f, {v['weight']}, {num(v['line'])}.0f}};")
+    L += ["}  // namespace type", "", "namespace motion {"]
+    for k, v in spec["motion"]["duration"].items():
+        L.append(f"inline constexpr int {snake(k)}_ms = {v};")
+    L.append("struct Bezier { float x1, y1, x2, y2; };")
+    for k, v in spec["motion"]["easing"].items():
+        L.append(f"inline constexpr Bezier curve_{snake(k)} = {{{', '.join(cfl(x) for x in v)}}};")
+    sp = spec["motion"]["spring"]
+    L.append(f"inline constexpr float spring_stiffness = {sp['stiffness']}f;")
+    L.append(f"inline constexpr float spring_damping = {sp['damping']}f;")
+    L.append(f"inline constexpr float spring_mass = {sp['mass']}f;")
+    L += ["}  // namespace motion", "", "struct Elevation { float y, blur, alpha_light, alpha_dark; };",
+          "inline constexpr std::array<Elevation, 3> elevation = {{"]
+    for k, v in spec["elevation"].items():
+        L.append(f"    {{{num(v['y'])}.0f, {num(v['blur'])}.0f, {v['alpha-light']}f, {v['alpha-dark']}f}},")
+    L += ["}};", "", "}  // namespace malva"]
+    return "\n".join(L) + "\n"
+
+
+# ---------------------------------------------------------------- Rust
+def rust():
+    def c(col):
+        return "Rgba::new(0x%02X, 0x%02X, 0x%02X, 0x%02X)" % col
+    L = [f"// {HEADER}", "//! Malva design tokens: colours of both modes, scales, type, motion, elevation.",
+         "#![allow(clippy::unreadable_literal)]", "", "pub use malva_color::Rgba;", "",
+         "/// The brand palette, independent of mode.", "pub mod brand {", "    use super::Rgba;"]
+    for k, v in brand.items():
+        L.append(f"    pub const {k.upper()}: Rgba = {c(parse_hex(v))};")
+    L += ["}", "", "#[derive(Clone, Copy, Debug, PartialEq, Eq)]", "pub enum Mode {", "    Light,", "    Dark,", "}", "",
+          "/// Every colour role, resolved, for one mode.", "#[derive(Clone, Copy, Debug, PartialEq, Eq)]", "pub struct Colors {"]
+    for k in names:
+        L.append(f"    pub {snake(k)}: Rgba,")
+    L.append("}")
+    L += ["", "impl Colors {", "    /// Role names, in declaration order.", f"    pub const NAMES: [&'static str; {len(names)}] = ["]
+    for k in names:
+        L.append(f'        "{k}",')
+    L += ["    ];", "", "    /// A role by its token name (\"accent-hover\"), or None.", "    pub fn get(&self, name: &str) -> Option<Rgba> {", "        match name {"]
+    for k in names:
+        L.append(f'            "{k}" => Some(self.{snake(k)}),')
+    L += ["            _ => None,", "        }", "    }", "}", ""]
+    for m in ("light", "dark"):
+        L.append(f"pub const {m.upper()}: Colors = Colors {{")
+        for k in names:
+            L.append(f"    {snake(k)}: {c(modes[m][k])},")
+        L.append("};")
+        L.append("")
+    L += ["pub const fn colors(mode: Mode) -> &'static Colors {", "    match mode {", "        Mode::Light => &LIGHT,", "        Mode::Dark => &DARK,", "    }", "}", ""]
+    for grp in ("radius", "space", "size"):
+        L.append(f"pub mod {grp} {{")
+        for k, v in spec[grp].items():
+            L.append(f"    pub const {snake(k).upper()}: f32 = {num(v)}.0;")
+        L += ["}", ""]
+    L.append("pub mod typography {")
+    fam = spec["type"]["family"]
+    L.append(f'    pub const FAMILY_UI: &str = "{fam["ui"]}";')
+    L.append(f'    pub const FAMILY_MONO: &str = "{fam["mono"]}";')
+    L += ["    #[derive(Clone, Copy, Debug, PartialEq)]", "    pub struct Style {", "        pub size: f32,", "        pub weight: u16,", "        pub line: f32,", "    }"]
+    for k, v in spec["type"]["scale"].items():
+        L.append(f"    pub const {snake(k).upper()}: Style = Style {{ size: {num(v['size'])}.0, weight: {v['weight']}, line: {num(v['line'])}.0 }};")
+    L += ["}", "", "pub mod motion {"]
+    for k, v in spec["motion"]["duration"].items():
+        L.append(f"    pub const {snake(k).upper()}_MS: u32 = {v};")
+    L += ["    /// A CSS-style cubic bezier: x1, y1, x2, y2.", "    pub type Bezier = [f32; 4];"]
+    for k, v in spec["motion"]["easing"].items():
+        L.append(f"    pub const CURVE_{snake(k).upper()}: Bezier = [{', '.join(num(x) if not float(x).is_integer() else num(x) + '.0' for x in v)}];")
+    sp = spec["motion"]["spring"]
+    L.append(f"    pub const SPRING_STIFFNESS: f32 = {sp['stiffness']};")
+    L.append(f"    pub const SPRING_DAMPING: f32 = {sp['damping']};")
+    L.append(f"    pub const SPRING_MASS: f32 = {sp['mass']};")
+    L += ["}", "", "#[derive(Clone, Copy, Debug, PartialEq)]", "pub struct Elevation {", "    pub y: f32,", "    pub blur: f32,", "    pub alpha_light: f32,", "    pub alpha_dark: f32,", "}", "",
+          "pub const ELEVATION: [Elevation; 3] = ["]
+    for k, v in spec["elevation"].items():
+        L.append(f"    Elevation {{ y: {num(v['y'])}.0, blur: {num(v['blur'])}.0, alpha_light: {v['alpha-light']}, alpha_dark: {v['alpha-dark']} }},")
+    L.append("];")
+    return "\n".join(L) + "\n"
+
+
+# ---------------------------------------------------------------- CSS
+def css():
+    def block(sel, m):
+        L = [f"{sel} {{"]
+        for k in names:
+            L.append(f"  --malva-{k}: {css_color(modes[m][k])};")
+        L.append("}")
+        return L
+    def css_color(c):
+        return "#%02x%02x%02x" % c[:3] if c[3] == 255 else "rgb(%d %d %d / %s)" % (c[0], c[1], c[2], ("%.3f" % (c[3] / 255)).rstrip("0").rstrip("."))
+    L = [f"/* {HEADER} */", ":root {"]
+    for k, v in brand.items():
+        L.append(f"  --malva-brand-{k}: {v.lower()};")
+    for grp in ("radius", "space", "size"):
+        for k, v in spec[grp].items():
+            L.append(f"  --malva-{grp}-{k}: {v}px;")
+    fam = spec["type"]["family"]
+    L.append(f"  --malva-font-ui: '{fam['ui']}', 'Segoe UI', system-ui, sans-serif;")
+    L.append(f"  --malva-font-mono: '{fam['mono']}', ui-monospace, 'SF Mono', Menlo, monospace;")
+    for k, v in spec["type"]["scale"].items():
+        L.append(f"  --malva-type-{k}: {v['weight']} {v['size']}px/{v['line']}px var(--malva-font-ui);")
+    for k, v in spec["motion"]["duration"].items():
+        L.append(f"  --malva-duration-{k}: {v}ms;")
+    for k, v in spec["motion"]["easing"].items():
+        L.append(f"  --malva-ease-{k}: cubic-bezier({', '.join(num(x) for x in v)});")
+    for k, v in spec["elevation"].items():
+        L.append(f"  --malva-elevation-{k}-y: {v['y']}px;")
+        L.append(f"  --malva-elevation-{k}-blur: {v['blur']}px;")
+    L.append("}")
+    L += block(":root,\n:root[data-theme='light']", "light")
+    L += ["", "@media (prefers-color-scheme: dark) {"]
+    L += ["  " + x for x in block(":root:not([data-theme='light'])", "dark")]
+    L += ["}"]
+    L += block(":root[data-theme='dark']", "dark")
+    for k, v in spec["elevation"].items():
+        L.append(f":root {{ --malva-shadow-{k}: 0 {v['y']}px {v['blur']}px rgb(42 18 38 / {v['alpha-light']}); }}")
+        L.append(f":root[data-theme='dark'] {{ --malva-shadow-{k}: 0 {v['y']}px {v['blur']}px rgb(0 0 0 / {v['alpha-dark']}); }}")
+    return "\n".join(L) + "\n"
+
+
+# ---------------------------------------------------------------- JSON, GPL, docs
+def dtcg():
+    d = {"$description": "Malva design tokens (W3C DTCG draft format). " + HEADER, "brand": {}, "color": {"light": {}, "dark": {}},
+         "radius": {}, "space": {}, "size": {}, "duration": {}, "cubicBezier": {}}
+    for k, v in brand.items():
+        d["brand"][k] = {"$type": "color", "$value": v}
+    for m in ("light", "dark"):
+        for k in names:
+            d["color"][m][k] = {"$type": "color", "$value": to_hex(modes[m][k]), "$description": spec["colors"][k]["doc"]}
+    for grp in ("radius", "space", "size"):
+        for k, v in spec[grp].items():
+            d[grp][k] = {"$type": "dimension", "$value": f"{v}px"}
+    for k, v in spec["motion"]["duration"].items():
+        d["duration"][k] = {"$type": "duration", "$value": f"{v}ms"}
+    for k, v in spec["motion"]["easing"].items():
+        d["cubicBezier"][k] = {"$type": "cubicBezier", "$value": v}
+    d["typography"] = {k: {"$type": "typography", "$value": {"fontFamily": spec["type"]["family"]["mono" if k == "mono" else "ui"],
+                                                              "fontSize": f"{v['size']}px", "fontWeight": v["weight"], "lineHeight": f"{v['line']}px"}}
+                       for k, v in spec["type"]["scale"].items()}
+    return json.dumps(d, indent=2) + "\n"
+
+
+def resolved():
+    d = {"brand": {k: v.upper() for k, v in brand.items()}, "light": {k: to_hex(modes["light"][k], True) for k in names},
+         "dark": {k: to_hex(modes["dark"][k], True) for k in names}}
+    return json.dumps(d, indent=2) + "\n"
+
+
+def gpl():
+    L = ["GIMP Palette", "Name: Malva", "Columns: 5", f"# {HEADER}"]
+    for k, v in brand.items():
+        r, g, b, _ = parse_hex(v)
+        L.append(f"{r:3d} {g:3d} {b:3d}\tbrand {k}")
+    for m in ("light", "dark"):
+        for k in names:
+            c = modes[m][k]
+            if c[3] == 255:
+                L.append(f"{c[0]:3d} {c[1]:3d} {c[2]:3d}\t{m} {k}")
+    return "\n".join(L) + "\n"
+
+
+def docs():
+    L = [f"<!-- {HEADER} -->", "# Malva tokens", "",
+         "Every value below comes from `tokens/malva-tokens.json`. Colours with an alpha are shown as `#RRGGBBAA`.", "",
+         "## Brand palette", "", "| Name | Hex |", "|---|---|"]
+    for k, v in brand.items():
+        L.append(f"| {k} | `{v}` |")
+    L += ["", "## Colour roles", "", "| Role | Light | Dark | Use |", "|---|---|---|---|"]
+    for k in names:
+        L.append(f"| `{k}` | `{to_hex(modes['light'][k])}` | `{to_hex(modes['dark'][k])}` | {spec['colors'][k]['doc']} |")
+    L += ["", "## Contrast of the text pairings (WCAG 2.x)", "", "| Pair | Light | Dark |", "|---|---|---|"]
+    for fg, bg, req in CONTRAST_PAIRS:
+        cells = []
+        for m in ("light", "dark"):
+            b = modes[m][bg]
+            f = modes[m][fg]
+            if f[3] != 255:
+                f = over(f, b)
+            if b[3] != 255:
+                b = over(b, modes[m]["surface"])
+            r = contrast(f, b)
+            cells.append(f"{r:.2f}:1" + ("" if r >= req else " ⚠"))
+        L.append(f"| `{fg}` on `{bg}` (≥ {req}) | {cells[0]} | {cells[1]} |")
+    for title, key, unit in (("Radius", "radius", "px"), ("Spacing", "space", "px"), ("Sizes", "size", "px")):
+        L += ["", f"## {title}", "", "| Token | Value |", "|---|---|"]
+        for k, v in spec[key].items():
+            L.append(f"| `{k}` | {v}{unit} |")
+    L += ["", "## Type", "", f"UI: **{spec['type']['family']['ui']}**, code: **{spec['type']['family']['mono']}**.", "",
+          "| Style | Size | Weight | Line |", "|---|---|---|---|"]
+    for k, v in spec["type"]["scale"].items():
+        L.append(f"| `{k}` | {v['size']}px | {v['weight']} | {v['line']}px |")
+    L += ["", "## Motion", "", "| Duration | ms |", "|---|---|"]
+    for k, v in spec["motion"]["duration"].items():
+        L.append(f"| `{k}` | {v} |")
+    L += ["", "| Curve | cubic-bezier |", "|---|---|"]
+    for k, v in spec["motion"]["easing"].items():
+        L.append(f"| `{k}` | ({', '.join(num(x) for x in v)}) |")
+    sp = spec["motion"]["spring"]
+    L += ["", f"Spring (for toolkits that integrate one): stiffness {sp['stiffness']}, damping {sp['damping']}, mass {sp['mass']}.",
+          "", "## Elevation", "", "| Level | y | blur | alpha light | alpha dark |", "|---|---|---|---|---|"]
+    for k, v in spec["elevation"].items():
+        L.append(f"| {k} | {v['y']}px | {v['blur']}px | {v['alpha-light']} | {v['alpha-dark']} |")
+    return "\n".join(L) + "\n"
+
+
+# Text pairings that must stay readable. (foreground, background, minimum contrast)
+# text-2 and muted are the specified neutral greys (#86868B on white is 3.6:1): they are for supporting text, captions and
+# placeholders, never for the only copy of something a person must read, so they are held to 3.0 and 2.5, not 4.5.
+CONTRAST_PAIRS = [
+    ("text", "bg", 4.5), ("text", "surface", 4.5), ("text", "raised", 4.5), ("text-2", "surface", 3.0),
+    ("text-2", "bg", 3.0), ("muted", "surface", 2.5), ("on-accent", "accent", 4.5), ("on-accent", "accent-hover", 4.5),
+    ("on-accent", "accent-press", 4.5), ("accent", "surface", 3.0), ("on-danger", "danger-fill", 4.5),
+    ("on-danger", "danger-hover", 3.0), ("on-danger", "danger-press", 4.5), ("success-text", "success-soft", 4.5),
+    ("warning-text", "warning-soft", 4.5), ("danger-text", "danger-soft", 4.5), ("info-text", "info-soft", 4.5),
+    ("danger-text", "surface", 4.5), ("on-inverse", "inverse", 4.5), ("text", "accent-wash", 4.5),
+]
+
+
+# ---------------------------------------------------------------- SVG palette sheet
+def palette_svg():
+    W, H = 1280, 940
+    o = [f'<!-- {HEADER} -->',
+         f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" font-family="Inter, \'Segoe UI\', system-ui, sans-serif">',
+         f'<rect width="{W}" height="{H}" fill="{to_hex(modes["light"]["bg"])}"/>',
+         f'<text x="48" y="64" font-size="28" font-weight="700" fill="{to_hex(modes["light"]["text"])}">Malva — palette</text>',
+         f'<text x="48" y="90" font-size="14" fill="{to_hex(modes["light"]["text-2"])}">Brand colours and the colour roles of both modes. Generated from tokens/malva-tokens.json.</text>']
+    x = 48
+    for k, v in brand.items():
+        o.append(f'<rect x="{x}" y="116" width="216" height="96" rx="14" fill="{v}"/>')
+        c = parse_hex(v)
+        ink = "#FFFFFF" if contrast(c, (255, 255, 255, 255)) > contrast(c, (42, 18, 38, 255)) else "#2A1226"
+        o.append(f'<text x="{x + 16}" y="164" font-size="16" font-weight="600" fill="{ink}">{k.capitalize()}</text>')
+        o.append(f'<text x="{x + 16}" y="188" font-size="13" fill="{ink}" opacity=".85">{v}</text>')
+        x += 240
+    groups = [("Surfaces", ["bg", "panel", "surface", "raised", "field", "line", "border"]),
+              ("Text", ["text", "text-2", "muted", "disabled-text"]),
+              ("Accent", ["accent", "accent-hover", "accent-press", "accent-2", "accent-wash"]),
+              ("Status", ["success", "warning", "danger", "info", "danger-fill"])]
+    y = 260
+    for mi, m in enumerate(("light", "dark")):
+        bgc = to_hex(modes[m]["bg"])
+        px = 48 + mi * 616
+        o.append(f'<rect x="{px}" y="{y}" width="600" height="650" rx="22" fill="{bgc}"/>')
+        o.append(f'<text x="{px + 24}" y="{y + 38}" font-size="18" font-weight="600" fill="{to_hex(modes[m]["text"])}">{m.capitalize()}</text>')
+        yy = y + 66
+        for gname, roles in groups:
+            o.append(f'<text x="{px + 24}" y="{yy + 14}" font-size="12" font-weight="600" fill="{to_hex(modes[m]["muted"])}">{gname.upper()}</text>')
+            yy += 26
+            for i, r in enumerate(roles):
+                cx = px + 24 + i * 112
+                col = modes[m][r]
+                o.append(f'<rect x="{cx}" y="{yy}" width="100" height="56" rx="10" fill="{to_hex(col)[:7]}" fill-opacity="{col[3] / 255:.3f}" stroke="{to_hex(modes[m]["border"])}"/>')
+                o.append(f'<text x="{cx}" y="{yy + 74}" font-size="11.5" font-weight="600" fill="{to_hex(modes[m]["text"])}">{r}</text>')
+                o.append(f'<text x="{cx}" y="{yy + 90}" font-size="11" fill="{to_hex(modes[m]["text-2"])}">{to_hex(col)}</text>')
+            yy += 114
+    o.append("</svg>")
+    return "\n".join(o) + "\n"
+
+
+# ---------------------------------------------------------------- golden tables for the tests
+def bezier_y(b, x):
+    """The same solver as cpp/include/malva/motion.h and rust/malva-motion, written independently here."""
+    if x <= 0:
+        return 0.0
+    if x >= 1:
+        return 1.0
+    x1, y1, x2, y2 = b
+    cx = 3 * x1; bx = 3 * (x2 - x1) - cx; ax = 1 - cx - bx
+    cy = 3 * y1; by = 3 * (y2 - y1) - cy; ay = 1 - cy - by
+    sx = lambda t: ((ax * t + bx) * t + cx) * t
+    sy = lambda t: ((ay * t + by) * t + cy) * t
+    lo, hi = 0.0, 1.0
+    t = x
+    for _ in range(80):  # plain bisection: slow, obviously right
+        v = sx(t)
+        if abs(v - x) < 1e-9:
+            break
+        if x > v:
+            lo = t
+        else:
+            hi = t
+        t = (lo + hi) / 2
+    return sy(t)
+
+
+def spring_value(k, c, m, t, a, b):
+    import math
+    if t <= 0:
+        return a
+    w0 = math.sqrt(k / m)
+    z = c / (2 * math.sqrt(k * m))
+    if z < 1:
+        wd = w0 * math.sqrt(1 - z * z)
+        f = math.exp(-z * w0 * t) * (math.cos(wd * t) + z * w0 / wd * math.sin(wd * t))
+    elif z == 1:
+        f = math.exp(-w0 * t) * (1 + w0 * t)
+    else:
+        s_ = w0 * math.sqrt(z * z - 1)
+        r1, r2 = -z * w0 + s_, -z * w0 - s_
+        f = (r1 * math.exp(r2 * t) - r2 * math.exp(r1 * t)) / (r1 - r2)
+    return b + (a - b) * f
+
+
+def motion_golden():
+    xs = [i / 20 for i in range(21)]
+    sp = spec["motion"]["spring"]
+    ts = [round(i * 0.05, 2) for i in range(21)]
+    row = lambda vals: "[" + ", ".join(repr(v) for v in vals) + "]"
+    L = ["{", f'  "xs": {row(xs)},', '  "curves": {']
+    cur = list(spec["motion"]["easing"].items())
+    for i, (k, v) in enumerate(cur):
+        L.append(f'    "{k}": {row([round(bezier_y(v, x), 6) for x in xs])}' + ("," if i < len(cur) - 1 else ""))
+    L.append("  },")
+    L.append(f'  "spring-ts": {row(ts)},')
+    L.append(f'  "spring-from-0-to-1": {row([round(spring_value(sp["stiffness"], sp["damping"], sp["mass"], t, 0.0, 1.0), 6) for t in ts])}')
+    L.append("}")
+    return "\n".join(L) + "\n"
+
+
+def theme_check_inc():
+    L = [f"// {HEADER}", "// One line per colour role: CHECK_ROLE(snake_name, \"kebab-name\"). Included by the UI test."]
+    for k in names:
+        L.append(f'CHECK_ROLE({snake(k)}, "{k}")')
+    return "\n".join(L) + "\n"
+
+
+# ---------------------------------------------------------------- write / verify
+out("slint/tokens.slint", slint())
+out("cpp/include/malva/tokens.h", cpp())
+out("rust/malva-tokens/src/lib.rs", rust())
+out("css/malva.css", css())
+out("dist/malva.dtcg.json", dtcg())
+out("dist/resolved.json", resolved())
+out("dist/malva.gpl", gpl())
+out("docs/TOKENS.md", docs())
+out("svg/palette.svg", palette_svg())
+out("dist/motion-golden.json", motion_golden())
+out("cpp/tests/theme_roles.inc", theme_check_inc())
+
+bad = []
+for fg, bg, req in CONTRAST_PAIRS:
+    for m in ("light", "dark"):
+        b, f = modes[m][bg], modes[m][fg]
+        if b[3] != 255:
+            b = over(b, modes[m]["surface"])
+        if f[3] != 255:
+            f = over(f, b)
+        if contrast(f, b) < req:
+            bad.append(f"{m}: {fg} on {bg} = {contrast(f, b):.2f} (< {req})")
+if bad:
+    print("contrast problems:\n  " + "\n  ".join(bad))
+if CHECK:
+    if STALE:
+        print("out of date: " + ", ".join(STALE))
+        sys.exit(1)
+    print("tokens: all outputs up to date")
+elif bad:
+    sys.exit(2)
+else:
+    print(f"tokens: {len(names)} colour roles x 2 modes written")

@@ -1,0 +1,12 @@
+import { Theme } from "ui/theme.slint";
+import { Symbol } from "ui/components/icon.slint";
+export component Sheet inherits Window {
+    width: 940px; height: 420px;
+    background: Theme.bg;
+    in property <[string]> names: ["wifi","wifi-1","wifi-2","wifi-3","wifi-off","bluetooth","bell","bell-off","moon","sun","volume-0","volume-1","volume-2","volume-mute","mic","power","lock","logout","restart","airplane","dark-mode","night-light","keyboard","chevron-right","chevron-left","chevron-down","chevron-up","check","close","search","plus","minus","calendar","clock","play","pause","next","previous","plug","info","more","refresh","trash","eye","sliders","lightning","headphones","mouse","phone","speaker","globe","signal","sidebar","window","copy","undo","redo","minimize","fullscreen","gear","logo","folder","user","help","clipboard","shield","record","download","drop","wind","thermometer","screenshot","keyboard-small"];
+    for n[i] in names: Rectangle {
+        x: 20px + mod(i, 12) * 76px; y: 20px + floor(i / 12) * 64px; width: 72px; height: 60px;
+        Symbol { x: 24px; y: 6px; width: 24px; height: 24px; name: n; }
+        Text { y: 36px; width: parent.width; text: n; font-size: 9px; horizontal-alignment: center; color: Theme.disabled; }
+    }
+}

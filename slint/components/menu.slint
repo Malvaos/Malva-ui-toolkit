@@ -1,0 +1,174 @@
+// Menus: MenuPanel (the list) and ContextMenu (the list in a popup).
+import { Theme, Size, Radius, Space, Typo, Motion, Elevation } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+
+export struct MenuEntry {
+    text: string,
+    shortcut: string,
+    icon: string,
+    danger: bool,
+    disabled: bool,
+    separator: bool,
+    checked: bool,
+}
+
+// The menu itself: 230 px wide, rows of 34 px, a thin rule for `separator` entries. Up and Down move, Enter
+// chooses, Escape asks to close.
+export component MenuPanel inherits Rectangle {
+    in property <[MenuEntry]> entries;
+    in-out property <int> highlighted: -1;
+    callback activated(int);
+    callback dismissed();
+
+    width: Size.menu-width;
+    height: list.preferred-height;
+    border-radius: Radius.m;
+    background: Theme.raised;
+    border-width: 1px;
+    border-color: Theme.border;
+    drop-shadow-color: Theme.shadow.with-alpha(Theme.shadow-alpha2);
+    drop-shadow-blur: Elevation.blur2;
+    drop-shadow-offset-y: Elevation.y2;
+
+    pure function skip(i: int) -> bool {
+        return root.entries[i].separator || root.entries[i].disabled;
+    }
+    // Moves the highlight one row, over rules and disabled rows (up to eight in a row), wrapping round.
+    function step(dir: int) {
+        let n = root.entries.length;
+        if n == 0 {
+            return;
+        }
+        root.highlighted = mod((root.highlighted < 0 ? (dir > 0 ? -1 : n) : root.highlighted) + dir + n, n);
+        if root.skip(root.highlighted) { root.highlighted = mod(root.highlighted + dir + n, n); }
+        if root.skip(root.highlighted) { root.highlighted = mod(root.highlighted + dir + n, n); }
+        if root.skip(root.highlighted) { root.highlighted = mod(root.highlighted + dir + n, n); }
+        if root.skip(root.highlighted) { root.highlighted = mod(root.highlighted + dir + n, n); }
+        if root.skip(root.highlighted) { root.highlighted = mod(root.highlighted + dir + n, n); }
+        if root.skip(root.highlighted) { root.highlighted = mod(root.highlighted + dir + n, n); }
+        if root.skip(root.highlighted) { root.highlighted = mod(root.highlighted + dir + n, n); }
+        if root.skip(root.highlighted) { root.highlighted = mod(root.highlighted + dir + n, n); }
+    }
+
+    list := VerticalLayout {
+        padding: 6px;
+        spacing: 2px;
+        for e[i] in root.entries: Rectangle {
+            height: e.separator ? 9px : 34px;
+            if e.separator: Rectangle {
+                x: 8px;
+                y: 4px;
+                width: parent.width - 16px;
+                height: 1px;
+                background: Theme.line;
+            }
+            if !e.separator: Rectangle {
+                border-radius: Radius.s - 2px;
+                background: e.disabled ? transparent : row.pressed ? Theme.ghost-press : (row.has-hover || root.highlighted == i) ? Theme.accent-wash : transparent;
+                animate background { duration: Motion.press; }
+                HorizontalLayout {
+                    padding-left: Space.s;
+                    padding-right: Space.s;
+                    spacing: Space.xs + 2px;
+                    if e.icon != "" || e.checked: Icon {
+                        name: e.checked ? "check" : e.icon;
+                        tint: e.disabled ? Theme.disabled-text : e.danger ? Theme.danger-text : e.checked ? Theme.accent : Theme.text-2;
+                        width: Size.icon-s + 2px;
+                        height: Size.icon-s + 2px;
+                        y: (parent.height - self.height) / 2;
+                    }
+                    Text {
+                        text: e.text;
+                        font-family: Typo.ui;
+                        font-size: Typo.body-size;
+                        color: e.disabled ? Theme.disabled-text : e.danger ? Theme.danger-text : Theme.text;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+                    if e.shortcut != "": Text {
+                        text: e.shortcut;
+                        font-family: Typo.ui;
+                        font-size: Typo.caption-size;
+                        color: e.disabled ? Theme.disabled-text : Theme.muted;
+                        vertical-alignment: center;
+                        horizontal-alignment: right;
+                    }
+                }
+                row := TouchArea {
+                    enabled: !e.disabled;
+                    mouse-cursor: e.disabled ? MouseCursor.default : MouseCursor.pointer;
+                    moved => {
+                        root.highlighted = i;
+                    }
+                    clicked => {
+                        root.activated(i);
+                    }
+                }
+            }
+        }
+    }
+    fs := FocusScope {
+        focus-on-click: false;
+        key-pressed(e) => {
+            if e.text == Key.DownArrow {
+                root.step(1);
+                return accept;
+            }
+            if e.text == Key.UpArrow {
+                root.step(-1);
+                return accept;
+            }
+            if e.text == "\n" && root.highlighted >= 0 && root.highlighted < root.entries.length {
+                root.activated(root.highlighted);
+                return accept;
+            }
+            if e.text == Key.Escape {
+                root.dismissed();
+                return accept;
+            }
+            return reject;
+        }
+    }
+    public function take-focus() {
+        fs.focus();
+    }
+}
+
+// A menu that opens at a point. Make it as large as the area it serves, then call show-at(x, y) with the
+// pointer's position inside that area (for a right click: in the TouchArea's pointer-event, on button `right`).
+export component ContextMenu inherits Rectangle {
+    in property <[MenuEntry]> entries;
+    callback activated(int);
+    // Where the menu opens: set by show-at, read by the popup.
+    private property <length> at-x;
+    private property <length> at-y;
+
+    pop := PopupWindow {
+        x: root.at-x;
+        y: root.at-y;
+        width: panel.width;
+        height: panel.height;
+        close-policy: close-on-click-outside;
+        panel := MenuPanel {
+            entries: root.entries;
+            // The popup's content is made when it opens, so this starts every opening with no row chosen and the
+            // keyboard focus in the menu.
+            init => {
+                self.highlighted = -1;
+                self.take-focus();
+            }
+            activated(i) => {
+                pop.close();
+                root.activated(i);
+            }
+            dismissed => {
+                pop.close();
+            }
+        }
+    }
+    public function show-at(px: length, py: length) {
+        root.at-x = px;
+        root.at-y = py;
+        pop.show();
+    }
+}

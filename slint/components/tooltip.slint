@@ -1,0 +1,73 @@
+// Tooltips: the bubble itself, and TipBubble, which a control puts inside itself to show one while it is hovered.
+import { Theme, Size, Radius, Typo, Motion, Elevation } from "../tokens.slint";
+
+// A dark bubble with a small arrow, as in "Copy link". The arrow points down at the bottom edge unless `below`.
+export component Tooltip inherits Rectangle {
+    in property <string> text;
+    in property <bool> below: false;
+    height: 28px;
+    width: label.preferred-width + 24px;
+    border-radius: Radius.xs + 2px;
+    background: Theme.inverse;
+    drop-shadow-color: Theme.shadow.with-alpha(Theme.shadow-alpha2);
+    drop-shadow-blur: Elevation.blur2;
+    drop-shadow-offset-y: Elevation.y1 + 1px;
+    Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: root.below ? -5px : parent.height - 5px;
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        background: Theme.inverse;
+        transform-rotation: 45deg;
+    }
+    label := Text {
+        x: 12px;
+        text: root.text;
+        font-family: Typo.ui;
+        font-size: Typo.caption-size;
+        font-weight: 500;
+        color: Theme.on-inverse;
+        vertical-alignment: center;
+    }
+}
+
+// Put this as the last child of a control, pass it the control's size and `hovered: area.has-hover`, and the
+// control gets a tooltip after the pointer has rested on it for `delay-ms`.
+export component TipBubble inherits Rectangle {
+    in property <string> text;
+    in property <bool> hovered: false;
+    in property <length> host-width;
+    in property <length> host-height;
+    in property <int> delay-ms: 600;
+    in property <bool> below: false;
+
+    // Whether the bubble is up (for tests and for controls that want to react).
+    out property <bool> showing: shown;
+    property <bool> shown: false;
+    x: 0px;
+    y: 0px;
+    width: 0px;
+    height: 0px;
+    changed hovered => {
+        if !root.hovered {
+            root.shown = false;
+        }
+    }
+    Timer {
+        interval: root.delay-ms * 1ms;
+        running: root.hovered && root.text != "" && !root.shown;
+        triggered => {
+            root.shown = true;
+        }
+    }
+    if root.text != "": Tooltip {
+        text: root.text;
+        below: root.below;
+        x: (root.host-width - self.width) / 2;
+        y: root.below ? root.host-height + 8px : -self.height - 8px;
+        opacity: root.shown ? 1 : 0;
+        visible: self.opacity > 0.01;
+        animate opacity { duration: Motion.fade; easing: Motion.curve-out; }
+    }
+}

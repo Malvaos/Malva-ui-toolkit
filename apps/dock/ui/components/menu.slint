@@ -1,0 +1,147 @@
+import { Theme, Motion } from "../theme.slint";
+import { MenuEntry } from "../types.slint";
+import { Symbol } from "icon.slint";
+import { ShadowRings } from "surfaces.slint";
+
+// One row of the menu: an item, a header (the app's name) or a separator.
+component MenuRow inherits Rectangle {
+    in property <MenuEntry> entry;
+    in property <int> index: 0;
+    in property <bool> open: false;
+    // For design previews: the row drawn as if the pointer were on it.
+    in property <bool> force-hover: false;
+    callback chosen();
+
+    // The rows arrive one after another, and leave together.
+    property <float> shown: open ? 1 : 0;
+    animate shown {
+        duration: Motion.menu;
+        delay: root.open ? min(index, 10) * Motion.menu-stagger + 30ms : 0ms;
+        easing: cubic-bezier(0.2, 0, 0, 1);
+    }
+    property <bool> is-item: entry.kind == "item";
+    property <bool> live: is-item && entry.enabled;
+    property <float> hover: live && (ta.has-hover || force-hover) ? 1 : 0;
+    animate hover { duration: ta.has-hover ? Motion.hover-in : Motion.hover-out; }
+    property <color> ink: entry.destructive ? Theme.danger : Theme.text;
+
+    height: entry.kind == "separator" ? 11px : entry.kind == "header" ? 28px : 30px;
+    opacity: min(shown, 1.0) * (is-item && !entry.enabled ? 0.4 : 1.0);
+    // Rows slide up a little as they arrive.
+    transform-scale: 0.96 + 0.04 * min(shown, 1.0);
+
+    if root.is-item: Rectangle {
+        x: 0px;
+        y: 1px;
+        height: parent.height - 2px;
+        border-radius: Theme.radius-small;
+        background: root.entry.destructive ? Theme.danger.with-alpha(0.92 * root.hover) : Theme.accent.with-alpha(root.hover);
+    }
+    if root.entry.kind == "separator": Rectangle {
+        x: 8px;
+        y: 5px;
+        width: parent.width - 16px;
+        height: 1px;
+        background: Theme.separator;
+    }
+    if root.entry.kind == "header": Text {
+        x: 10px;
+        width: parent.width - 20px;
+        height: parent.height;
+        text: root.entry.text;
+        color: Theme.disabled;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    if root.is-item: Rectangle {
+        property <color> tone: root.hover > 0.5 ? Theme.on-accent : root.ink;
+        animate tone { duration: 90ms; }
+        if root.entry.checked || root.entry.icon != "": Symbol {
+            x: 10px;
+            y: (parent.height - self.height) / 2;
+            width: 16px;
+            height: 16px;
+            name: root.entry.checked ? "check" : root.entry.icon;
+            tint: parent.tone;
+        }
+        Text {
+            x: 34px;
+            width: parent.width - 34px - 12px;
+            height: parent.height;
+            text: root.entry.text;
+            color: parent.tone;
+            font-size: 13px;
+            font-weight: root.entry.checked ? 600 : 400;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+    ta := TouchArea {
+        enabled: root.live;
+        mouse-cursor: root.live ? MouseCursor.pointer : MouseCursor.default;
+        clicked => {
+            root.chosen();
+        }
+    }
+}
+
+// The menu of an icon: a nearly opaque glass card that grows out of the icon it belongs to.
+// It sizes itself to its rows. Where it goes is the panel's business.
+export component DockMenu inherits Rectangle {
+    in property <[MenuEntry]> entries;
+    in property <bool> open: false;
+    // For design previews: the row drawn hovered (an index into `entries`).
+    in property <int> preview-hover: -1;
+    // Where the menu grows from, in its own coordinates (the icon it belongs to).
+    in property <length> origin-x: 0px;
+    in property <length> origin-y: 0px;
+    callback chosen(int);
+
+    property <float> amount: open ? 1 : 0;
+    animate amount {
+        duration: open ? Motion.menu : 140ms;
+        easing: open ? cubic-bezier(0.34, 1.35, 0.64, 1) : cubic-bezier(0.4, 0, 1, 1);
+    }
+
+    width: max(190px, rows.preferred-width + 12px);
+    height: rows.preferred-height + 12px;
+    visible: amount > 0.01;
+    opacity: min(amount, 1.0);
+    transform-scale: 0.82 + 0.18 * amount;
+    transform-origin: { x: root.origin-x, y: root.origin-y };
+    border-radius: Theme.radius-big;
+    background: Theme.pop-bg;
+    border-width: 1px;
+    border-color: Theme.text.with-alpha(Theme.pop-edge);
+    drop-shadow-color: Theme.shadow.with-alpha(Theme.pop-shadow * 0.6);
+    drop-shadow-blur: 28px;
+    drop-shadow-offset-y: 10px;
+
+    // The bright line along the top.
+    Rectangle {
+        x: root.border-radius;
+        y: 1px;
+        width: max(0px, parent.width - root.border-radius * 2);
+        height: 1px;
+        background: #FFFFFF.with-alpha(Theme.dark ? 0.12 : 0.9);
+    }
+
+    rows := VerticalLayout {
+        x: 6px;
+        y: 6px;
+        width: parent.width - 12px;
+        spacing: 0px;
+        for e[i] in root.entries: MenuRow {
+            entry: e;
+            index: i;
+            open: root.open;
+            force-hover: root.preview-hover == i;
+            chosen => {
+                root.chosen(i);
+            }
+        }
+    }
+}

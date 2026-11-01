@@ -1,0 +1,785 @@
+// The dock's elements on one sheet: every icon, state, mark, label, menu and size, and the tokens
+// they are made of. Render with
+//   slint-viewer preview/elements.slint --component ElementsLight --screenshot elements-light.png
+// Nothing here ships; a backend compiles ui/dock.slint.
+import { Theme, Motion } from "../ui/theme.slint";
+import { DockApp } from "../ui/types.slint";
+import { DockSlot } from "../ui/components/dock-slot.slint";
+import { DockPanel } from "../ui/components/dock-panel.slint";
+import { DockTooltip } from "../ui/components/tooltip.slint";
+import { DockMenu } from "../ui/components/menu.slint";
+import { AppIcon, Symbol } from "../ui/components/icon.slint";
+import { GlassPlate } from "../ui/components/surfaces.slint";
+
+component Card inherits Rectangle {
+    in property <string> title;
+    in property <string> note;
+    background: Theme.second;
+    border-radius: 14px;
+    border-width: 1px;
+    border-color: Theme.text.with-alpha(0.07);
+    Text {
+        x: 24px;
+        y: 16px;
+        text: root.title;
+        font-size: 15px;
+        font-weight: 700;
+        color: Theme.text;
+    }
+
+    Text {
+        x: 24px;
+        y: 38px;
+        width: parent.width - 48px;
+        text: root.note;
+        font-size: 12px;
+        color: Theme.disabled;
+    }
+}
+
+component Caption inherits Text {
+    font-size: 12px;
+    color: Theme.disabled;
+    horizontal-alignment: center;
+    vertical-alignment: top;
+    wrap: word-wrap;
+}
+
+// The desktop behind a piece of the dock: a crop of the wallpaper.
+component Stage inherits Rectangle {
+    in property <length> wall-x: -160px;
+    in property <length> wall-y: -770px;
+    border-radius: 12px;
+    clip: true;
+    Image {
+        x: root.wall-x;
+        y: root.wall-y;
+        width: 1760px;
+        height: 1100px;
+        source: Theme.dark ? @image-url("assets/wallpaper-dark.png") : @image-url("assets/wallpaper-light.png");
+        image-fit: fill;
+    }
+
+    @children
+}
+
+// A piece of the dock drawn as the real thing is: the glass on the stage's wallpaper.
+component GlassDock inherits Stage {
+    in property <[DockApp]> apps;
+    in property <length> icon-size: 48px;
+    in property <float> pointer: -100;
+    in property <bool> trash: true;
+    in property <bool> launcher: false;
+    in property <string> edge: "bottom";
+    DockPanel {
+        width: parent.width;
+        height: parent.height;
+        animate-entrance: false;
+        edge: root.edge;
+        icon-size: root.icon-size;
+        apps: root.apps;
+        show-launcher: root.launcher;
+        preview-pointer: root.pointer;
+        has-backdrop: true;
+        backdrop: Theme.dark ? @image-url("assets/wallblur-dark.png") : @image-url("assets/wallblur-light.png");
+        backdrop-x: root.wall-x;
+        backdrop-y: root.wall-y;
+        backdrop-width: 1760px;
+        backdrop-height: 1100px;
+    }
+}
+
+// One icon in a column of its own, on a strip of glass, with its caption underneath.
+component StateSlot inherits Rectangle {
+    in property <string> label;
+    in property <string> kind: "app";
+    in property <string> icon: "files";
+    // 0: at rest, 1: under the pointer, 2: next to it.
+    in property <int> hover: 0;
+    in property <bool> running: false;
+    in property <bool> active: false;
+    in property <int> badge: 0;
+    in property <bool> pressed: false;
+    in property <float> bounce: -1;
+    in property <bool> dragging: false;
+    in property <bool> trash-full: false;
+    in property <bool> lid-open: false;
+    width: 148px;
+    height: 150px;
+    slot := DockSlot {
+        x: (parent.width - self.width) / 2;
+        y: 0px;
+        animated: false;
+        icon-size: 64px;
+        gap: 8px;
+        pad-cross: 12px;
+        cross-extent: 150px;
+        kind: root.kind;
+        icon: root.icon;
+        name: root.label;
+        running: root.running;
+        active: root.active;
+        badge: root.badge;
+        force-press: root.pressed;
+        force-bounce: root.bounce;
+        dragging: root.dragging;
+        drag-pull: root.dragging ? 14px : 0px;
+        trash-full: root.trash-full;
+        lid-open: root.lid-open;
+        hovering: root.hover > 0;
+        rest-center: 0px;
+        pointer: root.hover == 1 ? 0px : root.hover == 2 ? 72px : -10000px;
+    }
+}
+
+// A strip of glass for icons to stand on, and the icons.
+component GlassStrip inherits Stage {
+    GlassPlate {
+        x: 8px;
+        y: parent.height - 6px - 88px;
+        width: parent.width - 16px;
+        height: 88px;
+        corner: 24px;
+        has-backdrop: true;
+        backdrop: Theme.dark ? @image-url("assets/wallblur-dark.png") : @image-url("assets/wallblur-light.png");
+        backdrop-x: root.wall-x - self.x;
+        backdrop-y: root.wall-y - self.y;
+        backdrop-width: 1760px;
+        backdrop-height: 1100px;
+    }
+
+    @children
+}
+
+component Swatch inherits Rectangle {
+    in property <string> label;
+    in property <color> swatch;
+    width: 110px;
+    height: 80px;
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: 48px;
+        border-radius: 10px;
+        background: root.swatch;
+        border-width: 1px;
+        border-color: Theme.text.with-alpha(0.12);
+    }
+
+    Caption {
+        x: 0px;
+        y: 54px;
+        width: parent.width;
+        height: 24px;
+        text: root.label;
+    }
+}
+
+component Sheet inherits Window {
+    in property <bool> dark: false;
+    width: 1600px;
+    height: 2520px;
+    background: Theme.bg;
+    init => {
+        Theme.dark = root.dark;
+    }
+
+    property <[DockApp]> three: [
+        { id: "files", name: "Files", icon: "files", running: true, active: true, windows: 2 },
+        { id: "browser", name: "Browser", icon: "browser", running: true },
+        { id: "mail", name: "Mail", icon: "mail", running: true, badge: 4 },
+    ];
+
+    Text {
+        x: 32px;
+        y: 26px;
+        text: "Dock · elements";
+        font-size: 30px;
+        font-weight: 800;
+        color: Theme.text;
+    }
+
+    Text {
+        x: 32px;
+        y: 66px;
+        text: root.dark ? "Dark" : "Light";
+        font-size: 14px;
+        color: Theme.disabled;
+    }
+
+    // ---------------------------------------------------------------- icons
+    Card {
+        x: 32px;
+        y: 100px;
+        width: 1536px;
+        height: 210px;
+        title: "App icons";
+        note: "128-unit squircle tiles, drawn as SVG: gradient, gloss, light edge, hairline. Anything unknown shows the last one.";
+        for n[i] in [
+            "launcher",
+            "files",
+            "browser",
+            "terminal",
+            "settings",
+            "music",
+            "photos",
+            "mail",
+            "calendar",
+            "notes",
+            "video",
+            "calculator",
+            "store",
+            "editor",
+            "default"
+        ]: Rectangle {
+            x: 24px + i * 100px;
+            y: 76px;
+            width: 72px;
+            height: 120px;
+            Rectangle {
+                width: 70px;
+                height: 70px;
+                x: 1px;
+                y: 1px;
+                border-radius: 16px;
+                background: Theme.bg;
+                drop-shadow-color: #000000.with-alpha(Theme.icon-shadow);
+                drop-shadow-blur: 14px;
+                drop-shadow-offset-y: 5px;
+            }
+
+            AppIcon {
+                x: 0px;
+                y: 0px;
+                width: 72px;
+                height: 72px;
+                name: n;
+            }
+
+            Caption {
+                y: 80px;
+                width: parent.width + 20px;
+                x: -10px;
+                height: 20px;
+                text: n;
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- states
+    Card {
+        x: 32px;
+        y: 330px;
+        width: 1536px;
+        height: 330px;
+        title: "States of an icon";
+        note: "Magnification is a cosine of the distance to the pointer, up to 1.65×, measured from resting positions.";
+        GlassStrip {
+            x: 24px;
+            y: 70px;
+            width: 1488px;
+            height: 200px;
+            StateSlot {
+                x: 0px;
+                y: 44px;
+                label: "";
+            }
+
+            StateSlot {
+                x: 148px;
+                y: 44px;
+                hover: 1;
+            }
+
+            StateSlot {
+                x: 296px;
+                y: 44px;
+                hover: 2;
+                icon: "browser";
+            }
+
+            StateSlot {
+                x: 444px;
+                y: 44px;
+                pressed: true;
+                hover: 1;
+                icon: "music";
+            }
+
+            StateSlot {
+                x: 592px;
+                y: 44px;
+                dragging: true;
+                icon: "photos";
+            }
+
+            StateSlot {
+                x: 740px;
+                y: 44px;
+                bounce: 0.62;
+                running: true;
+                icon: "calendar";
+            }
+
+            StateSlot {
+                x: 888px;
+                y: 44px;
+                running: true;
+                icon: "terminal";
+            }
+
+            StateSlot {
+                x: 1036px;
+                y: 44px;
+                running: true;
+                active: true;
+                icon: "files";
+            }
+
+            StateSlot {
+                x: 1184px;
+                y: 44px;
+                running: true;
+                badge: 3;
+                icon: "mail";
+            }
+
+            StateSlot {
+                x: 1332px;
+                y: 44px;
+                badge: 128;
+                icon: "notes";
+            }
+        }
+
+        for t[i] in [
+            "Rest",
+            "Under the pointer",
+            "Next to it",
+            "Pressed",
+            "Lifted (dragging)",
+            "Hopping (launching)",
+            "Running",
+            "Active",
+            "Count",
+            "Count, 99+"
+        ]: Caption {
+            x: 24px + i * 148px;
+            y: 282px;
+            width: 148px;
+            height: 36px;
+            text: t;
+        }
+    }
+
+    Card {
+        x: 32px;
+        y: 680px;
+        width: 1536px;
+        height: 330px;
+        title: "Launcher, windows and the bin";
+        note: "A minimised window with no picture is drawn as a small window; the bin's lid swings open on hover or when something is dragged over it.";
+        GlassStrip {
+            x: 24px;
+            y: 70px;
+            width: 1488px;
+            height: 200px;
+            StateSlot {
+                x: 0px;
+                y: 44px;
+                kind: "launcher";
+            }
+
+            StateSlot {
+                x: 148px;
+                y: 44px;
+                kind: "launcher";
+                hover: 1;
+            }
+
+            StateSlot {
+                x: 296px;
+                y: 44px;
+                kind: "window";
+                icon: "files";
+            }
+
+            StateSlot {
+                x: 444px;
+                y: 44px;
+                kind: "window";
+                icon: "browser";
+                hover: 1;
+            }
+
+            StateSlot {
+                x: 592px;
+                y: 44px;
+                kind: "trash";
+            }
+
+            StateSlot {
+                x: 740px;
+                y: 44px;
+                kind: "trash";
+                trash-full: true;
+            }
+
+            StateSlot {
+                x: 888px;
+                y: 44px;
+                kind: "trash";
+                trash-full: true;
+                lid-open: true;
+            }
+
+            StateSlot {
+                x: 1036px;
+                y: 44px;
+                kind: "trash";
+                lid-open: true;
+                hover: 1;
+            }
+        }
+
+        for t[i] in [
+            "Launcher",
+            "Launcher, hovered",
+            "Minimised window",
+            "Hovered",
+            "Bin, empty",
+            "Bin, full",
+            "Dragging over the bin",
+            "Bin, hovered"
+        ]: Caption {
+            x: 24px + i * 148px;
+            y: 282px;
+            width: 148px;
+            height: 36px;
+            text: t;
+        }
+    }
+
+    // ---------------------------------------------------------------- label and menu
+    Card {
+        x: 32px;
+        y: 1030px;
+        width: 1536px;
+        height: 340px;
+        title: "Label and context menu";
+        note: "The label waits 320 ms for the first icon, then glides from icon to icon. The menu grows out of its icon; its rows arrive 16 ms apart.";
+        Stage {
+            x: 24px;
+            y: 70px;
+            width: 420px;
+            height: 250px;
+            wall-y: -360px;
+            DockTooltip {
+                x: (parent.width - self.width) / 2;
+                y: 50px;
+                text: "Files";
+                sub: "2 windows";
+            }
+
+            DockTooltip {
+                x: (parent.width - self.width) / 2;
+                y: 130px;
+                text: "Browser";
+            }
+
+            DockTooltip {
+                x: (parent.width - self.width) / 2;
+                y: 190px;
+                text: "Trash";
+                sub: "Contains items";
+            }
+        }
+
+        Stage {
+            x: 468px;
+            y: 70px;
+            width: 520px;
+            height: 250px;
+            wall-x: -300px;
+            wall-y: -380px;
+            DockMenu {
+                x: 40px;
+                y: 18px;
+                open: true;
+                preview-hover: 1;
+                entries: [
+                    { text: "BROWSER", kind: "header", enabled: true },
+                    { text: "New Window", kind: "item", icon: "new-window", enabled: true },
+                    { text: "Show All Windows", kind: "item", icon: "windows", enabled: false },
+                    { text: "-", kind: "separator", enabled: true },
+                    { text: "Keep in Dock", kind: "item", checked: true, enabled: true },
+                    { text: "Hide", kind: "item", icon: "hide", enabled: true },
+                    { text: "-", kind: "separator", enabled: true },
+                    { text: "Quit", kind: "item", icon: "quit", destructive: true, enabled: true },
+                ];
+            }
+
+            DockMenu {
+                x: 280px;
+                y: 18px;
+                open: true;
+                preview-hover: 4;
+                entries: [
+                    { text: "TRASH", kind: "header", enabled: true },
+                    { text: "Open Trash", kind: "item", icon: "folder", enabled: true },
+                    { text: "-", kind: "separator", enabled: true },
+                    { text: "Empty Trash", kind: "item", icon: "empty", destructive: true, enabled: true },
+                ];
+            }
+        }
+
+        Caption {
+            x: 1012px;
+            y: 76px;
+            width: 500px;
+            height: 240px;
+            horizontal-alignment: left;
+            text: "Rows\n·  item: 30 px, hover fills with the accent (red when destructive)\n·  header: the app's name, small caps, not clickable\n·  separator: 11 px\n·  a check replaces the symbol of an item that is on\n·  a disabled item is drawn at 40 %\n\nLabel\n·  name, and under it a quieter line (windows, bin contents)\n·  fades in 140 ms, glides 170 ms between icons";
+        }
+    }
+
+    // ---------------------------------------------------------------- magnification
+    Card {
+        x: 32px;
+        y: 1390px;
+        width: 1536px;
+        height: 360px;
+        title: "Magnification";
+        note: "scale = 1 + 0.65 × ½(1 + cos(π · d / 130 px)) for d < 130 px. In 90 ms; out 260 ms, so a sweep never flickers.";
+        Rectangle {
+            x: 24px;
+            y: 80px;
+            width: 420px;
+            height: 250px;
+            Path {
+                x: 20px;
+                y: 40px;
+                width: 400px;
+                height: 120px;
+                commands: "M0.0 120.0 L4.2 119.9 L8.3 119.5 L12.5 118.8 L16.7 118.0 L20.8 116.8 L25.0 115.4 L29.2 113.8 L33.3 112.0 L37.5 109.9 L41.7 107.6 L45.8 105.1 L50.0 102.4 L54.2 99.6 L58.3 96.5 L62.5 93.3 L66.7 90.0 L70.8 86.5 L75.0 83.0 L79.2 79.3 L83.3 75.5 L87.5 71.7 L91.7 67.8 L95.8 63.9 L100.0 60.0 L104.2 56.1 L108.3 52.2 L112.5 48.3 L116.7 44.5 L120.8 40.7 L125.0 37.0 L129.2 33.5 L133.3 30.0 L137.5 26.7 L141.7 23.5 L145.8 20.4 L150.0 17.6 L154.2 14.9 L158.3 12.4 L162.5 10.1 L166.7 8.0 L170.8 6.2 L175.0 4.6 L179.2 3.2 L183.3 2.0 L187.5 1.2 L191.7 0.5 L195.8 0.1 L200.0 0.0 L204.2 0.1 L208.3 0.5 L212.5 1.2 L216.7 2.0 L220.8 3.2 L225.0 4.6 L229.2 6.2 L233.3 8.0 L237.5 10.1 L241.7 12.4 L245.8 14.9 L250.0 17.6 L254.2 20.4 L258.3 23.5 L262.5 26.7 L266.7 30.0 L270.8 33.5 L275.0 37.0 L279.2 40.7 L283.3 44.5 L287.5 48.3 L291.7 52.2 L295.8 56.1 L300.0 60.0 L304.2 63.9 L308.3 67.8 L312.5 71.7 L316.7 75.5 L320.8 79.3 L325.0 83.0 L329.2 86.5 L333.3 90.0 L337.5 93.3 L341.7 96.5 L345.8 99.6 L350.0 102.4 L354.2 105.1 L358.3 107.6 L362.5 109.9 L366.7 112.0 L370.8 113.8 L375.0 115.4 L379.2 116.8 L383.3 118.0 L387.5 118.8 L391.7 119.5 L395.8 119.9 L400.0 120.0";
+                stroke: Theme.accent;
+                stroke-width: 3px;
+                fill: transparent;
+            }
+
+            Rectangle {
+                x: 20px;
+                y: 160px;
+                width: 400px;
+                height: 1px;
+                background: Theme.separator;
+            }
+
+            Rectangle {
+                x: 220px;
+                y: 32px;
+                width: 1px;
+                height: 136px;
+                background: Theme.separator;
+            }
+
+            Caption {
+                x: 0px;
+                y: 176px;
+                width: 440px;
+                height: 20px;
+                text: "distance from the pointer: 130 px · 0 · 130 px";
+            }
+
+            Caption {
+                x: 0px;
+                y: 200px;
+                width: 440px;
+                height: 40px;
+                text: "1.65× at the pointer, 1× beyond 130 px";
+            }
+        }
+
+        for p[i] in [0.0, 1.0, 2.0]: GlassDock {
+            x: 470px + i * 346px;
+            y: 80px;
+            width: 332px;
+            height: 250px;
+            apps: [
+                { id: "files", name: "Files", icon: "files", running: true, active: true },
+                { id: "browser", name: "Browser", icon: "browser", running: true },
+                { id: "mail", name: "Mail", icon: "mail", badge: 4 },
+            ];
+            icon-size: 48px;
+            pointer: p;
+        }
+    }
+
+    // ---------------------------------------------------------------- sizes
+    Card {
+        x: 32px;
+        y: 1770px;
+        width: 1536px;
+        height: 290px;
+        title: "Sizes";
+        note: "Everything follows the icon size: gaps, padding, radius, the running mark. 32, 48, 64 and 80 px at rest.";
+        GlassDock {
+            x: 24px;
+            y: 80px;
+            width: 230px;
+            height: 190px;
+            apps: three;
+            icon-size: 32px;
+        }
+
+        GlassDock {
+            x: 270px;
+            y: 80px;
+            width: 330px;
+            height: 190px;
+            apps: three;
+            icon-size: 48px;
+        }
+
+        GlassDock {
+            x: 616px;
+            y: 80px;
+            width: 430px;
+            height: 190px;
+            apps: three;
+            icon-size: 64px;
+        }
+
+        GlassDock {
+            x: 1062px;
+            y: 80px;
+            width: 450px;
+            height: 190px;
+            apps: three;
+            icon-size: 80px;
+        }
+    }
+
+    // ---------------------------------------------------------------- tokens
+    Card {
+        x: 32px;
+        y: 2080px;
+        width: 1536px;
+        height: 410px;
+        title: "Tokens";
+        note: "The palette, radii and curves are the Files redesign's, so the two read as one system.";
+        for sw[i] in [
+            { l: "bg", c: Theme.bg },
+            { l: "second", c: Theme.second },
+            { l: "text", c: Theme.text },
+            { l: "disabled", c: Theme.disabled },
+            { l: "accent", c: Theme.accent },
+            { l: "glass top", c: Theme.glass-top },
+            { l: "glass bottom", c: Theme.glass-bottom },
+            { l: "popup", c: Theme.pop-bg },
+            { l: "danger", c: Theme.danger },
+            { l: "badge", c: Theme.badge },
+            { l: "mark", c: Theme.dot },
+            { l: "separator", c: Theme.separator }
+        ]: Swatch {
+            x: 24px + i * 124px;
+            y: 76px;
+            label: sw.l;
+            swatch: sw.c;
+        }
+        for r[i] in [8px, 10px, 12px]: Rectangle {
+            x: 24px + i * 100px;
+            y: 176px;
+            width: 80px;
+            height: 56px;
+            border-radius: r;
+            background: Theme.bg;
+            border-width: 1px;
+            border-color: Theme.text.with-alpha(0.18);
+            Text {
+                text: (r / 1px) + " px";
+                font-size: 12px;
+                color: Theme.text;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+        Caption {
+            x: 24px;
+            y: 238px;
+            width: 300px;
+            height: 20px;
+            horizontal-alignment: left;
+            text: "radii: small, medium, big";
+        }
+
+        for s[i] in [
+            "new-window",
+            "pin",
+            "unpin",
+            "close",
+            "quit",
+            "windows",
+            "options",
+            "check",
+            "hide",
+            "trash",
+            "empty",
+            "folder",
+            "add"
+        ]: Rectangle {
+            x: 380px + i * 84px;
+            y: 176px;
+            width: 72px;
+            height: 80px;
+            Symbol {
+                x: 24px;
+                y: 4px;
+                width: 24px;
+                height: 24px;
+                name: s;
+            }
+
+            Caption {
+                y: 38px;
+                width: parent.width;
+                height: 36px;
+                text: s;
+            }
+        }
+        Text {
+            x: 24px;
+            y: 280px;
+            width: 740px;
+            height: 150px;
+            color: Theme.text;
+            font-size: 12px;
+            wrap: word-wrap;
+            text: "Motion (ms)\nmagnify in " + (Motion.magnify-in / 1ms) + " · out " + (Motion.magnify-out / 1ms) + "      hover in " + (Motion.hover-in / 1ms) + " · out " + (Motion.hover-out / 1ms) + "      press " + (Motion.press / 1ms)
+                + "\nhop " + (Motion.bounce / 1ms) + " (up, then down, repeating)      arrive " + (Motion.arrive / 1ms) + " · leave " + (Motion.leave / 1ms) + "      stagger " + (Motion.stagger / 1ms) + " per icon"
+                + "\nmark " + (Motion.indicator / 1ms) + "      label wait " + (Motion.tip-delay / 1ms) + " · fade " + (Motion.tip-fade / 1ms) + " · glide " + (Motion.tip-glide / 1ms)
+                + "\nmenu " + (Motion.menu / 1ms) + " · rows " + (Motion.menu-stagger / 1ms) + " apart      neighbours part " + (Motion.part / 1ms) + "      bin lid " + (Motion.lid / 1ms)
+                + "\nslide off the edge " + (Motion.hide / 1ms) + "      first appearance " + (Motion.enter / 1ms);
+        }
+
+        Text {
+            x: 800px;
+            y: 280px;
+            width: 700px;
+            height: 150px;
+            color: Theme.text;
+            font-size: 12px;
+            wrap: word-wrap;
+            text: "Curves\nstandard  (0.2, 0, 0, 1)  most movement: quick start, long soft landing\nsoft  (0.4, 0, 0.2, 1)  fades\novershoot  (0.34, 1.35, 0.64, 1)  things that arrive: rise ~4 % past, settle\nexit  (0.4, 0, 1, 1)  things that leave: accelerate away";
+        }
+    }
+}
+
+export component ElementsLight inherits Sheet {
+    dark: false;
+}
+
+export component ElementsDark inherits Sheet {
+    dark: true;
+}

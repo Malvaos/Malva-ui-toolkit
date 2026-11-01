@@ -1,0 +1,13 @@
+# The std-only crates of the Malva UI kit. They need nothing from crates.io, so `cargo test` works offline.
+# `malva-iced` (the iced theme) is not a member: it depends on iced, which is a large download; it has its own
+# Cargo.toml and is built from its own directory (see malva-iced/README.md).
+[workspace]
+resolver = "2"
+members = ["malva-color", "malva-tokens", "malva-icons", "malva-motion"]
+exclude = ["malva-iced"]
+
+[workspace.package]
+version = "1.0.0"
+edition = "2021"
+authors = ["Malva"]
+rust-version = "1.75"

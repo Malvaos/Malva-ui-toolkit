@@ -1,0 +1,347 @@
+// Design previews: the app as it looks in a window on a wallpaper, with sample data, drawn
+// without a backend. Render one with
+//   slint-viewer ui/../preview/preview.slint --component PreviewLight --screenshot light.png
+// Nothing here ships; a backend compiles ui/files.slint.
+import { Theme } from "../ui/theme.slint";
+import { FileEntry, Place } from "../ui/types.slint";
+import { FilesApp } from "../ui/components/files-app.slint";
+
+component Scene inherits Window {
+    in property <bool> dark: false;
+    // 0: icons, 1: list.
+    in property <int> mode: 0;
+    width: 1280px;
+    height: 800px;
+    background: dark ? #180B16 : #E6DAE8;
+
+    init => {
+        Theme.dark = root.dark;
+    }
+
+    Image {
+        width: parent.width;
+        height: parent.height;
+        source: root.dark ? @image-url("assets/wallpaper-dark.svg") : @image-url("assets/wallpaper-light.svg");
+        image-fit: fill;
+    }
+
+    // The window's shadow, and the window.
+    Rectangle {
+        x: 64px;
+        y: 44px;
+        width: parent.width - 128px;
+        height: parent.height - 88px;
+        border-radius: Theme.radius-window;
+        background: Theme.bg;
+        drop-shadow-color: #000000.with-alpha(root.dark ? 0.66 : 0.38);
+        drop-shadow-blur: 70px;
+        drop-shadow-offset-y: 26px;
+
+        FilesApp {
+            x: 0;
+            y: 0;
+            width: parent.width;
+            height: parent.height;
+            rounded: true;
+            show-window-controls: true;
+            animate-entrance: false;
+            folder-name: "Pictures";
+            selected-place: 6;
+            crumbs: ["Home", "Pictures", "Trip 2026"];
+            can-back: true;
+            can-forward: false;
+            view-mode: root.mode;
+            status: "24 items, 2 selected";
+            preview-hover-place: 4;
+            preview-hover-item: 9;
+            preview-hover-crumb: -1;
+            places: [
+                { name: "Favorites", icon: "", is-header: true, ejectable: false },
+                { name: "Home", icon: "home", is-header: false, ejectable: false },
+                { name: "Desktop", icon: "desktop", is-header: false, ejectable: false },
+                { name: "Documents", icon: "documents", is-header: false, ejectable: false },
+                { name: "Downloads", icon: "downloads", is-header: false, ejectable: false },
+                { name: "Music", icon: "music", is-header: false, ejectable: false },
+                { name: "Pictures", icon: "pictures", is-header: false, ejectable: false },
+                { name: "Videos", icon: "videos", is-header: false, ejectable: false },
+                { name: "Trash", icon: "trash", is-header: false, ejectable: false },
+                { name: "Devices", icon: "", is-header: true, ejectable: false },
+                { name: "Macintosh HD", icon: "drive", is-header: false, ejectable: false },
+                { name: "Backup Drive", icon: "usb", is-header: false, ejectable: true },
+                { name: "Network", icon: "network", is-header: false, ejectable: false }
+            ];
+            entries: [
+                {
+                    name: "Trip 2026",
+                    kind: "folder",
+                    has-thumbnail: false,
+                    selected: false,
+                    hidden: false,
+                    size: "48 items",
+                    modified: "Today at 14:02",
+                    kind-label: "Folder"
+                },
+                {
+                    name: "Screenshots",
+                    kind: "folder",
+                    has-thumbnail: false,
+                    selected: false,
+                    hidden: false,
+                    size: "126 items",
+                    modified: "Yesterday at 21:15",
+                    kind-label: "Folder"
+                },
+                {
+                    name: "Edits",
+                    kind: "folder",
+                    has-thumbnail: false,
+                    selected: false,
+                    hidden: false,
+                    size: "31 items",
+                    modified: "Oct 22, 2026",
+                    kind-label: "Folder"
+                },
+                {
+                    name: "RAW",
+                    kind: "folder",
+                    has-thumbnail: false,
+                    selected: false,
+                    hidden: false,
+                    size: "212 items",
+                    modified: "Oct 14, 2026",
+                    kind-label: "Folder"
+                },
+                {
+                    name: "Beach at sunset.jpg",
+                    kind: "image",
+                    thumbnail: @image-url("assets/photo-0.svg"),
+                    has-thumbnail: true,
+                    selected: false,
+                    hidden: false,
+                    size: "3.1 MB",
+                    modified: "Oct 20, 2026",
+                    kind-label: "JPEG image"
+                },
+                {
+                    name: "Mountains.jpg",
+                    kind: "image",
+                    thumbnail: @image-url("assets/photo-2.svg"),
+                    has-thumbnail: true,
+                    selected: true,
+                    hidden: false,
+                    size: "4.8 MB",
+                    modified: "Oct 20, 2026",
+                    kind-label: "JPEG image"
+                },
+                {
+                    name: "City lights.png",
+                    kind: "image",
+                    thumbnail: @image-url("assets/photo-1.svg"),
+                    has-thumbnail: true,
+                    selected: true,
+                    hidden: false,
+                    size: "6.2 MB",
+                    modified: "Oct 19, 2026",
+                    kind-label: "PNG image"
+                },
+                {
+                    name: "Forest trail.jpg",
+                    kind: "image",
+                    thumbnail: @image-url("assets/photo-3.svg"),
+                    has-thumbnail: true,
+                    selected: false,
+                    hidden: false,
+                    size: "2.9 MB",
+                    modified: "Oct 18, 2026",
+                    kind-label: "JPEG image"
+                },
+                {
+                    name: "Golden hour.jpg",
+                    kind: "image",
+                    thumbnail: @image-url("assets/photo-0.svg"),
+                    has-thumbnail: true,
+                    selected: false,
+                    hidden: false,
+                    size: "3.7 MB",
+                    modified: "Oct 18, 2026",
+                    kind-label: "JPEG image"
+                },
+                {
+                    name: "Lake morning.jpg",
+                    kind: "image",
+                    thumbnail: @image-url("assets/photo-2.svg"),
+                    has-thumbnail: true,
+                    selected: false,
+                    hidden: false,
+                    size: "5.1 MB",
+                    modified: "Oct 17, 2026",
+                    kind-label: "JPEG image"
+                },
+                {
+                    name: "Skyline.png",
+                    kind: "image",
+                    thumbnail: @image-url("assets/photo-1.svg"),
+                    has-thumbnail: true,
+                    selected: false,
+                    hidden: false,
+                    size: "7.4 MB",
+                    modified: "Oct 16, 2026",
+                    kind-label: "PNG image"
+                },
+                {
+                    name: "Aurora.jpg",
+                    kind: "image",
+                    thumbnail: @image-url("assets/photo-3.svg"),
+                    has-thumbnail: true,
+                    selected: false,
+                    hidden: false,
+                    size: "4.2 MB",
+                    modified: "Oct 15, 2026",
+                    kind-label: "JPEG image"
+                },
+                {
+                    name: "IMG_20260814_173522_HDR.jpg",
+                    kind: "image",
+                    has-thumbnail: false,
+                    selected: false,
+                    hidden: false,
+                    size: "3.3 MB",
+                    modified: "Aug 14, 2026",
+                    kind-label: "JPEG image"
+                },
+                {
+                    name: "Portrait.jpg",
+                    kind: "image",
+                    thumbnail: @image-url("assets/photo-0.svg"),
+                    has-thumbnail: true,
+                    selected: false,
+                    hidden: false,
+                    size: "2.2 MB",
+                    modified: "Oct 12, 2026",
+                    kind-label: "JPEG image"
+                },
+                {
+                    name: "Coast road.jpg",
+                    kind: "image",
+                    thumbnail: @image-url("assets/photo-2.svg"),
+                    has-thumbnail: true,
+                    selected: false,
+                    hidden: false,
+                    size: "3.9 MB",
+                    modified: "Oct 11, 2026",
+                    kind-label: "JPEG image"
+                },
+                {
+                    name: "Itinerary.pdf",
+                    kind: "pdf",
+                    has-thumbnail: false,
+                    selected: false,
+                    hidden: false,
+                    size: "412 KB",
+                    modified: "Oct 10, 2026",
+                    kind-label: "PDF document"
+                },
+                {
+                    name: "Contact sheet.pdf",
+                    kind: "pdf",
+                    has-thumbnail: false,
+                    selected: false,
+                    hidden: false,
+                    size: "2.4 MB",
+                    modified: "Oct 9, 2026",
+                    kind-label: "PDF document"
+                },
+                {
+                    name: "Notes.txt",
+                    kind: "text",
+                    has-thumbnail: false,
+                    selected: false,
+                    hidden: false,
+                    size: "4 KB",
+                    modified: "Oct 8, 2026",
+                    kind-label: "Plain text"
+                },
+                {
+                    name: "README.txt",
+                    kind: "text",
+                    has-thumbnail: false,
+                    selected: false,
+                    hidden: true,
+                    size: "1 KB",
+                    modified: "Oct 8, 2026",
+                    kind-label: "Plain text"
+                },
+                {
+                    name: "Backup.zip",
+                    kind: "archive",
+                    has-thumbnail: false,
+                    selected: false,
+                    hidden: false,
+                    size: "88 MB",
+                    modified: "Sep 30, 2026",
+                    kind-label: "ZIP archive"
+                },
+                {
+                    name: "Receipts.zip",
+                    kind: "archive",
+                    has-thumbnail: false,
+                    selected: false,
+                    hidden: false,
+                    size: "14 MB",
+                    modified: "Sep 22, 2026",
+                    kind-label: "ZIP archive"
+                },
+                {
+                    name: "Voice memo.m4a",
+                    kind: "audio",
+                    has-thumbnail: false,
+                    selected: false,
+                    hidden: false,
+                    size: "1.8 MB",
+                    modified: "Sep 18, 2026",
+                    kind-label: "MPEG-4 audio"
+                },
+                {
+                    name: "Theme song.mp3",
+                    kind: "audio",
+                    has-thumbnail: false,
+                    selected: false,
+                    hidden: false,
+                    size: "5.6 MB",
+                    modified: "Sep 12, 2026",
+                    kind-label: "MP3 audio"
+                },
+                {
+                    name: "Drone clip.mp4",
+                    kind: "video",
+                    has-thumbnail: false,
+                    selected: false,
+                    hidden: false,
+                    size: "212 MB",
+                    modified: "Sep 4, 2026",
+                    kind-label: "MPEG-4 video"
+                }
+            ];
+        }
+    }
+}
+
+export component PreviewLight inherits Scene {
+    dark: false;
+    mode: 0;
+}
+
+export component PreviewDark inherits Scene {
+    dark: true;
+    mode: 0;
+}
+
+export component PreviewListLight inherits Scene {
+    dark: false;
+    mode: 1;
+}
+
+export component PreviewListDark inherits Scene {
+    dark: true;
+    mode: 1;
+}

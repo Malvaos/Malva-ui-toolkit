@@ -1,0 +1,233 @@
+import { Theme, Motion } from "../theme.slint";
+import { Place } from "../types.slint";
+import { SelectionCard, HoverPlate } from "surfaces.slint";
+import { SymbolIcon } from "icon.slint";
+
+// Frosted glass, denser at the top. The selected place is an accent pill that slides to a new
+// place and settles with a small overshoot; a hover plate glides from row to row under the pointer.
+export component Sidebar inherits Rectangle {
+    in property <string> title;
+    in property <[Place]> places;
+    // The index in `places` of the place showing the folder; -1 for none.
+    in property <int> selected: -1;
+    // For design previews: the row drawn as if the pointer were on it.
+    in property <int> force-hover: -1;
+
+    callback place-clicked(int);
+    callback place-context(int, length, length);
+    callback eject-clicked(int);
+
+    // Where the pill and the plate are, written by the rows as they are laid out.
+    property <length> pill-y: 0;
+    property <bool> pill-placed: false;
+    // After the pill's first placement it slides; until then it appears where it belongs.
+    property <bool> settled: false;
+    property <int> hover-index: -1;
+    property <length> hover-y: 0;
+
+    property <float> pill-amount: selected >= 0 ? 1 : 0;
+    animate pill-amount {
+        duration: Motion.select;
+        easing: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    property <float> hover-amount: hover-index >= 0 ? 1 : 0;
+    animate hover-amount {
+        duration: hover-index >= 0 ? Motion.hover-in : Motion.hover-out;
+        easing: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    Timer {
+        interval: 60ms;
+        running: root.pill-placed && !root.settled;
+        triggered => {
+            root.settled = true;
+        }
+    }
+
+    width: 190px;
+    background: @linear-gradient(180deg, Theme.sidebar-top, Theme.sidebar-bottom);
+
+    // The hairline where it meets the page.
+    Rectangle {
+        x: parent.width - 1px;
+        width: 1px;
+        background: Theme.sidebar-edge;
+    }
+
+    Text {
+        x: 15px;
+        y: 6px;
+        width: parent.width - 30px;
+        height: 42px;
+        text: root.title;
+        color: Theme.text;
+        font-size: 13px;
+        font-weight: 700;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    list := Rectangle {
+        y: 54px;
+        height: parent.height - 54px;
+        clip: true;
+
+        // Under the rows: the plate under the pointer, then the selection.
+        HoverPlate {
+            x: 9px;
+            y: root.hover-y;
+            width: parent.width - 18px;
+            height: 34px;
+            corner: Theme.radius-medium;
+            amount: root.hover-amount;
+            animate y {
+                duration: root.hover-amount > 0.05 ? Motion.plate-glide : 0ms;
+                easing: cubic-bezier(0.2, 0, 0, 1);
+            }
+        }
+
+        SelectionCard {
+            pill: true;
+            x: 9px;
+            y: root.pill-y;
+            width: parent.width - 18px;
+            height: 34px;
+            corner: Theme.radius-medium;
+            amount: root.pill-amount;
+            animate y {
+                duration: root.settled ? Motion.glide : 0ms;
+                easing: cubic-bezier(0.34, 1.35, 0.64, 1);
+            }
+        }
+        // The accent's own mark in the pill's left edge.
+        Rectangle {
+            x: 12px;
+            y: root.pill-y + 8.5px;
+            width: 3px;
+            height: 17px;
+            border-radius: 1.5px;
+            background: Theme.accent;
+            opacity: min(root.pill-amount, 1.0);
+            animate y {
+                duration: root.settled ? Motion.glide : 0ms;
+                easing: cubic-bezier(0.34, 1.35, 0.64, 1);
+            }
+        }
+
+        VerticalLayout {
+            alignment: start;
+            spacing: 0px;
+            for p[i] in root.places: Rectangle {
+                height: p.is-header ? (i == 0 ? 32px : 36px) : 37px;
+
+                property <bool> is-selected: i == root.selected && !p.is-header;
+                property <bool> is-hovered: !p.is-header && (ta.has-hover || i == root.force-hover);
+
+                changed is-selected => {
+                    if (self.is-selected) {
+                        root.pill-y = self.y;
+                        root.pill-placed = true;
+                    }
+                }
+                changed is-hovered => {
+                    if (self.is-hovered) {
+                        root.hover-y = self.y;
+                        root.hover-index = i;
+                    } else if (root.hover-index == i) {
+                        root.hover-index = -1;
+                    }
+                }
+                // The layout places a row after it exists, and moves it when places come and go.
+                changed y => {
+                    if (self.is-selected) {
+                        root.pill-y = self.y;
+                    }
+                    if (self.is-hovered) {
+                        root.hover-y = self.y;
+                    }
+                }
+                init => {
+                    if (self.is-selected) {
+                        root.pill-y = self.y;
+                        root.pill-placed = true;
+                    }
+                    if (self.is-hovered) {
+                        root.hover-y = self.y;
+                        root.hover-index = i;
+                    }
+                }
+
+                ta := TouchArea {
+                    enabled: !p.is-header;
+                    clicked => {
+                        root.place-clicked(i);
+                    }
+                    pointer-event(e) => {
+                        if (e.kind == PointerEventKind.up && e.button == PointerEventButton.right) {
+                            root.place-context(i, self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+                        }
+                    }
+                }
+
+                if p.is-header: Text {
+                    x: 24px;
+                    width: parent.width - 36px;
+                    height: parent.height;
+                    text: p.name;
+                    color: Theme.disabled;
+                    font-size: Theme.font-size;
+                    font-weight: 700;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                if !p.is-header: Rectangle {
+                    x: 9px;
+                    width: parent.width - 18px;
+                    height: 34px;
+                    SymbolIcon {
+                        x: 15px;
+                        y: 7px;
+                        width: 20px;
+                        height: 20px;
+                        name: p.icon;
+                        tint: is-selected ? Theme.accent : Theme.text;
+                    }
+
+                    Text {
+                        x: 41px;
+                        width: parent.width - 41px - (p.ejectable ? 40px : 12px);
+                        height: 34px;
+                        text: p.name;
+                        color: is-selected ? Theme.accent : Theme.text;
+                        font-size: Theme.font-size;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    if p.ejectable: Rectangle {
+                        x: parent.width - 36px;
+                        y: 3px;
+                        width: 28px;
+                        height: 28px;
+                        SymbolIcon {
+                            x: 7px;
+                            y: 7px;
+                            width: 14px;
+                            height: 14px;
+                            name: "eject";
+                            tint: is-selected ? Theme.accent : Theme.text;
+                            opacity: eject-ta.has-hover ? 0.85 : 0.45;
+                            animate opacity { duration: Motion.hover-in; }
+                        }
+
+                        eject-ta := TouchArea {
+                            clicked => {
+                                root.eject-clicked(i);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

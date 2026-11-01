@@ -1,0 +1,47 @@
+// What the backend hands the dock. Plain data; the UI owns no processes and no files.
+
+// An app in the dock: pinned, running, or both.
+export struct DockApp {
+    // Identifies the app across changes (a desktop file id); drag and drop follow it.
+    id: string,
+    name: string,
+    // The name of one of the dock's icons ("files", "browser", ...); anything unknown shows "default".
+    icon: string,
+    // A system icon instead of a built-in one, when has-icon-image.
+    icon-image: image,
+    has-icon-image: bool,
+    pinned: bool,
+    running: bool,
+    // The app has the focused window: its mark is the long pill.
+    active: bool,
+    // Asked to start and not yet running: the icon hops.
+    launching: bool,
+    // The red count on the icon; 0 for none.
+    badge: int,
+    // Open windows, for the label ("2 windows") and the menu.
+    windows: int,
+    // Set this and the item shrinks away; remove the item after about 300 ms.
+    removing: bool,
+}
+
+// A minimised window, shown after the apps.
+export struct MinimizedWindow {
+    title: string,
+    // The icon of its app.
+    icon: string,
+    preview: image,
+    has-preview: bool,
+}
+
+// A row of the context menu.
+export struct MenuEntry {
+    text: string,
+    // "item", "header" (the app's name, not clickable) or "separator".
+    kind: string,
+    // The name of one of the dock's symbols ("pin", "close", ...), or empty.
+    icon: string,
+    checked: bool,
+    // Drawn in red: quit, remove.
+    destructive: bool,
+    enabled: bool,
+}

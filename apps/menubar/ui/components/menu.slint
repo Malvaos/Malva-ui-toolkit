@@ -1,0 +1,346 @@
+import { Theme, Motion } from "../theme.slint";
+import { MenuEntry } from "../types.slint";
+import { Symbol } from "icon.slint";
+import { ShadowRings } from "surfaces.slint";
+
+// One row of a menu: an item (icon or tick, text, shortcut, a chevron when it opens a flyout), a header
+// (a small title) or a separator.
+component MenuRow inherits Rectangle {
+    in property <MenuEntry> entry;
+    in property <int> index: 0;
+    in property <bool> open: false;
+    in property <bool> selected: false;
+    // A row that does not belong in this card keeps no room (a list is filtered by making rows empty).
+    in property <bool> present: true;
+    // How many rows come before this one in its card, for the stagger.
+    in property <int> order: 0;
+    callback chosen();
+    callback entered();
+
+    property <float> shown: open ? 1 : 0;
+    animate shown {
+        duration: Motion.pop-in;
+        delay: root.open ? min(order, 10) * Motion.menu-stagger + 24ms : 0ms;
+        easing: cubic-bezier(0.2, 0, 0, 1);
+    }
+    property <bool> is-item: entry.kind == "item";
+    property <bool> live: is-item && entry.enabled;
+    property <float> hover: live && selected ? 1 : 0;
+    animate hover { duration: selected ? 60ms : Motion.hover-out; }
+    property <color> ink: entry.destructive ? Theme.danger : Theme.text;
+    property <color> tone: hover > 0.5 ? Theme.on-accent : ink;
+    animate tone { duration: 80ms; }
+    property <bool> hovering: ta.has-hover;
+    changed hovering => {
+        if self.hovering {
+            root.entered();
+        }
+    }
+
+    visible: present;
+    height: !present ? 0px : entry.kind == "separator" ? 11px : entry.kind == "header" ? 26px : 28px;
+    preferred-width: !present ? 0px : entry.kind == "item" ? 10px + 18px + 8px + label.preferred-width + (entry.shortcut != "" ? 28px + hint.preferred-width : 0px) + (entry.submenu ? 26px : 0px) + 12px : 0px;
+    opacity: min(shown, 1.0) * (is-item && !entry.enabled ? 0.4 : 1.0);
+    transform-scale: 0.97 + 0.03 * min(shown, 1.0);
+
+    if root.is-item: Rectangle {
+        x: 0px;
+        y: 1px;
+        height: parent.height - 2px;
+        border-radius: 7px;
+        background: root.entry.destructive ? Theme.danger.with-alpha(0.92 * root.hover) : Theme.accent.with-alpha(root.hover);
+    }
+    if root.entry.kind == "separator": Rectangle {
+        x: 8px;
+        y: 5px;
+        width: parent.width - 16px;
+        height: 1px;
+        background: Theme.separator;
+    }
+    if root.entry.kind == "header": Text {
+        x: 10px;
+        width: parent.width - 20px;
+        height: parent.height;
+        text: root.entry.text;
+        color: Theme.text-3;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    if root.is-item && (root.entry.checked || root.entry.icon != ""): Symbol {
+        x: 10px;
+        y: (parent.height - self.height) / 2;
+        width: 16px;
+        height: 16px;
+        name: root.entry.checked ? "check" : root.entry.icon;
+        tint: root.tone;
+    }
+    label := Text {
+        x: 36px;
+        width: parent.width - 36px - (root.entry.shortcut != "" ? hint.preferred-width + 28px : 0px) - (root.entry.submenu ? 26px : 12px);
+        height: parent.height;
+        visible: root.is-item;
+        text: root.is-item ? root.entry.text : "";
+        color: root.tone;
+        font-size: 13px;
+        font-weight: root.entry.checked ? 600 : 400;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    hint := Text {
+        x: parent.width - self.preferred-width - (root.entry.submenu ? 26px : 12px);
+        height: parent.height;
+        visible: root.is-item;
+        text: root.is-item ? root.entry.shortcut : "";
+        color: root.hover > 0.5 ? Theme.on-accent.with-alpha(0.8) : Theme.text-3;
+        font-size: 12px;
+        vertical-alignment: center;
+    }
+    if root.is-item && root.entry.submenu: Symbol {
+        x: parent.width - 22px;
+        y: (parent.height - self.height) / 2;
+        width: 12px;
+        height: 12px;
+        name: "chevron-right";
+        tint: root.tone;
+    }
+    ta := TouchArea {
+        enabled: root.is-item;
+        mouse-cursor: root.live ? MouseCursor.pointer : MouseCursor.default;
+        clicked => {
+            if root.live {
+                root.chosen();
+            }
+        }
+    }
+}
+
+// The face of a menu: a nearly opaque card with a soft shadow and a bright line along its top.
+component MenuCard inherits Rectangle {
+    in property <bool> open: true;
+    border-radius: Theme.radius-big;
+    background: Theme.pop-bg;
+    border-width: 1px;
+    border-color: Theme.text.with-alpha(Theme.pop-edge);
+    drop-shadow-color: Theme.shadow.with-alpha(Theme.pop-shadow * 0.6);
+    drop-shadow-blur: 30px;
+    drop-shadow-offset-y: 10px;
+    // A press on a separator, a header or the margin is the menu's: it must not reach the click-away behind it.
+    TouchArea {}
+    Rectangle {
+        x: root.border-radius;
+        y: 1px;
+        width: max(0px, parent.width - root.border-radius * 2);
+        height: 1px;
+        background: #FFFFFF.with-alpha(Theme.dark ? 0.12 : 0.9);
+    }
+    @children
+}
+
+// A menu that drops from the bar (or grows from an item): rows with shortcuts, and one level of
+// flyout for rows with `submenu` set. It sizes itself to its rows. The pointer moves the highlight;
+// `nav("up" | "down" | "left" | "right" | "enter")` is the keyboard.
+export component MenuPanel inherits Rectangle {
+    in property <[MenuEntry]> entries;
+    in property <bool> open: false;
+    // Where it grows from, in its own coordinates (the bar item it belongs to).
+    in property <length> origin-x: 20px;
+    // The flyout opens to the left when there is no room on the right.
+    in property <bool> flyout-left: false;
+    // For design previews: a row drawn highlighted, and a flyout drawn open.
+    in property <int> preview-cursor: -1;
+    in property <int> preview-sub: -1;
+    in property <length> preview-sub-y: 0px;
+    in-out property <int> cursor: -1;
+    in-out property <int> sub-open: -1;
+    in-out property <int> sub-cursor: -1;
+    out property <bool> flyout-visible: sub-open >= 0;
+    // Where the flyout's card is, in this panel's own coordinates.
+    out property <length> flyout-x: flyout.x;
+    out property <length> flyout-y: flyout.y;
+    callback chosen(int);
+
+    property <int> sub-want: -1;
+    property <length> sub-y: 0px;
+    property <bool> flyout-hover: false;
+    property <int> live-cursor: preview-cursor >= 0 ? preview-cursor : cursor;
+    property <int> live-sub: preview-sub >= 0 ? preview-sub : sub-open;
+
+    property <float> amount: open ? 1 : 0;
+    animate amount {
+        duration: open ? Motion.pop-in : Motion.pop-out;
+        easing: open ? cubic-bezier(0.34, 1.35, 0.64, 1) : cubic-bezier(0.4, 0, 1, 1);
+    }
+
+    // --- keyboard: stepping over rows that cannot be chosen (headers, separators, disabled) ---
+    pure function ok(i: int, scope: int) -> bool {
+        return i >= 0 && i < entries.length && entries[i].kind == "item" && entries[i].enabled && entries[i].parent == scope;
+    }
+    pure function scan(from: int, d: int, scope: int) -> int {
+        return ok(from + d, scope) ? from + d
+            : ok(from + 2 * d, scope) ? from + 2 * d
+            : ok(from + 3 * d, scope) ? from + 3 * d
+            : ok(from + 4 * d, scope) ? from + 4 * d
+            : ok(from + 5 * d, scope) ? from + 5 * d
+            : ok(from + 6 * d, scope) ? from + 6 * d : -2;
+    }
+    pure function step(from: int, d: int, scope: int) -> int {
+        return scan(from, d, scope) != -2 ? scan(from, d, scope)
+            : scope >= 0 ? from
+            : scan(d > 0 ? -1 : entries.length, d, scope) != -2 ? scan(d > 0 ? -1 : entries.length, d, scope) : from;
+    }
+    public function reset() {
+        root.cursor = -1;
+        root.sub-open = -1;
+        root.sub-want = -1;
+        root.sub-cursor = -1;
+        root.flyout-hover = false;
+    }
+    changed open => {
+        if !root.open {
+            root.reset();
+        }
+    }
+    // Returns whether the key was used (so the window can use it otherwise: Left and Right move along the bar).
+    public function nav(dir: string) -> bool {
+        if dir == "down" || dir == "up" {
+            if root.sub-open >= 0 && root.sub-cursor >= 0 {
+                root.sub-cursor = root.step(root.sub-cursor, dir == "down" ? 1 : -1, root.sub-open);
+            } else {
+                root.sub-open = -1;
+                root.sub-want = -1;
+                root.cursor = root.step(root.cursor, dir == "down" ? 1 : -1, -1);
+            }
+            return true;
+        }
+        if dir == "right" {
+            if root.cursor >= 0 && root.entries[root.cursor].submenu {
+                root.sub-open = root.cursor;
+                root.sub-want = root.cursor;
+                root.sub-cursor = root.step(root.cursor, 1, root.cursor);
+                return true;
+            }
+            return false;
+        }
+        if dir == "left" {
+            if root.sub-open >= 0 {
+                root.sub-open = -1;
+                root.sub-want = -1;
+                root.sub-cursor = -1;
+                return true;
+            }
+            return false;
+        }
+        if dir == "enter" {
+            if root.sub-open >= 0 && root.sub-cursor >= 0 {
+                root.chosen(root.sub-cursor);
+                return true;
+            }
+            if root.cursor >= 0 && root.ok(root.cursor, -1) {
+                if root.entries[root.cursor].submenu {
+                    root.sub-open = root.cursor;
+                    root.sub-want = root.cursor;
+                    root.sub-cursor = root.step(root.cursor, 1, root.cursor);
+                } else {
+                    root.chosen(root.cursor);
+                }
+                return true;
+            }
+            return false;
+        }
+        return false;
+    }
+
+    // The flyout opens (or closes) a moment after the pointer settles, unless the pointer is in it.
+    Timer {
+        interval: Motion.flyout-delay;
+        running: root.open && root.sub-want != root.sub-open && !root.flyout-hover;
+        triggered => {
+            root.sub-open = root.sub-want;
+            root.sub-cursor = -1;
+        }
+    }
+
+    width: max(210px, rows.preferred-width + 12px);
+    height: rows.preferred-height + 12px;
+    visible: amount > 0.01;
+    opacity: min(amount, 1.0);
+    transform-scale: 0.84 + 0.16 * amount;
+    transform-origin: { x: root.origin-x, y: 0px };
+
+    MenuCard {
+        width: parent.width;
+        height: parent.height;
+    }
+    rows := VerticalLayout {
+        x: 6px;
+        y: 6px;
+        width: parent.width - 12px;
+        for e[i] in root.entries: MenuRow {
+            entry: e;
+            present: e.parent == -1;
+            index: i;
+            order: i;
+            open: root.open;
+            selected: root.live-cursor == i;
+            entered => {
+                root.cursor = i;
+                root.sub-cursor = -1;
+                root.sub-want = e.submenu ? i : -1;
+                root.sub-y = self.y;
+            }
+            chosen => {
+                if e.submenu {
+                    root.sub-open = i;
+                    root.sub-want = i;
+                    root.sub-y = self.y;
+                } else {
+                    root.chosen(i);
+                }
+            }
+        }
+    }
+
+    // The flyout.
+    flyout := MenuCard {
+        x: root.flyout-left ? -self.width + 6px : root.width - 6px;
+        y: root.preview-sub >= 0 ? root.preview-sub-y : root.sub-y;
+        width: max(190px, sub-rows.preferred-width + 12px);
+        height: sub-rows.preferred-height + 12px;
+        property <float> showing: root.live-sub >= 0 && root.open ? 1 : 0;
+        animate showing {
+            duration: root.live-sub >= 0 ? 160ms : 100ms;
+            easing: cubic-bezier(0.2, 0, 0, 1);
+        }
+        visible: showing > 0.01;
+        opacity: showing;
+        transform-scale: 0.94 + 0.06 * showing;
+        transform-origin: { x: root.flyout-left ? self.width : 0px, y: 8px };
+        fta := TouchArea {
+            changed has-hover => {
+                root.flyout-hover = self.has-hover;
+            }
+        }
+        sub-rows := VerticalLayout {
+            x: 6px;
+            y: 6px;
+            width: parent.width - 12px;
+            for e[i] in root.entries: MenuRow {
+                entry: e;
+                present: e.parent == root.live-sub && root.live-sub >= 0;
+                index: i;
+                order: i - root.live-sub;
+                open: flyout.showing > 0.5;
+                selected: root.sub-cursor == i || (root.preview-sub >= 0 && root.preview-cursor == i);
+                entered => {
+                    root.sub-cursor = i;
+                }
+                chosen => {
+                    root.chosen(i);
+                }
+            }
+        }
+    }
+}

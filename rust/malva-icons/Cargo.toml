@@ -1,0 +1,9 @@
+[package]
+name = "malva-icons"
+description = "The Malva icon set as SVG text: 130 one-colour symbols, application pictures and the brand lock-ups. No files to ship."
+version.workspace = true
+edition.workspace = true
+publish = false
+rust-version.workspace = true
+
+[dependencies]

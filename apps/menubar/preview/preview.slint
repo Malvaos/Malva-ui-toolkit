@@ -1,0 +1,297 @@
+// Design scenes: the bar and what drops from it, on a mock desktop, with sample data. Nothing here ships.
+import { Theme, Screen } from "../ui/theme.slint";
+import { MenuEntry } from "../ui/types.slint";
+import { AppIcon, Symbol } from "../ui/components/icon.slint";
+import { MenubarPanel } from "../ui/components/menubar-panel.slint";
+import { Sample } from "sample.slint";
+
+// A window of the mock desktop: a title bar with three dots, a sidebar and a grid of things. It is only
+// there to give the glass something to show.
+component MockWindow inherits Rectangle {
+    in property <string> title;
+    in property <bool> sidebar: true;
+    in property <string> kind: "files";
+    border-radius: 12px;
+    background: Theme.dark ? #232326 : #FFFFFF;
+    border-width: 1px;
+    border-color: Theme.text.with-alpha(0.12);
+    drop-shadow-color: #00000050;
+    drop-shadow-blur: 34px;
+    drop-shadow-offset-y: 14px;
+
+    Rectangle {
+        clip: true;
+        border-radius: 12px;
+        if root.sidebar: Rectangle {
+            x: 0px;
+            y: 0px;
+            width: 168px;
+            height: parent.height;
+            background: Theme.dark ? #1B1B1D : #F1F3F8;
+            for i in 7: Rectangle {
+                x: 18px;
+                y: 60px + i * 30px;
+                width: 40px + mod(i * 37, 70) * 1px;
+                height: 9px;
+                border-radius: 4.5px;
+                background: Theme.text.with-alpha(i == 1 ? 0.0 : 0.16);
+            }
+            Rectangle {
+                x: 10px;
+                y: 84px;
+                width: parent.width - 20px;
+                height: 26px;
+                border-radius: 8px;
+                background: Theme.accent.with-alpha(0.26);
+            }
+        }
+        Rectangle {
+            x: 0px;
+            y: 0px;
+            height: 44px;
+            width: parent.width;
+            background: Theme.dark ? #2A2A2E : #FAFBFD;
+            for c[i] in [#FF5F57, #FEBC2E, #28C840]: Rectangle {
+                x: 16px + i * 22px;
+                y: 15px;
+                width: 13px;
+                height: 13px;
+                border-radius: 6.5px;
+                background: c;
+            }
+            Text {
+                text: root.title;
+                x: 0px;
+                width: parent.width;
+                height: parent.height;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                font-size: 13px;
+                font-weight: 600;
+                color: Theme.text.with-alpha(0.7);
+            }
+        }
+        if root.kind == "files": Rectangle {
+            x: (root.sidebar ? 168px : 0px) + 24px;
+            y: 68px;
+            for i in 12: Rectangle {
+                x: mod(i, 4) * 128px;
+                y: floor(i / 4) * 132px;
+                width: 112px;
+                height: 116px;
+                AppIcon {
+                    x: 24px;
+                    y: 6px;
+                    width: 64px;
+                    height: 64px;
+                    name: i == 2 ? "photos" : i == 5 ? "music" : i == 7 ? "video" : i == 9 ? "notes" : "files";
+                }
+                Rectangle {
+                    x: 20px + mod(i * 13, 24) * 1px;
+                    y: 84px;
+                    width: 52px - mod(i * 13, 24) * 1px;
+                    height: 8px;
+                    border-radius: 4px;
+                    background: Theme.text.with-alpha(0.2);
+                }
+            }
+        }
+        if root.kind == "page": Rectangle {
+            x: 24px;
+            y: 68px;
+            width: parent.width - 48px;
+            height: 300px;
+            Rectangle {
+                x: 0px;
+                y: 0px;
+                width: parent.width;
+                height: 150px;
+                border-radius: 14px;
+                background: @linear-gradient(120deg, #7B61FF, #FF6B8B);
+            }
+            for i in 3: Rectangle {
+                x: i * ((parent.width + 14px) / 3);
+                y: 168px;
+                width: (parent.width - 28px) / 3;
+                height: 120px;
+                border-radius: 12px;
+                background: Theme.text.with-alpha(0.07);
+            }
+        }
+    }
+}
+
+// A dock, only as a shape: glass with eight tiles.
+component MockDock inherits Rectangle {
+    width: 560px;
+    height: 74px;
+    border-radius: 22px;
+    background: Theme.dark ? #26262BAA : #FFFFFF99;
+    border-width: 1px;
+    border-color: #FFFFFF.with-alpha(Theme.dark ? 0.16 : 0.6);
+    for n[i] in ["files", "browser", "terminal", "settings", "music", "photos", "mail", "calendar"]: AppIcon {
+        x: 16px + i * 66px;
+        y: 10px;
+        width: 54px;
+        height: 54px;
+        name: n;
+    }
+}
+
+export component Desktop inherits Rectangle {
+    Image {
+        source: Theme.dark ? @image-url("assets/wallpaper-dark.png") : @image-url("assets/wallpaper-light.png");
+        image-fit: cover;
+        width: parent.width;
+        height: parent.height;
+    }
+    MockWindow {
+        x: 140px;
+        y: 120px;
+        width: 700px;
+        height: 480px;
+        title: "Pictures";
+    }
+    MockWindow {
+        x: 660px;
+        y: 230px;
+        width: 640px;
+        height: 460px;
+        title: "Malva Browser";
+        sidebar: false;
+        kind: "page";
+    }
+    MockDock {
+        x: (parent.width - self.width) / 2;
+        y: parent.height - self.height - 16px;
+    }
+}
+
+// The desktop with the bar and, as asked, one thing open.
+component Stage inherits Rectangle {
+    in property <bool> dark: false;
+    in property <string> popup: "";
+    in property <int> popup-index: -1;
+    in property <length> anchor-center: -1px;
+    in property <length> anchor-left: -1px;
+    in property <[MenuEntry]> entries;
+    in property <int> cursor: -1;
+    in property <int> sub: -1;
+    in property <length> sub-y: 0px;
+    in property <string> hover: "";
+    in property <bool> osd: false;
+    in property <bool> power-open: false;
+    in property <string> power-hover: "";
+    in property <string> power-pending: "";
+    in property <bool> toasts: false;
+    in property <bool> bare-bar: false;
+    in property <bool> low-battery: false;
+    in property <bool> is-dnd: false;
+
+    init => {
+        Theme.dark = root.dark;
+        Screen.backdrop = root.dark ? @image-url("assets/backdrop-dark.png") : @image-url("assets/backdrop-light.png");
+        Screen.has-backdrop = true;
+        Screen.width = 1440px;
+        Screen.height = 900px;
+    }
+    width: 1440px;
+    height: 900px;
+
+    Desktop {
+        width: parent.width;
+        height: parent.height;
+    }
+    MenubarPanel {
+        width: parent.width;
+        height: parent.height;
+        menus: Sample.menus;
+        tray: Sample.tray;
+        layout-text: "EN";
+        clock-text: "Wed 28 Oct   5:01 AM";
+        show-battery-percent: false;
+        unread: 3;
+        battery: root.low-battery ? 12 : 82;
+        charging: !root.low-battery;
+        battery-status: root.low-battery ? "Low battery" : "Charging";
+        battery-detail: root.low-battery ? "22 min remaining" : "38 min until full";
+        battery-source: root.low-battery ? "Battery" : "Power adapter";
+        battery-facts: Sample.battery-facts;
+        wifi-networks: Sample.networks;
+        bluetooth-devices: Sample.devices;
+        bluetooth-enabled: true;
+        audio-outputs: Sample.outputs;
+        volume: 0.62;
+        brightness: 0.72;
+        cal-title: "October 2026";
+        cal-weekdays: Sample.weekdays;
+        cal-weekdays-short: Sample.weekdays-short;
+        cal-cells: Sample.cells;
+        cal-day-title: "Wednesday, 28 October";
+        cal-events: Sample.events;
+        quick-tiles: root.dark ? Sample.tiles-dark : Sample.tiles;
+        media: Sample.media;
+        notices: Sample.notices;
+        dnd: root.is-dnd;
+        date-text: "Wednesday 28 Oct";
+        weather: Sample.weather;
+        toasts: root.toasts ? Sample.toasts : [];
+        power-user: "Aria";
+        popup: root.popup;
+        popup-index: root.popup-index;
+        anchor-center: root.anchor-center;
+        anchor-left: root.anchor-left;
+        menu-entries: root.entries;
+        preview-hover: root.hover;
+        preview-menu-cursor: root.cursor;
+        preview-menu-sub: root.sub;
+        preview-menu-sub-y: root.sub-y;
+        preview-osd: root.osd;
+        power-open: root.power-open;
+        preview-power-hover: root.power-hover;
+        preview-power-pending: root.power-pending;
+        preview-power-remaining: 22;
+        preview-toasts: root.toasts;
+    }
+}
+
+export component DesktopLight inherits Window {
+    width: 1440px;
+    height: 900px;
+    init => {
+        Theme.dark = false;
+    }
+    Desktop {}
+}
+export component DesktopDark inherits Window {
+    width: 1440px;
+    height: 900px;
+    init => {
+        Theme.dark = true;
+    }
+    Desktop {}
+}
+
+export component PreviewRest inherits Window { width: 1440px; height: 900px; Stage { } }
+export component PreviewRestDark inherits Window { width: 1440px; height: 900px; Stage { dark: true; } }
+export component PreviewFileMenu inherits Window { width: 1440px; height: 900px; Stage { popup: "menu-1"; popup-index: 2; anchor-left: 89px; anchor-center: 105px; entries: Sample.file-menu; cursor: 4; sub: 4; sub-y: 95px; } }
+export component PreviewFileMenuDark inherits Window { width: 1440px; height: 900px; Stage { dark: true; popup: "menu-1"; popup-index: 2; anchor-left: 89px; anchor-center: 105px; entries: Sample.file-menu; cursor: 4; sub: 4; sub-y: 95px; } }
+export component PreviewSystemMenu inherits Window { width: 1440px; height: 900px; Stage { popup: "system"; popup-index: 0; anchor-left: 6px; anchor-center: 24px; entries: Sample.system-menu; cursor: 13; hover: "system"; } }
+export component PreviewTrayMenu inherits Window { width: 1440px; height: 900px; Stage { popup: "tray-0"; popup-index: 7; anchor-center: 1100px; entries: Sample.tray-menu; cursor: 1; } }
+export component PreviewLayoutMenu inherits Window { width: 1440px; height: 900px; Stage { dark: true; popup: "layout"; popup-index: 9; anchor-center: 1160px; entries: Sample.layout-menu; cursor: 2; } }
+export component PreviewWifi inherits Window { width: 1440px; height: 900px; Stage { popup: "wifi"; popup-index: 11; } }
+export component PreviewBluetooth inherits Window { width: 1440px; height: 900px; Stage { dark: true; popup: "bluetooth"; popup-index: 10; } }
+export component PreviewBattery inherits Window { width: 1440px; height: 900px; Stage { popup: "battery"; popup-index: 13; } }
+export component PreviewBatteryLow inherits Window { width: 1440px; height: 900px; Stage { dark: true; popup: "battery"; popup-index: 13; low-battery: true; } }
+export component PreviewVolume inherits Window { width: 1440px; height: 900px; Stage { dark: true; popup: "volume"; popup-index: 12; } }
+export component PreviewCalendar inherits Window { width: 1440px; height: 900px; Stage { popup: "clock"; popup-index: 16; } }
+export component PreviewCalendarDark inherits Window { width: 1440px; height: 900px; Stage { dark: true; popup: "clock"; popup-index: 16; } }
+export component PreviewControl inherits Window { width: 1440px; height: 900px; Stage { popup: "control"; popup-index: 14; } }
+export component PreviewControlDark inherits Window { width: 1440px; height: 900px; Stage { dark: true; popup: "control"; popup-index: 14; } }
+export component PreviewNotifications inherits Window { width: 1440px; height: 900px; Stage { popup: "bell"; popup-index: 15; } }
+export component PreviewNotificationsDark inherits Window { width: 1440px; height: 900px; Stage { dark: true; popup: "bell"; popup-index: 15; } }
+export component PreviewToasts inherits Window { width: 1440px; height: 900px; Stage { toasts: true; } }
+export component PreviewToastsDark inherits Window { width: 1440px; height: 900px; Stage { dark: true; toasts: true; } }
+export component PreviewOsd inherits Window { width: 1440px; height: 900px; Stage { dark: true; osd: true; } }
+export component PreviewPower inherits Window { width: 1440px; height: 900px; Stage { power-open: true; power-hover: "restart"; } }
+export component PreviewPowerCountdown inherits Window { width: 1440px; height: 900px; Stage { dark: true; power-open: true; power-pending: "shutdown"; } }

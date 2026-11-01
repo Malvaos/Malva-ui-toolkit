@@ -1,0 +1,27 @@
+import { Theme } from "ui/theme.slint";
+import { Switch, Slider, FillSlider, PillButton, Segmented, Spinner, IconButton } from "ui/components/controls.slint";
+import { BatteryGlyph, WifiGlyph, VolumeGlyph } from "ui/components/glyphs.slint";
+import { GlassPlate } from "ui/components/surfaces.slint";
+export component Sheet inherits Window {
+    width: 560px; height: 360px;
+    background: #8aa0c8;
+    GlassPlate { x: 20px; y: 20px; width: 520px; height: 320px;
+        Switch { x: 20px; y: 20px; checked: true; }
+        Switch { x: 74px; y: 20px; checked: false; }
+        Slider { x: 20px; y: 60px; width: 220px; value: 0.6; }
+        FillSlider { x: 20px; y: 96px; width: 240px; value: 0.35; icon: "sun"; }
+        FillSlider { x: 20px; y: 144px; width: 240px; value: 0.0; icon: "volume-1"; }
+        PillButton { x: 280px; y: 20px; width: 90px; text: "Cancel"; }
+        PillButton { x: 380px; y: 20px; width: 90px; text: "Connect"; kind: "accent"; }
+        PillButton { x: 280px; y: 60px; width: 120px; text: "Shut Down"; kind: "danger"; icon: "power"; }
+        Segmented { x: 280px; y: 100px; width: 230px; labels: ["Saver", "Balanced", "Boost"]; current: 1; }
+        Spinner { x: 280px; y: 150px; }
+        IconButton { x: 310px; y: 144px; icon: "close"; }
+        BatteryGlyph { x: 20px; y: 200px; percent: 80; }
+        BatteryGlyph { x: 60px; y: 200px; percent: 12; }
+        BatteryGlyph { x: 100px; y: 200px; percent: 55; charging: true; }
+        BatteryGlyph { x: 140px; y: 200px; percent: 80; show-percent: true; }
+        WifiGlyph { x: 20px; y: 240px; width: 18px; height: 18px; strength: 1; tint: Theme.text; }
+        VolumeGlyph { x: 60px; y: 240px; width: 18px; height: 18px; level: 0.8; }
+    }
+}

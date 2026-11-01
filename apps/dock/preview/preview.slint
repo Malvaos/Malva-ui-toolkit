@@ -1,0 +1,247 @@
+// Design previews: the dock on a desktop, with sample data and no backend. Render one with
+//   slint-viewer preview/preview.slint --component PreviewLight --screenshot light.png
+// (tools/render-previews.sh renders them all, twice: the blurred backdrop the glass shows is the
+// desktop itself, so the desktop is drawn first without the dock.) Nothing here ships; a backend
+// compiles ui/dock.slint.
+import { Theme } from "../ui/theme.slint";
+import { DockApp, MinimizedWindow, MenuEntry } from "../ui/types.slint";
+import { DockPanel } from "../ui/components/dock-panel.slint";
+
+// A stand-in for whatever is on the screen behind the dock.
+component Desktop inherits Rectangle {
+    in property <bool> dark: false;
+    background: dark ? #0d1530 : #cfe3ff;
+    Image {
+        width: parent.width;
+        height: parent.height;
+        source: root.dark ? @image-url("assets/wallpaper-dark.png") : @image-url("assets/wallpaper-light.png");
+        image-fit: fill;
+    }
+    // The bar along the top.
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: 30px;
+        background: root.dark ? #0000004D : #FFFFFF59;
+        Text {
+            x: 16px;
+            text: "Desktop";
+            color: Theme.text;
+            font-size: 13px;
+            font-weight: 600;
+            vertical-alignment: center;
+            height: parent.height;
+        }
+
+        Text {
+            x: parent.width - self.width - 16px;
+            width: 90px;
+            text: "Tue 10:57";
+            color: Theme.text;
+            font-size: 13px;
+            horizontal-alignment: right;
+            vertical-alignment: center;
+            height: parent.height;
+        }
+    }
+    // A window, tall enough to reach under the dock, so the glass has something to blur.
+    Rectangle {
+        x: 210px;
+        y: 96px;
+        width: parent.width - 420px;
+        height: 780px;
+        border-radius: Theme.radius-big + 2px;
+        background: Theme.bg;
+        border-width: 1px;
+        border-color: Theme.text.with-alpha(0.10);
+        drop-shadow-color: #000000.with-alpha(root.dark ? 0.6 : 0.30);
+        drop-shadow-blur: 60px;
+        drop-shadow-offset-y: 22px;
+        for c[i] in [#FF5F57, #FEBC2E, #28C840]: Rectangle {
+            x: 18px + i * 20px;
+            y: 18px;
+            width: 12px;
+            height: 12px;
+            border-radius: 6px;
+            background: c;
+        }
+        // A sidebar of bars.
+        for k in 7: Rectangle {
+            x: 18px;
+            y: 64px + k * 36px;
+            width: 150px - (k == 0 ? 0px : (mod(k, 3) * 14px));
+            height: 22px;
+            border-radius: 7px;
+            background: k == 2 ? Theme.accent.with-alpha(0.28) : Theme.text.with-alpha(0.07);
+        }
+        // A grid of cards.
+        for k in 12: Rectangle {
+            property <length> cell: 150px;
+            x: 214px + mod(k, 4) * (cell + 24px);
+            y: 70px + floor(k / 4) * (cell + 52px);
+            width: cell;
+            height: cell;
+            border-radius: Theme.radius-big;
+            background: Theme.second;
+            border-width: 1px;
+            border-color: Theme.text.with-alpha(0.07);
+            Rectangle {
+                x: 30px;
+                y: 28px;
+                width: 90px;
+                height: 70px;
+                border-radius: 10px;
+                background: [#7FB2FF, #C79BFF, #FF9EC0, #7FD6B0][mod(k + floor(k / 4), 4)].with-alpha(0.55);
+            }
+
+            Rectangle {
+                x: 34px;
+                y: 114px;
+                width: 82px;
+                height: 8px;
+                border-radius: 4px;
+                background: Theme.text.with-alpha(0.22);
+            }
+        }
+    }
+}
+
+// The apps every scene shows.
+global Sample {
+    out property <[DockApp]> apps: [
+        {
+            id: "files",
+            name: "Files",
+            icon: "files",
+            pinned: true,
+            running: true,
+            active: true,
+            windows: 2
+        },
+        { id: "browser", name: "Browser", icon: "browser", pinned: true, running: true, windows: 3 },
+        { id: "mail", name: "Mail", icon: "mail", pinned: true, running: true, badge: 4 },
+        { id: "music", name: "Music", icon: "music", pinned: true },
+        { id: "photos", name: "Photos", icon: "photos", pinned: true },
+        { id: "calendar", name: "Calendar", icon: "calendar", pinned: true },
+        { id: "notes", name: "Notes", icon: "notes", pinned: true, running: true },
+        { id: "terminal", name: "Terminal", icon: "terminal", pinned: true, running: true },
+        { id: "settings", name: "Settings", icon: "settings", pinned: true },
+    ];
+    out property <[MinimizedWindow]> minimized: [{ title: "Report.pdf", icon: "files" }];
+    out property <[MenuEntry]> menu: [
+        { text: "BROWSER", kind: "header", enabled: true },
+        { text: "New Window", kind: "item", icon: "new-window", enabled: true },
+        { text: "Show All Windows", kind: "item", icon: "windows", enabled: true },
+        { text: "-", kind: "separator", enabled: true },
+        { text: "Keep in Dock", kind: "item", checked: true, enabled: true },
+        { text: "Hide", kind: "item", icon: "hide", enabled: true },
+        { text: "-", kind: "separator", enabled: true },
+        { text: "Quit", kind: "item", icon: "quit", destructive: true, enabled: true },
+    ];
+}
+
+component DesktopWindow inherits Window {
+    in property <bool> dark: false;
+    width: 1440px;
+    height: 900px;
+    init => {
+        Theme.dark = root.dark;
+    }
+    Desktop {
+        dark: root.dark;
+    }
+}
+
+export component DesktopLight inherits DesktopWindow {
+    dark: false;
+}
+
+export component DesktopDark inherits DesktopWindow {
+    dark: true;
+}
+
+component Scene inherits Window {
+    in property <bool> dark: false;
+    in property <string> edge: "bottom";
+    in property <float> pointer: -100;
+    in property <int> menu-app: -1;
+    in property <bool> lid: false;
+    in property <bool> trash-full: true;
+    in property <length> icon-size: 56px;
+    in property <color> accent: root.dark ? #DC73C2 : #8C3274;
+    width: 1440px;
+    height: 900px;
+    init => {
+        Theme.dark = root.dark;
+        Theme.accent = root.accent;
+    }
+    Desktop {
+        dark: root.dark;
+    }
+
+    DockPanel {
+        width: parent.width;
+        height: parent.height;
+        animate-entrance: false;
+        edge: root.edge;
+        icon-size: root.icon-size;
+        apps: Sample.apps;
+        minimized: Sample.minimized;
+        trash-full: root.trash-full;
+        preview-pointer: root.pointer;
+        preview-menu-app: root.menu-app;
+        preview-lid: root.lid;
+        menu-open: root.menu-app >= 0;
+        menu-entries: Sample.menu;
+        has-backdrop: true;
+        backdrop: root.dark ? @image-url("assets/backdrop-dark.png") : @image-url("assets/backdrop-light.png");
+        backdrop-x: 0px;
+        backdrop-y: 0px;
+        backdrop-width: root.width;
+        backdrop-height: root.height;
+    }
+}
+
+export component PreviewLight inherits Scene {
+    dark: false;
+    pointer: 2;
+}
+
+export component PreviewDark inherits Scene {
+    dark: true;
+    pointer: 3;
+}
+
+export component PreviewMenu inherits Scene {
+    dark: false;
+    pointer: 1;
+    menu-app: 1;
+}
+
+export component PreviewMenuDark inherits Scene {
+    dark: true;
+    pointer: 1;
+    menu-app: 1;
+}
+
+export component PreviewLeft inherits Scene {
+    dark: true;
+    edge: "left";
+    pointer: 2;
+    icon-size: 52px;
+}
+
+export component PreviewRight inherits Scene {
+    dark: false;
+    edge: "right";
+    pointer: 4;
+    icon-size: 52px;
+    accent: #8A5CF6;
+}
+
+export component PreviewBin inherits Scene {
+    dark: false;
+    lid: true;
+    pointer: 10.27;
+}

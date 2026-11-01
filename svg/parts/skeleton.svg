@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="96" viewBox="0 0 320 96">
+<!-- A loading placeholder: the sheen crosses it in 1.4 s. -->
+<defs><linearGradient id="sheen" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".65"/><stop offset="1" stop-color="#fff" stop-opacity="0"/><animateTransform attributeName="gradientTransform" type="translate" from="-1 0" to="1 0" dur="1.4s" repeatCount="indefinite"/></linearGradient><clipPath id="k"><rect x="0" y="0" width="56" height="56" rx="10"/><rect x="72" y="6" width="200" height="14" rx="7"/><rect x="72" y="34" width="140" height="12" rx="6"/><rect x="0" y="72" width="320" height="12" rx="6"/></clipPath></defs>
+<g clip-path="url(#k)"><rect width="320" height="96" fill="#D1D1D6FF"/><rect width="320" height="96" fill="url(#sheen)"/></g>
+</svg>

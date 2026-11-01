@@ -1,0 +1,26 @@
+import { Theme } from "ui/theme.slint";
+import { MenuBar } from "ui/components/bar.slint";
+import { MenuPanel } from "ui/components/menu.slint";
+import { MenuEntry } from "ui/types.slint";
+export component Sheet inherits Window {
+    width: 1100px; height: 420px;
+    background: #7a8fc0;
+    MenuBar { x: 0px; y: 0px; width: parent.width;
+        menus: ["Files", "File", "Edit", "View", "Go", "Window", "Help"];
+        tray: [{icon: "record", tip: "Recording", active: true}, {icon: "clipboard", tip: "Clipboard", active: false}];
+        layout-text: "EN"; clock-text: "Wed 28 Oct  5:01 AM"; unread: 3; battery: 82; charging: true; volume: 0.6;
+        open-name: "menu-1"; preview-hover: "wifi";
+    }
+    MenuPanel { x: 60px; y: 36px; open: true; preview-cursor: 2; preview-sub: 2; preview-sub-y: 56px;
+        entries: [
+          {text: "New Window", kind: "item", shortcut: "Ctrl+N", icon: "window", enabled: true, checked: false, destructive: false, submenu: false, parent: -1},
+          {text: "New Folder", kind: "item", shortcut: "Ctrl+Shift+N", icon: "folder", enabled: true, checked: false, destructive: false, submenu: false, parent: -1},
+          {text: "Open Recent", kind: "item", shortcut: "", icon: "clock", enabled: true, checked: false, destructive: false, submenu: true, parent: -1},
+          {text: "Documents", kind: "item", shortcut: "", icon: "", enabled: true, checked: false, destructive: false, submenu: false, parent: 2},
+          {text: "Downloads", kind: "item", shortcut: "", icon: "", enabled: true, checked: false, destructive: false, submenu: false, parent: 2},
+          {text: "", kind: "separator", shortcut: "", icon: "", enabled: true, checked: false, destructive: false, submenu: false, parent: -1},
+          {text: "Close Window", kind: "item", shortcut: "Ctrl+W", icon: "", enabled: false, checked: false, destructive: false, submenu: false, parent: -1},
+          {text: "Move to Bin", kind: "item", shortcut: "Del", icon: "trash", enabled: true, checked: false, destructive: true, submenu: false, parent: -1}
+        ];
+    }
+}

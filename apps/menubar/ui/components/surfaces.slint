@@ -1,0 +1,104 @@
+import { Theme, Screen } from "../theme.slint";
+
+// A soft shadow that stays outside its parent, as rings that fade outward. A blur-based shadow
+// would also darken the inside of translucent glass; rings never do. Put it as a child of the
+// shape it shadows, filling it.
+export component ShadowRings inherits Rectangle {
+    in property <length> corner: 22px;
+    in property <int> reach: 22;
+    in property <length> drop-x: 0px;
+    in property <length> drop-y: 8px;
+    in property <float> strength: 0.3;
+    background: transparent;
+    // Where the shadow is pushed down, the band between the shape's foot and the first ring would be
+    // empty: these rings share the shape's own outline and only stretch downward, which fills it
+    // without lying anywhere but under the shape's one-pixel edge.
+    for j in max(0, round(root.drop-y / 1px)): Rectangle {
+        x: 0px;
+        y: 0px;
+        width: root.width;
+        height: root.height + (j + 1) * 1px;
+        border-radius: root.corner;
+        border-width: 1px;
+        // Darkest at the foot of the shape, easing down to where the outer rings take over.
+        border-color: Theme.shadow.with-alpha(min(1.0, root.strength * 0.42 * (1.0 + 0.7 * (1.0 - j / max(root.drop-y / 1px, 1.0)))));
+    }
+    for i in root.reach: Rectangle {
+        property <float> near: 1.0 - i / root.reach;
+        x: -(i + 1) * 1px - max(-root.drop-x, 0px);
+        y: -(i + 1) * 1px - max(-root.drop-y, 0px);
+        width: root.width + (i + 1) * 2px + abs(root.drop-x);
+        height: root.height + (i + 1) * 2px + abs(root.drop-y);
+        border-radius: root.corner + (i + 1) * 1px;
+        border-width: 1px;
+        border-color: Theme.shadow.with-alpha(root.strength * near * near * 0.42);
+    }
+}
+
+// A quiet plate under what the pointer is over.
+export component HoverPlate inherits Rectangle {
+    in property <float> amount: 0;
+    in property <length> corner: Theme.radius-small;
+    visible: amount > 0.005;
+    border-radius: min(corner, min(self.width, self.height) / 2);
+    background: Theme.text.with-alpha(Theme.plate-alpha * min(max(amount, 0.0), 1.0));
+}
+
+// The glass of a popover or panel: a shadow outside, the blurred backdrop (when there is one) under
+// a tint, a light edge just inside and a bright line along the top. The backdrop (see Screen) is
+// placed by where this plate is in the window, so it lines up with the desktop whatever the plate does.
+export component GlassPlate inherits Rectangle {
+    in property <length> corner: Theme.radius-panel;
+    in property <float> shadow: 1.0;
+    // The tint over the backdrop (the bar's is lighter than a panel's).
+    in property <color> tint-top: Theme.panel-top;
+    in property <color> tint-bottom: Theme.panel-bottom;
+    // Which sides are square, for a panel that sits against the screen's edge.
+    in property <bool> flat-top: false;
+    in property <bool> draw-shadow: true;
+
+    border-radius: corner;
+    border-width: 1px;
+    border-color: Theme.shadow.with-alpha(Theme.pop-edge * 0.9);
+
+    if root.draw-shadow: ShadowRings {
+        width: parent.width;
+        height: parent.height;
+        corner: root.corner;
+        reach: 26;
+        drop-y: 12px;
+        strength: Theme.pop-shadow * root.shadow;
+    }
+
+    Rectangle {
+        border-radius: root.corner;
+        clip: true;
+        if Screen.has-backdrop: Image {
+            x: -root.absolute-position.x;
+            y: -root.absolute-position.y;
+            width: Screen.width;
+            height: Screen.height;
+            source: Screen.backdrop;
+            image-fit: fill;
+        }
+        Rectangle {
+            background: @linear-gradient(180deg, root.tint-top, root.tint-bottom);
+        }
+    }
+    Rectangle {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: parent.height - 2px;
+        border-radius: root.corner - 1px;
+        border-width: 1px;
+        border-color: #FFFFFF.with-alpha(Theme.panel-rim * 0.5);
+    }
+    Rectangle {
+        x: root.corner;
+        y: 1px;
+        width: max(0px, parent.width - root.corner * 2);
+        height: 1px;
+        background: #FFFFFF.with-alpha(Theme.panel-rim * 0.9);
+    }
+}

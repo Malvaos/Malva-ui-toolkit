@@ -1,0 +1,243 @@
+import { Theme, Motion, Screen } from "../theme.slint";
+import { Symbol } from "icon.slint";
+import { PillButton, Ring } from "controls.slint";
+
+// One round button of the power dialog.
+component PowerChoice inherits Rectangle {
+    in property <string> icon;
+    in property <string> text;
+    in property <bool> danger: false;
+    in property <bool> force-hover: false;
+    callback clicked();
+    property <float> hover: ta.has-hover || force-hover ? 1 : 0;
+    animate hover { duration: ta.has-hover ? 120ms : 220ms; easing: cubic-bezier(0.34, 1.35, 0.64, 1); }
+    width: 80px;
+    height: 100px;
+    Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: 4px - root.hover * 2px;
+        width: 64px + root.hover * 4px;
+        height: self.width;
+        border-radius: self.width / 2;
+        background: root.danger ? Theme.danger.with-alpha(0.12 + 0.88 * root.hover) : Theme.accent.with-alpha(0.0).mix(Theme.text.with-alpha(0.10), 1.0 - root.hover * 0.0);
+        border-width: 1px;
+        border-color: Theme.text.with-alpha(0.10);
+        Rectangle {
+            border-radius: parent.border-radius;
+            background: (root.danger ? Theme.danger : Theme.accent).with-alpha(root.danger ? 0.0 : root.hover);
+        }
+        Symbol {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 28px;
+            height: 28px;
+            name: root.icon;
+            tint: root.hover > 0.5 ? Theme.on-accent : root.danger ? Theme.danger : Theme.text;
+        }
+        transform-scale: ta.pressed ? 0.94 : 1.0;
+        animate transform-scale { duration: Motion.press; }
+    }
+    Text {
+        y: 78px;
+        width: parent.width;
+        text: root.text;
+        horizontal-alignment: center;
+        font-size: 12.5px;
+        color: Theme.text;
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// The power dialog: the screen goes to frosted glass and a card offers Lock, Sleep, Restart, Log Out and
+// Shut Down. The last three count down (so nothing is lost by a stray click) and can be done at once.
+export component PowerDialog inherits Rectangle {
+    in property <bool> open: false;
+    in property <string> user-name: "";
+    // How long the countdown runs, in seconds.
+    in property <int> countdown: 30;
+    // "lock", "sleep", "restart", "logout" or "shutdown": the person has chosen it and it is done.
+    callback chosen(string);
+    callback cancelled();
+    // The action counting down ("" while choosing), and the seconds left.
+    in-out property <string> pending: "";
+    in-out property <int> remaining: 0;
+    // For design previews: drawn already counting down, and a choice drawn hovered.
+    in property <string> preview-hover: "";
+
+    property <float> amount: open ? 1 : 0;
+    animate amount {
+        duration: open ? Motion.dialog-in : 200ms;
+        easing: cubic-bezier(0.2, 0, 0, 1);
+    }
+    visible: amount > 0.005;
+    // What is drawn. While the dialog is open it follows the countdown. While it fades out it keeps the last
+    // thing shown (a cancelled countdown fades as a countdown, and does not turn into the list of choices on
+    // its way out).
+    property <string> kept: "";
+    property <int> kept-left: 0;
+    out property <string> view: root.open ? root.pending : root.kept;
+    property <int> view-left: root.open ? root.remaining : root.kept-left;
+    changed pending => {
+        if root.pending != "" {
+            root.kept = root.pending;
+        }
+    }
+    changed remaining => {
+        if root.remaining > 0 {
+            root.kept-left = root.remaining;
+        }
+    }
+    changed amount => {
+        if root.amount < 0.005 {
+            root.kept = "";
+        }
+    }
+    property <string> verb: view == "restart" ? "Restarting" : view == "logout" ? "Logging out" : view == "shutdown" ? "Shutting down" : "";
+
+    public function pick(action: string) {
+        if action == "lock" || action == "sleep" {
+            root.chosen(action);
+        } else {
+            root.pending = action;
+            root.remaining = root.countdown;
+        }
+    }
+    public function cancel() {
+        root.pending = "";
+        root.remaining = 0;
+        root.cancelled();
+    }
+    changed open => {
+        if !root.open {
+            root.pending = "";
+            root.remaining = 0;
+        }
+    }
+    Timer {
+        interval: 1s;
+        running: root.open && root.pending != "" && root.remaining > 0;
+        triggered => {
+            root.remaining -= 1;
+            if root.remaining <= 0 {
+                root.chosen(root.pending);
+            }
+        }
+    }
+
+    // frosted screen
+    Rectangle {
+        opacity: root.amount;
+        clip: true;
+        if Screen.has-backdrop: Image {
+            x: -root.absolute-position.x;
+            y: -root.absolute-position.y;
+            width: Screen.width;
+            height: Screen.height;
+            source: Screen.backdrop;
+            image-fit: fill;
+        }
+        Rectangle {
+            background: Theme.dark ? #0A0A0E99 : #EEF0F88C;
+        }
+        TouchArea {
+            clicked => {
+                root.cancel();
+            }
+        }
+    }
+    card := Rectangle {
+        width: 480px;
+        height: 232px;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2 - 20px + (1.0 - root.amount) * 16px;
+        opacity: min(root.amount * 1.3, 1.0);
+        transform-scale: 0.94 + 0.06 * min(root.amount, 1.0);
+        TouchArea {}
+
+        if root.view == "": Rectangle {
+            Text {
+                y: 8px;
+                width: parent.width;
+                text: root.user-name != "" ? "Goodbye, " + root.user-name + "?" : "What would you like to do?";
+                horizontal-alignment: center;
+                font-size: 22px;
+                font-weight: 700;
+                color: Theme.text;
+            }
+            for a[i] in [{ id: "lock", icon: "lock", text: "Lock", danger: false }, { id: "sleep", icon: "moon", text: "Sleep", danger: false }, { id: "restart", icon: "restart", text: "Restart", danger: false }, { id: "logout", icon: "logout", text: "Log Out", danger: false }, { id: "shutdown", icon: "power", text: "Shut Down", danger: true }]: PowerChoice {
+                x: 40px + i * 80px;
+                y: 70px;
+                icon: a.icon;
+                text: a.text;
+                danger: a.danger;
+                force-hover: root.preview-hover == a.id;
+                clicked => {
+                    root.pick(a.id);
+                }
+            }
+            PillButton {
+                x: (parent.width - self.width) / 2;
+                y: 190px;
+                width: 110px;
+                text: "Cancel";
+                clicked => {
+                    root.cancel();
+                }
+            }
+        }
+        if root.view != "": Rectangle {
+            Ring {
+                x: (parent.width - self.width) / 2;
+                y: 0px;
+                width: 112px;
+                height: 112px;
+                value: root.view-left / max(root.countdown * 1.0, 1.0);
+                tone: root.view == "shutdown" ? Theme.danger : Theme.accent;
+                thickness: 7px;
+                Text {
+                    width: parent.width;
+                    height: parent.height;
+                    text: root.view-left;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                    font-size: 38px;
+                    font-weight: 300;
+                    color: Theme.text;
+                }
+            }
+            Text {
+                y: 128px;
+                width: parent.width;
+                text: root.verb + " in " + root.view-left + (root.view-left == 1 ? " second" : " seconds");
+                horizontal-alignment: center;
+                font-size: 17px;
+                font-weight: 600;
+                color: Theme.text;
+            }
+            PillButton {
+                x: parent.width / 2 - 120px;
+                y: 174px;
+                width: 108px;
+                text: "Cancel";
+                clicked => {
+                    root.cancel();
+                }
+            }
+            PillButton {
+                x: parent.width / 2 + 12px;
+                y: 174px;
+                width: 108px;
+                text: root.view == "restart" ? "Restart Now" : root.view == "logout" ? "Log Out Now" : "Shut Down Now";
+                kind: root.view == "shutdown" ? "danger" : "accent";
+                clicked => {
+                    root.chosen(root.pending);
+                }
+            }
+        }
+    }
+}

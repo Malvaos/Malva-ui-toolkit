@@ -1,0 +1,51 @@
+import { Theme } from "../theme.slint";
+
+// A built-in app icon by name, or a system icon when one is given. Unknown names show "default".
+export component AppIcon inherits Image {
+    in property <string> name;
+    in property <image> system-image;
+    in property <bool> has-system-image: false;
+    image-fit: contain;
+    source: has-system-image ? system-image
+        : name == "launcher" ? @image-url("../icons/app/launcher.svg")
+        : name == "files" ? @image-url("../icons/app/files.svg")
+        : name == "browser" ? @image-url("../icons/app/browser.svg")
+        : name == "terminal" ? @image-url("../icons/app/terminal.svg")
+        : name == "settings" ? @image-url("../icons/app/settings.svg")
+        : name == "music" ? @image-url("../icons/app/music.svg")
+        : name == "photos" ? @image-url("../icons/app/photos.svg")
+        : name == "mail" ? @image-url("../icons/app/mail.svg")
+        : name == "calendar" ? @image-url("../icons/app/calendar.svg")
+        : name == "notes" ? @image-url("../icons/app/notes.svg")
+        : name == "video" ? @image-url("../icons/app/video.svg")
+        : name == "calculator" ? @image-url("../icons/app/calculator.svg")
+        : name == "store" ? @image-url("../icons/app/store.svg")
+        : name == "editor" ? @image-url("../icons/app/editor.svg")
+        : name == "default" ? @image-url("../icons/app/default.svg")
+        : name == "trash-body" ? @image-url("../icons/app/trash-body.svg")
+        : name == "trash-lid" ? @image-url("../icons/app/trash-lid.svg")
+        : name == "trash-paper" ? @image-url("../icons/app/trash-paper.svg")
+        : @image-url("../icons/app/default.svg");
+}
+
+// A one-colour symbol, tinted with the colour it is given.
+export component Symbol inherits Image {
+    in property <string> name;
+    in property <color> tint: Theme.text;
+    colorize: tint;
+    image-fit: contain;
+    source: name == "new-window" ? @image-url("../icons/symbols/new-window.svg")
+        : name == "pin" ? @image-url("../icons/symbols/pin.svg")
+        : name == "unpin" ? @image-url("../icons/symbols/unpin.svg")
+        : name == "close" ? @image-url("../icons/symbols/close.svg")
+        : name == "quit" ? @image-url("../icons/symbols/quit.svg")
+        : name == "windows" ? @image-url("../icons/symbols/windows.svg")
+        : name == "options" ? @image-url("../icons/symbols/options.svg")
+        : name == "check" ? @image-url("../icons/symbols/check.svg")
+        : name == "hide" ? @image-url("../icons/symbols/hide.svg")
+        : name == "trash" ? @image-url("../icons/symbols/trash.svg")
+        : name == "empty" ? @image-url("../icons/symbols/empty.svg")
+        : name == "folder" ? @image-url("../icons/symbols/folder.svg")
+        : name == "add" ? @image-url("../icons/symbols/add.svg")
+        : @image-url("../icons/symbols/options.svg");
+}

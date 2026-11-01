@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1100" height="700" viewBox="0 0 1100 700" font-family="Inter, 'Segoe UI', system-ui, sans-serif">
+<defs><filter id="e1" x="-40%" y="-40%" width="180%" height="190%"><feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.08"/></filter><filter id="e2" x="-40%" y="-40%" width="180%" height="190%"><feDropShadow dx="0" dy="6" stdDeviation="9" flood-color="#000000" flood-opacity="0.12"/></filter><filter id="e3" x="-40%" y="-40%" width="180%" height="190%"><feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.18"/></filter><clipPath id="all"><rect width="1100" height="700" rx="0"/></clipPath></defs>
+<svg x="0" y="0" width="1100" height="700" viewBox="0 0 1920 1200" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="i1base" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7F7F9"/><stop offset="0.55" stop-color="#ECECF0"/><stop offset="1" stop-color="#E3E3E9"/></linearGradient>
+    <radialGradient id="i1a" cx="0.16" cy="0.1" r="0.55"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+    <radialGradient id="i1b" cx="0.84" cy="1.02" r="0.6"><stop offset="0" stop-color="#B84F9F" stop-opacity="0.22"/><stop offset="1" stop-color="#B84F9F" stop-opacity="0"/></radialGradient>
+    <radialGradient id="i1c" cx="0.5" cy="1.05" r="0.55"><stop offset="0" stop-color="#C763B0" stop-opacity="0.14"/><stop offset="1" stop-color="#C763B0" stop-opacity="0"/></radialGradient>
+    <radialGradient id="i1d" cx="0.96" cy="0.1" r="0.4"><stop offset="0" stop-color="#D6D6DE" stop-opacity="0.7"/><stop offset="1" stop-color="#D6D6DE" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1920" height="1200" fill="url(#i1base)"/>
+  <rect width="1920" height="1200" fill="url(#i1a)"/>
+  <rect width="1920" height="1200" fill="url(#i1b)"/>
+  <rect width="1920" height="1200" fill="url(#i1c)"/>
+  <rect width="1920" height="1200" fill="url(#i1d)"/>
+</svg>
+<g filter="url(#e3)">
+<rect x="70" y="50" width="960" height="600" rx="22" fill="#FFFFFF" stroke="#E5E5EA" stroke-width="1"/>
+</g>
+<clipPath id="win7050"><rect x="70" y="50" width="960" height="600" rx="22"/></clipPath>
+<g clip-path="url(#win7050)">
+<rect x="70" y="50" width="190" height="600" rx="0" fill="#EDEDF0"/>
+<line x1="260.5" y1="50" x2="260.5" y2="650" stroke="#E5E5EA" stroke-width="1"/>
+</g>
+<circle cx="90" cy="72" r="6" fill="#D6414F"/>
+<circle cx="110" cy="72" r="6" fill="#F2A33A"/>
+<circle cx="130" cy="72" r="6" fill="#3F8A1E"/>
+<text x="88" y="112" font-size="11" font-weight="600" fill="#A1A1A6">Favorites</text>
+<svg x="90" y="132" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#86868B"><path d="M3.8 11.2L12 4.4l8.2 6.8"/><path d="M6 9.6V19a1 1 0 0 0 1 1h3.4v-5.4h3.2V20H17a1 1 0 0 0 1-1V9.6"/></svg>
+<text x="116" y="145" font-size="13" font-weight="400" fill="#1D1D1F">Home</text>
+<svg x="90" y="168" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#86868B"><rect x="3.6" y="4.4" width="16.8" height="11.4" rx="2.2"/><path d="M9 20h6M12 15.8V20"/></svg>
+<text x="116" y="181" font-size="13" font-weight="400" fill="#1D1D1F">Desktop</text>
+<svg x="90" y="204" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#86868B"><path d="M6.4 3.6h7.2l4.8 4.8v11.2a1 1 0 0 1-1 1H6.4a1 1 0 0 1-1-1V4.6a1 1 0 0 1 1-1z"/><path d="M13.6 3.6v4.8h4.8"/><path d="M8.8 13h6.4M8.8 16.4h4.2"/></svg>
+<text x="116" y="217" font-size="13" font-weight="400" fill="#1D1D1F">Documents</text>
+<svg x="90" y="240" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#86868B"><path d="M12 4v11"/><path d="M7.4 10.6l4.6 4.6 4.6-4.6"/><path d="M4.8 19.6h14.4"/></svg>
+<text x="116" y="253" font-size="13" font-weight="400" fill="#1D1D1F">Downloads</text>
+<svg x="90" y="276" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#86868B"><path d="M9 18V6.4l10-2V16"/><circle cx="6.6" cy="18" r="2.4"/><circle cx="16.6" cy="16" r="2.4"/></svg>
+<text x="116" y="289" font-size="13" font-weight="400" fill="#1D1D1F">Music</text>
+<rect x="78" y="304" width="174" height="32" rx="10" fill="#EBE2EA"/>
+<rect x="78" y="312" width="3" height="16" rx="1.5" fill="#8C3274"/>
+<svg x="90" y="312" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#8C3274"><rect x="3.6" y="4.6" width="16.8" height="14.8" rx="2.6"/><circle cx="9" cy="10" r="1.7"/><path d="M3.8 16.6l4.8-4.6 3.8 3.6 3.2-3 4.8 4.4"/></svg>
+<text x="116" y="325" font-size="13" font-weight="600" fill="#1D1D1F">Pictures</text>
+<svg x="90" y="348" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#86868B"><rect x="3.4" y="6" width="13.2" height="12" rx="2.6"/><path d="M16.6 10.4l4-2.4v8l-4-2.4"/></svg>
+<text x="116" y="361" font-size="13" font-weight="400" fill="#1D1D1F">Videos</text>
+<svg x="90" y="384" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#86868B"><path d="M4.4 7h15.2M9.6 7V4.8h4.8V7"/><path d="M6.4 7l.8 12a1.6 1.6 0 0 0 1.6 1.5h6.4a1.6 1.6 0 0 0 1.6-1.5l.8-12"/><path d="M10 11v5.4M14 11v5.4"/></svg>
+<text x="116" y="397" font-size="13" font-weight="400" fill="#1D1D1F">Trash</text>
+<text x="88" y="436" font-size="11" font-weight="600" fill="#A1A1A6">Devices</text>
+<svg x="90" y="450" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#86868B"><path d="M4 14.6V6.8A1.8 1.8 0 0 1 5.8 5h12.4A1.8 1.8 0 0 1 20 6.8v7.8"/><rect x="4" y="14.6" width="16" height="4.6" rx="1.8"/><path d="M16.6 16.9h.01"/><path d="M13.4 16.9h.01"/></svg>
+<text x="116" y="463" font-size="13" font-weight="400" fill="#1D1D1F">Backup Drive</text>
+<svg x="278" y="64" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#1D1D1F"><path d="M14.6 5.8L8.4 12l6.2 6.2"/></svg>
+<svg x="304" y="64" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#A1A1A6"><path d="M9.4 5.8l6.2 6.2-6.2 6.2"/></svg>
+<text x="336" y="77" font-size="13" font-weight="400" fill="#86868B">Home  ›  Pictures  ›</text>
+<text x="482" y="77" font-size="13" font-weight="700" fill="#1D1D1F">Trip 2026</text>
+<svg x="938" y="64" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#1D1D1F"><circle cx="10.6" cy="10.6" r="6.4"/><path d="M15.4 15.4l5 5"/></svg>
+<rect x="968" y="60" width="28" height="24" rx="8" fill="#EBE2EA"/>
+<svg x="972" y="64" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#8C3274"><rect x="4" y="4" width="6.4" height="6.4" rx="1.8"/><rect x="13.6" y="4" width="6.4" height="6.4" rx="1.8"/><rect x="4" y="13.6" width="6.4" height="6.4" rx="1.8"/><rect x="13.6" y="13.6" width="6.4" height="6.4" rx="1.8"/></svg>
+<svg x="1002" y="64" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#86868B"><path d="M9.4 7H20M9.4 12H20M9.4 17H20"/><path d="M4.6 7h.01M4.6 12h.01M4.6 17h.01" stroke-width="2.6"/></svg>
+<line x1="260" y1="94.5" x2="1030" y2="94.5" stroke="#E5E5EA" stroke-width="1"/>
+<svg x="343.25" y="114" width="56" height="56" viewBox="0 0 64 64"><defs><linearGradient id="i16fb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#B84F9F"/><stop offset="1" stop-color="#8C3274"/></linearGradient><linearGradient id="i16ff" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EDBCE3"/><stop offset="1" stop-color="#C867B2"/></linearGradient></defs><path d="M5 14a5 5 0 0 1 5-5h14l6 6h24a5 5 0 0 1 5 5v31a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5z" fill="url(#i16fb)"/><rect x="5" y="22" width="54" height="33" rx="5" fill="url(#i16ff)"/><rect x="5.5" y="22.5" width="53" height="1" fill="#fff" opacity=".55"/></svg>
+<text x="371.25" y="192" font-size="12" font-weight="400" fill="#1D1D1F" text-anchor="middle">Trip 2026</text>
+<svg x="525.75" y="114" width="56" height="56" viewBox="0 0 64 64"><defs><linearGradient id="i17fb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#B84F9F"/><stop offset="1" stop-color="#8C3274"/></linearGradient><linearGradient id="i17ff" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EDBCE3"/><stop offset="1" stop-color="#C867B2"/></linearGradient></defs><path d="M5 14a5 5 0 0 1 5-5h14l6 6h24a5 5 0 0 1 5 5v31a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5z" fill="url(#i17fb)"/><rect x="5" y="22" width="54" height="33" rx="5" fill="url(#i17ff)"/><rect x="5.5" y="22.5" width="53" height="1" fill="#fff" opacity=".55"/></svg>
+<text x="553.75" y="192" font-size="12" font-weight="400" fill="#1D1D1F" text-anchor="middle">Screenshots</text>
+<svg x="708.25" y="114" width="56" height="56" viewBox="0 0 64 64"><defs><linearGradient id="i18fb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#B84F9F"/><stop offset="1" stop-color="#8C3274"/></linearGradient><linearGradient id="i18ff" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EDBCE3"/><stop offset="1" stop-color="#C867B2"/></linearGradient></defs><path d="M5 14a5 5 0 0 1 5-5h14l6 6h24a5 5 0 0 1 5 5v31a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5z" fill="url(#i18fb)"/><rect x="5" y="22" width="54" height="33" rx="5" fill="url(#i18ff)"/><rect x="5.5" y="22.5" width="53" height="1" fill="#fff" opacity=".55"/></svg>
+<text x="736.25" y="192" font-size="12" font-weight="400" fill="#1D1D1F" text-anchor="middle">Edits</text>
+<svg x="890.75" y="114" width="56" height="56" viewBox="0 0 64 64"><defs><linearGradient id="i19fb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#B84F9F"/><stop offset="1" stop-color="#8C3274"/></linearGradient><linearGradient id="i19ff" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EDBCE3"/><stop offset="1" stop-color="#C867B2"/></linearGradient></defs><path d="M5 14a5 5 0 0 1 5-5h14l6 6h24a5 5 0 0 1 5 5v31a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5z" fill="url(#i19fb)"/><rect x="5" y="22" width="54" height="33" rx="5" fill="url(#i19ff)"/><rect x="5.5" y="22.5" width="53" height="1" fill="#fff" opacity=".55"/></svg>
+<text x="918.75" y="192" font-size="12" font-weight="400" fill="#1D1D1F" text-anchor="middle">RAW</text>
+<linearGradient id="ph70504" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF9A6B"/><stop offset="1" stop-color="#5B4BA8"/></linearGradient>
+<rect x="335.25" y="238" width="72" height="50" rx="6" fill="url(#ph70504)"/>
+<circle cx="385.25" cy="252" r="5" fill="#FFFFFF" fill-opacity=".85"/>
+<text x="371.25" y="310" font-size="12" font-weight="400" fill="#1D1D1F" text-anchor="middle">Beach.jpg</text>
+<rect x="468.5" y="226" width="170.5" height="106" rx="14" fill="#EBE2EA" stroke="#8C3274" stroke-width="1" stroke-opacity="0.55"/>
+<linearGradient id="ph70505" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7BD39A"/><stop offset="1" stop-color="#1F6B4A"/></linearGradient>
+<rect x="517.75" y="238" width="72" height="50" rx="6" fill="url(#ph70505)"/>
+<circle cx="567.75" cy="252" r="5" fill="#FFFFFF" fill-opacity=".85"/>
+<text x="553.75" y="310" font-size="12" font-weight="600" fill="#1D1D1F" text-anchor="middle">Mountains.jpg</text>
+<rect x="651" y="226" width="170.5" height="106" rx="14" fill="#EBE2EA" stroke="#8C3274" stroke-width="1" stroke-opacity="0.55"/>
+<linearGradient id="ph70506" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5CA8F5"/><stop offset="1" stop-color="#1E3A8A"/></linearGradient>
+<rect x="700.25" y="238" width="72" height="50" rx="6" fill="url(#ph70506)"/>
+<circle cx="750.25" cy="252" r="5" fill="#FFFFFF" fill-opacity=".85"/>
+<text x="736.25" y="310" font-size="12" font-weight="600" fill="#1D1D1F" text-anchor="middle">City lights.png</text>
+<linearGradient id="ph70507" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D9A6FF"/><stop offset="1" stop-color="#4B2B7A"/></linearGradient>
+<rect x="882.75" y="238" width="72" height="50" rx="6" fill="url(#ph70507)"/>
+<circle cx="932.75" cy="252" r="5" fill="#FFFFFF" fill-opacity=".85"/>
+<text x="918.75" y="310" font-size="12" font-weight="400" fill="#1D1D1F" text-anchor="middle">Forest.jpg</text>
+<svg x="351.25" y="356" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#86868B"><path d="M6.4 3.6h7.2l4.8 4.8v11.2a1 1 0 0 1-1 1H6.4a1 1 0 0 1-1-1V4.6a1 1 0 0 1 1-1z"/><path d="M13.6 3.6v4.8h4.8"/></svg>
+<text x="371.25" y="428" font-size="12" font-weight="400" fill="#1D1D1F" text-anchor="middle">Itinerary.pdf</text>
+<svg x="533.75" y="356" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#86868B"><path d="M6.4 3.6h7.2l4.8 4.8v11.2a1 1 0 0 1-1 1H6.4a1 1 0 0 1-1-1V4.6a1 1 0 0 1 1-1z"/><path d="M13.6 3.6v4.8h4.8"/></svg>
+<text x="553.75" y="428" font-size="12" font-weight="400" fill="#1D1D1F" text-anchor="middle">Notes.txt</text>
+<svg x="716.25" y="356" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#86868B"><path d="M6.4 3.6h7.2l4.8 4.8v11.2a1 1 0 0 1-1 1H6.4a1 1 0 0 1-1-1V4.6a1 1 0 0 1 1-1z"/><path d="M13.6 3.6v4.8h4.8"/></svg>
+<text x="736.25" y="428" font-size="12" font-weight="400" fill="#1D1D1F" text-anchor="middle">Backup.zip</text>
+<svg x="898.75" y="356" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#86868B"><path d="M6.4 3.6h7.2l4.8 4.8v11.2a1 1 0 0 1-1 1H6.4a1 1 0 0 1-1-1V4.6a1 1 0 0 1 1-1z"/><path d="M13.6 3.6v4.8h4.8"/></svg>
+<text x="918.75" y="428" font-size="12" font-weight="400" fill="#1D1D1F" text-anchor="middle">Voice memo.m4a</text>
+<rect x="583" y="610" width="124" height="26" rx="13" fill="#FFFFFF" stroke="#E5E5EA" stroke-width="1"/>
+<text x="645" y="628" font-size="11" font-weight="400" fill="#86868B" text-anchor="middle">24 items, 2 selected</text>
+</svg>

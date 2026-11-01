@@ -1,0 +1,416 @@
+import { Theme, Motion } from "../theme.slint";
+import { HoverPlate, GlowRings } from "surfaces.slint";
+import { SymbolIcon } from "icon.slint";
+
+// A square icon button: a plate fades in under the pointer.
+component IconButton inherits Rectangle {
+    in property <string> icon;
+    // Dimmed and without a response, as the forward button is with nowhere to go.
+    in property <bool> active: true;
+    // The button of the mode showing.
+    in property <bool> checked: false;
+    in property <bool> force-hover: false;
+    callback clicked();
+
+    property <bool> hovered: active && (ta.has-hover || force-hover);
+    property <float> hover: hovered ? 1 : 0;
+    animate hover {
+        duration: hovered ? Motion.hover-in : Motion.hover-out;
+        easing: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: Theme.text.with-alpha(Theme.plate-alpha * hover + (ta.pressed ? 0.06 : 0.0) + (checked ? 0.06 : 0.0));
+    SymbolIcon {
+        x: 7px;
+        y: 7px;
+        width: 16px;
+        height: 16px;
+        name: root.icon;
+        tint: root.checked ? Theme.accent : (root.active ? Theme.text : Theme.disabled);
+        opacity: root.active ? 1 : 0.55;
+    }
+
+    ta := TouchArea {
+        enabled: root.active;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// The folder's crumbs: a plate glides to the crumb under the pointer. A press outside every crumb
+// opens the path editor.
+component Breadcrumbs inherits Rectangle {
+    in property <[string]> crumbs;
+    in property <int> force-hover: -1;
+    callback crumb-clicked(int);
+    callback empty-clicked();
+
+    property <int> hover-index: -1;
+    property <length> plate-x: 0;
+    property <length> plate-width: 0;
+    property <float> hover-amount: hover-index >= 0 ? 1 : 0;
+    animate hover-amount {
+        duration: hover-index >= 0 ? Motion.hover-in : Motion.hover-out;
+        easing: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    clip: true;
+
+    TouchArea {
+        clicked => {
+            root.empty-clicked();
+        }
+    }
+    // The crumbs in one strip. A path too long for the room shows its end, which is the part
+    // that matters, and fades out toward the start.
+    strip := Rectangle {
+        x: min(0px, root.width - self.width);
+        width: layout.preferred-width;
+        height: parent.height;
+
+        HoverPlate {
+            x: root.plate-x;
+            y: (parent.height - 26px) / 2;
+            width: root.plate-width;
+            height: 26px;
+            corner: Theme.radius-small;
+            amount: root.hover-amount;
+            animate x, width {
+                duration: root.hover-amount > 0.05 ? Motion.plate-glide : 0ms;
+                easing: cubic-bezier(0.2, 0, 0, 1);
+            }
+        }
+
+        layout := HorizontalLayout {
+            alignment: start;
+            spacing: 0px;
+            for c[i] in root.crumbs: Rectangle {
+                property <bool> last: i == root.crumbs.length - 1;
+                property <length> crumb-width: label.preferred-width + 20px;
+                property <bool> is-hovered: crumb-ta.has-hover || i == root.force-hover;
+                width: crumb-width + (last ? 0px : 14px);
+                changed is-hovered => {
+                    if (self.is-hovered) {
+                        root.plate-x = self.x;
+                        root.plate-width = self.crumb-width;
+                        root.hover-index = i;
+                    } else if (root.hover-index == i) {
+                        root.hover-index = -1;
+                    }
+                }
+                changed x => {
+                    if (self.is-hovered) {
+                        root.plate-x = self.x;
+                    }
+                }
+                init => {
+                    if (self.is-hovered) {
+                        root.plate-x = self.x;
+                        root.plate-width = self.crumb-width;
+                        root.hover-index = i;
+                    }
+                }
+                label := Text {
+                    x: 10px;
+                    width: self.preferred-width;
+                    height: parent.height;
+                    text: c;
+                    color: Theme.text;
+                    font-size: Theme.font-size;
+                    font-weight: last ? 600 : 400;
+                    vertical-alignment: center;
+                }
+
+                if !last: SymbolIcon {
+                    x: crumb-width + 1px;
+                    y: (parent.height - 10px) / 2;
+                    width: 10px;
+                    height: 10px;
+                    name: "chevron-right";
+                    tint: Theme.disabled;
+                }
+                crumb-ta := TouchArea {
+                    width: crumb-width;
+                    clicked => {
+                        root.crumb-clicked(i);
+                    }
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        width: 32px;
+        visible: strip.x < -0.5px;
+        background: @linear-gradient(90deg, Theme.page-top, Theme.page-top.with-alpha(0));
+    }
+}
+
+// The field that takes a typed path, or a search. The accent's light shows around it while it has
+// the keys.
+component PathEditor inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder: "Search or Enter Path";
+    callback accepted(string);
+    callback edited(string);
+    callback cancelled();
+
+    public function focus-field() {
+        input.focus();
+    }
+
+    property <bool> focused: input.has-focus;
+    property <float> glow: focused ? 1 : 0;
+    animate glow {
+        duration: focused ? Motion.hover-in : Motion.hover-out;
+        easing: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    height: 28px;
+    border-radius: Theme.radius-small;
+    background: Theme.dark ? Theme.second.brighter(0.7) : Theme.second;
+    border-width: 1px;
+    border-color: input.has-focus ? Theme.accent : Theme.text.with-alpha(0.15);
+
+    GlowRings {
+        width: parent.width;
+        height: parent.height;
+        corner: Theme.radius-small;
+        reach: 6;
+        drop: 0px;
+        strength: (Theme.dark ? 0.55 : 0.40) * root.glow;
+    }
+
+    FocusScope {
+        key-pressed(e) => {
+            if (e.text == Key.Escape) {
+                root.cancelled();
+                return accept;
+            }
+            return reject;
+        }
+        input := TextInput {
+            x: 12px;
+            width: parent.width - 12px - (root.text != "" ? 36px : 12px);
+            height: parent.height;
+            text <=> root.text;
+            color: Theme.text;
+            font-size: Theme.font-size;
+            vertical-alignment: center;
+            single-line: true;
+            selection-background-color: Theme.accent.with-alpha(0.35);
+            selection-foreground-color: Theme.text;
+            accepted => {
+                root.accepted(root.text);
+            }
+            edited => {
+                root.edited(root.text);
+            }
+        }
+    }
+
+    if root.text == "": Text {
+        x: 12px;
+        height: parent.height;
+        text: root.placeholder;
+        color: Theme.disabled;
+        font-size: Theme.font-size;
+        vertical-alignment: center;
+        visible: true;
+    }
+    if root.text != "": Rectangle {
+        x: parent.width - 28px;
+        width: 20px;
+        height: parent.height;
+        SymbolIcon {
+            x: 2px;
+            y: (parent.height - 16px) / 2;
+            width: 16px;
+            height: 16px;
+            name: "clear";
+            tint: Theme.disabled;
+        }
+
+        TouchArea {
+            clicked => {
+                root.text = "";
+                root.edited("");
+                root.cancelled();
+            }
+        }
+    }
+}
+
+component WindowDot inherits Rectangle {
+    in property <string> icon;
+    in property <color> hover-color: Theme.text.with-alpha(0.35);
+    callback clicked();
+    width: 12px;
+    height: 12px;
+    border-radius: 6px;
+    background: ta.has-hover ? hover-color : Theme.text.with-alpha(0.18);
+    animate background { duration: Motion.hover-in; }
+    ta := TouchArea {
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// Back and forward, the crumbs (or the path editor), search, and the two ways to show the folder.
+// Floats over the top of the page; the items scroll beneath it.
+export component Header inherits Rectangle {
+    in property <[string]> crumbs;
+    in property <bool> can-back: false;
+    in property <bool> can-forward: false;
+    // 0: icons, 1: list.
+    in property <int> view-mode: 0;
+    in property <bool> show-window-controls: false;
+    // For design previews: the crumb drawn as if the pointer were on it.
+    in property <int> force-hover-crumb: -1;
+    in-out property <bool> editing: false;
+    in-out property <string> editor-text;
+
+    callback back();
+    callback forward();
+    callback crumb-clicked(int);
+    callback path-accepted(string);
+    callback search-edited(string);
+    callback view-mode-selected(int);
+    callback window-control(string);
+    // The pointer's distance from where it went down on the bare header; for moving a window the
+    // app draws itself.
+    callback window-drag(length, length);
+
+    public function open-editor() {
+        root.editing = true;
+        editor.focus-field();
+    }
+
+    height: 52px;
+    background: @linear-gradient(180deg, Theme.page-top 0%, Theme.page-top 70%, Theme.page-top.with-alpha(0) 100%);
+
+    if root.show-window-controls: TouchArea {
+        moved => {
+            root.window-drag(self.mouse-x - self.pressed-x, self.mouse-y - self.pressed-y);
+        }
+    }
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        spacing: 6px;
+        alignment: stretch;
+
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: "back";
+                active: root.can-back;
+                clicked => {
+                    root.back();
+                }
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: "forward";
+                active: root.can-forward;
+                clicked => {
+                    root.forward();
+                }
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            if !root.editing: Breadcrumbs {
+                crumbs: root.crumbs;
+                force-hover: root.force-hover-crumb;
+                crumb-clicked(i) => {
+                    root.crumb-clicked(i);
+                }
+                empty-clicked => {
+                    root.open-editor();
+                }
+            }
+            editor := PathEditor {
+                visible: root.editing;
+                y: (parent.height - self.height) / 2;
+                text <=> root.editor-text;
+                accepted(t) => {
+                    root.path-accepted(t);
+                    root.editing = false;
+                }
+                edited(t) => {
+                    root.search-edited(t);
+                }
+                cancelled => {
+                    root.editing = false;
+                    root.editor-text = "";
+                    root.search-edited("");
+                }
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: "search";
+                clicked => {
+                    root.open-editor();
+                }
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: "view-grid";
+                checked: root.view-mode == 0;
+                clicked => {
+                    root.view-mode-selected(0);
+                }
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: "view-list";
+                checked: root.view-mode == 1;
+                clicked => {
+                    root.view-mode-selected(1);
+                }
+            }
+        }
+
+        if root.show-window-controls: VerticalLayout {
+            alignment: center;
+            HorizontalLayout {
+                spacing: 8px;
+                padding-left: 10px;
+                WindowDot {
+                    clicked => {
+                        root.window-control("minimize");
+                    }
+                }
+
+                WindowDot {
+                    clicked => {
+                        root.window-control("maximize");
+                    }
+                }
+
+                WindowDot {
+                    hover-color: Theme.close;
+                    clicked => {
+                        root.window-control("close");
+                    }
+                }
+            }
+        }
+    }
+}

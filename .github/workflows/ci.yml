@@ -1,0 +1,28 @@
+# The parts of the kit that need no Slint: the generated files must match their sources, the std-only Rust crates must
+# pass, and the header-only C++ (colour, tokens, motion) must build and pass. The Slint library, the interaction test and
+# the apps need the Slint C++ SDK and are not run here; build them locally as described in README.md.
+name: ci
+on: [push, pull_request]
+jobs:
+  generated-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/gen_tokens.py --check
+      - run: python3 tools/gen_icons.py --check
+      - run: python3 tools/make_svg_parts.py --check
+      - run: python3 tools/make_svg_screens.py --check
+      - run: python3 tools/gen_components_doc.py --check
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo test
+        working-directory: rust
+  cpp-header-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build -j
+      - run: ctest --test-dir build --output-on-failure

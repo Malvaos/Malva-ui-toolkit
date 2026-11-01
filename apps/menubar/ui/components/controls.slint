@@ -1,0 +1,356 @@
+import { Theme, Motion } from "../theme.slint";
+import { Symbol } from "icon.slint";
+
+// An on/off switch: the knob slides with a little overshoot and stretches while pressed.
+export component Switch inherits Rectangle {
+    in-out property <bool> checked: false;
+    in property <bool> enabled: true;
+    callback toggled(bool);
+
+    property <float> on: checked ? 1 : 0;
+    animate on {
+        duration: Motion.switch;
+        easing: cubic-bezier(0.34, 1.35, 0.64, 1);
+    }
+    property <float> stretch: ta.pressed ? 1 : 0;
+    animate stretch { duration: Motion.press; }
+
+    width: 40px;
+    height: 24px;
+    border-radius: 12px;
+    opacity: enabled ? 1.0 : 0.4;
+    background: Theme.accent.mix(Theme.track, min(max(on, 0.0), 1.0));
+    border-width: 1px;
+    border-color: Theme.shadow.with-alpha(Theme.dark ? 0.25 : 0.06);
+
+    Rectangle {
+        property <length> knob: 20px + root.stretch * 4px;
+        x: 2px + root.on * (root.width - 4px - self.knob);
+        y: 2px;
+        width: self.knob;
+        height: 20px;
+        border-radius: 10px;
+        background: Theme.knob;
+        drop-shadow-color: Theme.shadow.with-alpha(0.27);
+        drop-shadow-blur: 4px;
+        drop-shadow-offset-y: 1px;
+    }
+    ta := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => {
+            root.checked = !root.checked;
+            root.toggled(root.checked);
+        }
+    }
+}
+
+// A thin slider for a value from 0 to 1.
+export component Slider inherits Rectangle {
+    in-out property <float> value: 0.5;
+    in property <bool> enabled: true;
+    callback edited(float);
+
+    property <length> knob: 18px;
+    property <float> shown: value;
+    animate shown { duration: ta.pressed ? 0ms : Motion.slider; easing: ease-out; }
+    property <float> grow: ta.pressed ? 1 : (ta.has-hover ? 0.5 : 0);
+    animate grow { duration: 120ms; }
+
+    height: 22px;
+    opacity: enabled ? 1.0 : 0.4;
+
+    Rectangle {
+        x: 0px;
+        y: (parent.height - self.height) / 2;
+        width: parent.width;
+        height: 6px;
+        border-radius: 3px;
+        background: Theme.track;
+        Rectangle {
+            x: 0px;
+            width: root.knob / 2 + root.shown * (root.width - root.knob);
+            border-radius: 3px;
+            background: Theme.accent;
+        }
+    }
+    Rectangle {
+        property <length> d: root.knob + root.grow * 2px;
+        x: root.shown * (root.width - root.knob) + (root.knob - self.d) / 2;
+        y: (parent.height - self.d) / 2;
+        width: self.d;
+        height: self.d;
+        border-radius: self.d / 2;
+        background: Theme.knob;
+        border-width: 1px;
+        border-color: Theme.shadow.with-alpha(0.09);
+        drop-shadow-color: Theme.shadow.with-alpha(0.31);
+        drop-shadow-blur: 5px;
+        drop-shadow-offset-y: 1px;
+    }
+    function set(x: length) {
+        root.value = min(max((x - root.knob / 2) / (root.width - root.knob), 0.0), 1.0);
+        root.edited(root.value);
+    }
+    ta := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                root.set(self.mouse-x);
+            }
+        }
+        moved => {
+            if self.pressed {
+                root.set(self.mouse-x);
+            }
+        }
+    }
+}
+
+// The Control Center's slider: a tall pill that fills from the left, its symbol inside it.
+export component FillSlider inherits Rectangle {
+    in-out property <float> value: 0.5;
+    in property <string> icon: "sun";
+    in property <bool> enabled: true;
+    callback edited(float);
+
+    property <float> shown: value;
+    animate shown { duration: ta.pressed ? 0ms : Motion.slider; easing: ease-out; }
+    property <length> fill: self.width * min(max(shown, 0.0), 1.0);
+
+    height: 38px;
+    border-radius: self.height / 2;
+    background: Theme.field;
+    border-width: 1px;
+    border-color: transparent;
+    clip: true;
+    opacity: enabled ? 1.0 : 0.4;
+
+    Rectangle {
+        x: 0px;
+        width: max(root.fill, root.height * 0.5 * min(root.shown * 8.0, 1.0));
+        border-radius: root.height / 2;
+        background: @linear-gradient(180deg, Theme.accent.brighter(0.12), Theme.accent);
+        // The rim of the fill's end, a light line.
+        Rectangle {
+            x: parent.width - 2px;
+            width: 2px;
+            background: #FFFFFF.with-alpha(0.25);
+            visible: root.shown > 0.02 && root.shown < 0.98;
+        }
+    }
+    Symbol {
+        x: 11px;
+        y: (parent.height - self.height) / 2;
+        width: 18px;
+        height: 18px;
+        name: root.icon;
+        tint: root.fill > 24px ? Theme.on-accent : Theme.text-2;
+    }
+    function set(x: length) {
+        root.value = min(max(x / root.width, 0.0), 1.0);
+        root.edited(root.value);
+    }
+    ta := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                root.set(self.mouse-x);
+            }
+        }
+        moved => {
+            if self.pressed {
+                root.set(self.mouse-x);
+            }
+        }
+    }
+}
+
+// A pill-shaped button. kind: "normal", "accent" or "danger".
+export component PillButton inherits Rectangle {
+    in property <string> text;
+    in property <string> icon;
+    in property <string> kind: "normal";
+    in property <bool> enabled: true;
+    in property <length> pad: 14px;
+    callback clicked();
+
+    property <float> hover: ta.has-hover && enabled ? 1 : 0;
+    animate hover { duration: ta.has-hover ? Motion.hover-in : Motion.hover-out; }
+    property <color> base: kind == "accent" ? Theme.accent : kind == "danger" ? Theme.danger.with-alpha(Theme.dark ? 0.22 : 0.12) : Theme.field;
+    property <color> ink: kind == "accent" ? Theme.on-accent : kind == "danger" ? Theme.danger : Theme.text;
+
+    height: 30px;
+    min-width: row.preferred-width + 2 * pad;
+    border-radius: 9px;
+    opacity: enabled ? 1.0 : 0.4;
+    background: base;
+    transform-scale: ta.pressed ? 0.97 : 1.0;
+    animate transform-scale { duration: Motion.press; }
+
+    Rectangle {
+        border-radius: parent.border-radius;
+        background: (root.kind == "accent" ? #FFFFFF : Theme.text).with-alpha(root.hover * (root.kind == "accent" ? 0.16 : Theme.plate-alpha * 1.2));
+    }
+    row := HorizontalLayout {
+        alignment: center;
+        spacing: 6px;
+        padding-left: root.pad;
+        padding-right: root.pad;
+        if root.icon != "": Symbol {
+            y: (parent.height - self.height) / 2;
+            width: 16px;
+            height: 16px;
+            name: root.icon;
+            tint: root.ink;
+        }
+        Text {
+            text: root.text;
+            color: root.ink;
+            font-size: 13px;
+            font-weight: 500;
+            vertical-alignment: center;
+        }
+    }
+    ta := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// A row of choices; the highlight glides from one to the next.
+export component Segmented inherits Rectangle {
+    in property <[string]> labels;
+    in-out property <int> current: 0;
+    callback picked(int);
+
+    property <length> cell: (self.width - 4px) / max(labels.length, 1);
+    property <float> at: current;
+    animate at { duration: 220ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+
+    height: 30px;
+    border-radius: 9px;
+    background: Theme.field;
+
+    Rectangle {
+        x: 2px + root.at * root.cell;
+        y: 2px;
+        width: root.cell;
+        height: parent.height - 4px;
+        border-radius: 7px;
+        background: Theme.dark ? #FFFFFF2E : #FFFFFFF2;
+        drop-shadow-color: Theme.shadow.with-alpha(0.19);
+        drop-shadow-blur: 4px;
+        drop-shadow-offset-y: 1px;
+    }
+    for l[i] in root.labels: Text {
+        x: 2px + i * root.cell;
+        width: root.cell;
+        height: parent.height;
+        text: l;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        font-size: 12px;
+        font-weight: root.current == i ? 600 : 400;
+        color: root.current == i ? Theme.text : Theme.text-2;
+    }
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.current = min(max(floor((self.mouse-x - 2px) / root.cell), 0), root.labels.length - 1);
+            root.picked(root.current);
+        }
+    }
+}
+
+// A turning arc, for something that is being waited for.
+export component Spinner inherits Rectangle {
+    in property <color> tint: Theme.text-2;
+    width: 16px;
+    height: 16px;
+    Symbol {
+        width: parent.width;
+        height: parent.height;
+        name: "refresh";
+        tint: root.tint;
+        transform-rotation: mod(animation-tick() / 1ms * 0.42, 360) * 1deg;
+    }
+}
+
+// A round, quiet button holding one symbol (close, back, next).
+export component IconButton inherits Rectangle {
+    in property <string> icon;
+    in property <length> glyph: 16px;
+    in property <bool> enabled: true;
+    in property <bool> strong: false;
+    callback clicked();
+
+    property <float> hover: ta.has-hover && enabled ? 1 : 0;
+    animate hover { duration: ta.has-hover ? Motion.hover-in : Motion.hover-out; }
+
+    width: 28px;
+    height: 28px;
+    border-radius: self.width / 2;
+    opacity: enabled ? 1.0 : 0.4;
+    background: Theme.text.with-alpha(root.hover * Theme.plate-alpha * 1.4 + (ta.pressed ? 0.04 : 0.0));
+    transform-scale: ta.pressed ? 0.92 : 1.0;
+    animate transform-scale { duration: Motion.press; }
+
+    Symbol {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: root.glyph;
+        height: root.glyph;
+        name: root.icon;
+        tint: root.strong ? Theme.text : Theme.text-2;
+    }
+    ta := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// A ring that fills clockwise from the top: the battery's gauge, a countdown.
+export component Ring inherits Rectangle {
+    in property <float> value: 0.5;
+    in property <color> tone: Theme.accent;
+    in property <length> thickness: 7px;
+
+    property <float> shown: value;
+    animate shown { duration: 500ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+    property <length> r: (min(self.width, self.height) - thickness) / 2;
+    property <length> cx: self.width / 2;
+    property <length> cy: self.height / 2;
+    property <angle> a: 359.9deg * min(max(shown, 0.002), 1.0);
+
+    Path {
+        width: parent.width;
+        height: parent.height;
+        viewbox-width: parent.width / 1px;
+        viewbox-height: parent.height / 1px;
+        stroke: Theme.track;
+        stroke-width: root.thickness;
+        fill: transparent;
+        commands: "M " + root.cx / 1px + " " + (root.cy - root.r) / 1px + " A " + root.r / 1px + " " + root.r / 1px + " 0 1 1 " + root.cx / 1px + " " + (root.cy + root.r) / 1px + " A " + root.r / 1px + " " + root.r / 1px + " 0 1 1 " + root.cx / 1px + " " + (root.cy - root.r) / 1px;
+    }
+    Path {
+        width: parent.width;
+        height: parent.height;
+        viewbox-width: parent.width / 1px;
+        viewbox-height: parent.height / 1px;
+        stroke: root.tone;
+        stroke-width: root.thickness;
+        stroke-line-cap: round;
+        fill: transparent;
+        visible: root.shown > 0.003;
+        commands: "M " + root.cx / 1px + " " + (root.cy - root.r) / 1px + " A " + root.r / 1px + " " + root.r / 1px + " 0 " + (root.a > 180deg ? "1" : "0") + " 1 " + (root.cx + root.r * root.a.sin()) / 1px + " " + (root.cy - root.r * root.a.cos()) / 1px;
+    }
+}

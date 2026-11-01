@@ -1,0 +1,71 @@
+// A scrolling region with a thin overlay scrollbar that appears while scrolling or hovering, as in the brand's
+// ScrollView: content is clipped to the rounded rectangle, the thumb is 6 px and fades out when idle.
+import { Theme, Radius, Motion } from "../tokens.slint";
+
+export component ScrollArea inherits Rectangle {
+    in-out property <length> scroll-y <=> fl.content-y;
+    in-out property <length> content-height <=> fl.content-height;
+    // Whether the bar stays visible.
+    in property <bool> always-visible: false;
+
+    property <bool> recent: false;
+    property <length> track: root.height - 8px;
+    property <length> total: max(fl.content-height, root.height);
+    property <length> thumb: min(max(root.track * root.height / root.total, 28px), root.track);
+    property <float> frac: total > root.height ? min(max(-fl.content-y / (total - root.height), 0.0), 1.0) : 0.0;
+    property <bool> needed: total > root.height + 0.5px;
+    property <length> grab-y;
+    property <length> grab-start;
+
+    clip: true;
+    changed scroll-y => {
+        root.recent = true;
+        hide.running = false;
+        hide.running = true;
+    }
+    hide := Timer {
+        interval: 900ms;
+        running: false;
+        triggered => {
+            root.recent = false;
+            hide.running = false;
+        }
+    }
+    fl := Flickable {
+        width: parent.width;
+        height: parent.height;
+        @children
+    }
+    if root.needed: Rectangle {
+        x: parent.width - 12px;
+        y: 4px;
+        width: 10px;
+        height: root.track;
+        thumb-shape := Rectangle {
+            x: parent.width - self.width - 2px;
+            y: root.frac * (root.track - root.thumb);
+            width: (grab.pressed || grab.has-hover) ? 8px : 6px;
+            height: root.thumb;
+            border-radius: self.width / 2;
+            background: Theme.scroll-thumb;
+            opacity: (root.always-visible || root.recent || grab.pressed || grab.has-hover) ? 1 : 0;
+            animate opacity { duration: Motion.fade; easing: Motion.curve-out; }
+            animate width { duration: Motion.hover; easing: Motion.curve-out; }
+        }
+        grab := TouchArea {
+            pointer-event(e) => {
+                if e.kind == PointerEventKind.down {
+                    root.grab-start = fl.content-y;
+                    root.grab-y = self.mouse-y;
+                }
+            }
+            moved => {
+                if self.pressed && root.track > root.thumb {
+                    let d = self.mouse-y - root.grab-y;
+                    let ratio = (root.total - root.height) / (root.track - root.thumb);
+                    fl.content-y = min(max(root.grab-start - d * ratio, -(root.total - root.height)), 0px);
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,123 @@
+// Design tokens of the menu bar and everything that drops from it, on the Malva kit. Palette, radii and type come
+// from the kit's Theme, Radius and Typo (so one change in tokens/malva-tokens.json restyles the bar, in light and
+// dark); the bar, the popovers, the switches and the notification cards are this app's own, built from the kit's
+// colours. The motion curves are the kit's too:
+//
+//   standard   cubic-bezier(0.2, 0, 0, 1)        most movement: quick start, long soft landing
+//   soft       cubic-bezier(0.4, 0, 0.2, 1)      fades in and out
+//   overshoot  cubic-bezier(0.34, 1.35, 0.64, 1) things that arrive: rises ~4% past, settles
+//   exit       cubic-bezier(0.4, 0, 1, 1)        things that leave: accelerate away
+import { Theme as Kit, Radius, Typo } from "@malva/malva.slint";
+
+export global Theme {
+    // The kit's switch: set it here, the kit follows.
+    in-out property <bool> dark <=> Kit.dark;
+    // Plum on light, the lighter orchid-pink on dark. A settings screen may set another.
+    in-out property <color> accent: Kit.accent;
+    in-out property <color> on-accent: Kit.on-accent;
+
+    out property <color> bg: Kit.bg;
+    out property <color> second: Kit.surface;
+    out property <color> text: Kit.text;
+    out property <color> disabled: Kit.text-2;
+    // The colour of every drop shadow (ink-tinted in light, black in dark).
+    out property <color> shadow: Kit.shadow;
+
+    out property <length> radius-small: Radius.xs;
+    out property <length> radius-medium: Radius.s;
+    out property <length> radius-big: Radius.m;
+    out property <length> radius-panel: Radius.m + 2px;
+    out property <length> font-size: 12px;
+    out property <string> font-family: Typo.ui;
+
+    // ---- the bar: a strip of glass along the top, with a hairline under it ----
+    out property <length> bar-height: 30px;
+    out property <color> bar-top: dark ? Kit.panel.with-alpha(0.84) : Kit.surface.with-alpha(0.72);
+    out property <color> bar-bottom: dark ? Kit.bg.with-alpha(0.86) : Kit.surface.with-alpha(0.62);
+    out property <float> bar-hairline: dark ? 0.60 : 0.16;
+    out property <float> bar-sheen: dark ? 0.12 : 0.85;
+    // What the pointer rests on, and what is open.
+    out property <float> item-hover: dark ? 0.11 : 0.075;
+    out property <float> item-open: dark ? 0.20 : 0.14;
+
+    // ---- popovers, menus and panels: dense glass, so text never fights the wallpaper ----
+    out property <color> pop-bg: Kit.raised.with-alpha(0.95);
+    out property <color> panel-top: dark ? Kit.raised.with-alpha(0.90) : Kit.surface.with-alpha(0.91);
+    out property <color> panel-bottom: dark ? Kit.panel.with-alpha(0.92) : Kit.panel.with-alpha(0.89);
+    out property <float> pop-edge: dark ? 0.14 : 0.10;
+    out property <float> pop-shadow: dark ? 0.60 : 0.26;
+    out property <float> panel-rim: dark ? 0.16 : 0.85;
+    out property <color> separator: Kit.text.with-alpha(dark ? 0.18 : 0.12);
+    out property <color> danger: Kit.danger;
+    out property <color> ok: Kit.success;
+    out property <color> warn: Kit.warning;
+
+    // ---- surfaces inside a panel: tiles, fields, tracks ----
+    out property <color> tile: dark ? Kit.text.with-alpha(0.08) : Kit.surface.with-alpha(0.70);
+    out property <color> tile-hover: dark ? Kit.text.with-alpha(0.13) : Kit.surface.with-alpha(0.90);
+    out property <color> field: Kit.text.with-alpha(dark ? 0.09 : 0.05);
+    out property <color> track: Kit.text.with-alpha(dark ? 0.17 : 0.125);
+    out property <color> text-2: Kit.text.with-alpha(0.65);
+    out property <color> text-3: Kit.text.with-alpha(dark ? 0.45 : 0.50);
+    // The knob of a switch and of a slider: white in both.
+    out property <color> knob: #FFFFFF;
+
+    // ---- hover plate and selection, as in Files ----
+    out property <float> plate-alpha: dark ? 0.09 : 0.06;
+    out property <float> sel-top: dark ? 0.36 : 0.24;
+    out property <float> sel-bottom: dark ? 0.20 : 0.12;
+
+    // The badge on a bar item or an app: the kit's window-close red, which carries white text in both modes.
+    out property <color> badge: Kit.win-close;
+
+    // The sky of the weather card (a sky is blue), and the colours of the art placeholder.
+    out property <color> sky-top: dark ? #35568F : #5CA8F5;
+    out property <color> sky-bottom: dark ? #1E3262 : #3A78D6;
+    out property <color> art-from: Kit.accent-2;
+    out property <color> art-to: #7B61FF;
+
+    // The colours events and calendars come in: the brand's orchid first, then the kit's status hues.
+    pure public function tone(i: int) -> color {
+        return i == 1 ? Kit.success : i == 2 ? Kit.warning : i == 3 ? Kit.info : i == 4 ? Kit.danger : Kit.accent-2;
+    }
+}
+
+export global Motion {
+    out property <duration> hover-in: 120ms;
+    out property <duration> hover-out: 200ms;
+    out property <duration> press: 90ms;
+    // A menu or popover growing out of its item, and shrinking back into it.
+    out property <duration> pop-in: 220ms;
+    out property <duration> pop-out: 140ms;
+    // The rows of a menu arriving one after another.
+    out property <duration> menu-stagger: 14ms;
+    // A popover sliding from one bar item to the next while the pointer sweeps along.
+    out property <duration> glide: 200ms;
+    out property <duration> flyout-delay: 180ms;
+    out property <duration> switch: 200ms;
+    out property <duration> slider: 90ms;
+    // Panels that slide in from the edge.
+    out property <duration> panel-in: 340ms;
+    out property <duration> panel-out: 220ms;
+    // A toast arriving, living and leaving.
+    out property <duration> toast-in: 380ms;
+    out property <duration> toast-out: 260ms;
+    out property <duration> toast-life: 5200ms;
+    out property <duration> card-stagger: 26ms;
+    out property <duration> card-dismiss: 240ms;
+    // The on-screen display for volume and brightness.
+    out property <duration> osd-in: 200ms;
+    out property <duration> osd-life: 1500ms;
+    out property <duration> osd-out: 320ms;
+    out property <duration> dialog-in: 260ms;
+    out property <duration> badge: 260ms;
+}
+
+// The screen the glass sits on: a blurred copy of the wallpaper, as big as the screen, for glass to
+// show. Set by the window from its `backdrop` properties; plates read it.
+export global Screen {
+    in-out property <image> backdrop;
+    in-out property <bool> has-backdrop: false;
+    in-out property <length> width: 0px;
+    in-out property <length> height: 0px;
+}

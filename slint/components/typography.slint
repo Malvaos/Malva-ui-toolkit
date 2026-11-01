@@ -1,0 +1,48 @@
+// The type scale as components: Title 28/700, Heading 20/600, Body 14/400, BodyStrong 14/600, Label 13/600,
+// Caption 12/400 and Code 13 mono. They are Text, so every Text property still applies.
+import { Theme, Typo } from "../tokens.slint";
+
+export component Title inherits Text {
+    font-family: Typo.ui;
+    font-size: Typo.title-size;
+    font-weight: Typo.title-weight;
+    color: Theme.text;
+}
+export component Heading inherits Text {
+    font-family: Typo.ui;
+    font-size: Typo.heading-size;
+    font-weight: Typo.heading-weight;
+    color: Theme.text;
+}
+export component Body inherits Text {
+    font-family: Typo.ui;
+    font-size: Typo.body-size;
+    font-weight: Typo.body-weight;
+    color: Theme.text;
+    wrap: word-wrap;
+}
+export component BodyStrong inherits Text {
+    font-family: Typo.ui;
+    font-size: Typo.body-strong-size;
+    font-weight: Typo.body-strong-weight;
+    color: Theme.text;
+}
+export component Label inherits Text {
+    font-family: Typo.ui;
+    font-size: Typo.label-size;
+    font-weight: Typo.label-weight;
+    color: Theme.text;
+}
+export component Caption inherits Text {
+    font-family: Typo.ui;
+    font-size: Typo.caption-size;
+    font-weight: Typo.caption-weight;
+    color: Theme.muted;
+    wrap: word-wrap;
+}
+export component Code inherits Text {
+    font-family: Typo.mono;
+    font-size: Typo.mono-size;
+    font-weight: Typo.mono-weight;
+    color: Theme.text;
+}

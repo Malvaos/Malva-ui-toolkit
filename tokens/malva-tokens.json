@@ -1,0 +1,457 @@
+{
+  "meta": {
+    "name": "Malva",
+    "version": "1.0.0",
+    "about": "Single source of truth for the Malva design language. tools/gen_tokens.py turns this file into the Slint globals, the C++ header, the Rust crate, the CSS variables, the SVG palette sheet, the DTCG JSON and docs/TOKENS.md. Edit here, regenerate, never edit the outputs.",
+    "provenance": {
+      "palette": "Surfaces, text and borders are a neutral scale: soft off-white and graphite, as in the system look the user specified (light #F5F5F7 / #FFFFFF / #1D1D1F / #86868B / #E5E5EA; dark #161617 / #1E1E1F / #F5F5F7 / #8E8E93 / #2C2C2E). Nothing neutral is tinted toward the brand.",
+      "accent": "The logo's colour (the mark's gradient runs Plum #8C3274 to Orchid #C763B0) is the one strong colour, used the way a black-and-white interface uses its logo's blue: primary actions, selection, focus, the on state of a switch, links. Light mode uses Plum, dark mode the lighter orchid-pink #DC73C2.",
+      "brand": "The brand palette (petal, lilac, orchid, plum, leaf, ink) is kept for logos and illustration; interface roles do not use petal, lilac or ink.",
+      "danger": "The filled danger button is #C42F3E because white on #D6414F is 4.4:1 and on #C42F3E is 5.5:1 (WCAG AA)."
+    },
+    "expressions": "A colour is '#RRGGBB', '#RRGGBBAA' or '@fn(args)'. mix(a,b,pct) blends a toward b by an integer percent; alpha(a,pct) sets opacity to pct percent; over(a,b) composites a over b. Names refer to colours of the same mode. All maths is integer, so every language gets the same bytes."
+  },
+  "brand": {
+    "petal": "#E6DAE8",
+    "lilac": "#DEC3E0",
+    "orchid": "#B84F9F",
+    "plum": "#8C3274",
+    "leaf": "#274903",
+    "ink": "#2A1226"
+  },
+  "colors": {
+    "bg": {
+      "light": "#F5F5F7",
+      "dark": "#161617",
+      "doc": "Window and page background: the soft off-white canvas, the deep off-black canvas"
+    },
+    "panel": {
+      "light": "#EDEDF0",
+      "dark": "#1A1A1B",
+      "doc": "Sidebars and title bars"
+    },
+    "surface": {
+      "light": "#FFFFFF",
+      "dark": "#1E1E1F",
+      "doc": "Cards, content areas and windows: pure white, layered graphite"
+    },
+    "raised": {
+      "light": "#FFFFFF",
+      "dark": "#29292B",
+      "doc": "Floating things: menus, popovers, dialogs, toasts"
+    },
+    "field": {
+      "light": "#F5F5F7",
+      "dark": "#161617",
+      "doc": "Fill of text fields"
+    },
+    "field-border": {
+      "light": "#D8D8DD",
+      "dark": "#3A3A3C",
+      "doc": "Resting outline of a text field"
+    },
+    "border": {
+      "light": "#E5E5EA",
+      "dark": "#2C2C2E",
+      "doc": "Hairline round cards and secondary buttons: the razor separator, the dark glass bound"
+    },
+    "line": {
+      "light": "#ECECF0",
+      "dark": "#262628",
+      "doc": "Dividers"
+    },
+    "track": {
+      "light": "#D1D1D6",
+      "dark": "#3A3A3C",
+      "doc": "Empty part of a slider"
+    },
+    "toggle-off": {
+      "light": "#C7C7CC",
+      "dark": "#48484A",
+      "doc": "A switch that is off"
+    },
+    "scroll-thumb": {
+      "light": "#B9B9BF",
+      "dark": "#5A5A5E",
+      "doc": "Scrollbar thumb"
+    },
+    "search-fill": {
+      "light": "#EBEBF0",
+      "dark": "#2A2A2C",
+      "doc": "Fill of a search field and of the segmented-control rail"
+    },
+    "scrim": {
+      "light": "#00000052",
+      "dark": "#000000A6",
+      "doc": "Dims the window behind a dialog"
+    },
+    "glass": {
+      "light": "#F5F5F7B8",
+      "dark": "#1E1E1FC2",
+      "doc": "Translucent bars and docks over a wallpaper"
+    },
+    "glass-border": {
+      "light": "#FFFFFFB3",
+      "dark": "#FFFFFF1F",
+      "doc": "Inner rim of glass"
+    },
+    "text": {
+      "light": "#1D1D1F",
+      "dark": "#F5F5F7",
+      "doc": "Primary text: charcoal, never stark black; soft silver, never glaring white"
+    },
+    "text-2": {
+      "light": "#86868B",
+      "dark": "#8E8E93",
+      "doc": "Secondary text and control outlines: muted hierarchy subtext (3.6:1 on white: use it for supporting text, not for essential small text)"
+    },
+    "muted": {
+      "light": "#A1A1A6",
+      "dark": "#6E6E73",
+      "doc": "Placeholders, captions, hints"
+    },
+    "disabled-text": {
+      "light": "#C7C7CC",
+      "dark": "#58585C",
+      "doc": "Text and outlines of disabled controls"
+    },
+    "inverse": {
+      "light": "#1D1D1F",
+      "dark": "#F5F5F7",
+      "doc": "Tooltip background"
+    },
+    "on-inverse": {
+      "light": "#FFFFFF",
+      "dark": "#1D1D1F",
+      "doc": "Text on a tooltip"
+    },
+    "accent": {
+      "light": "#8C3274",
+      "dark": "#DC73C2",
+      "doc": "Primary action: the logo's colour (Plum; the lighter orchid-pink in dark). The only strong colour of the interface"
+    },
+    "on-accent": {
+      "light": "#FFFFFF",
+      "dark": "#1D1D1F",
+      "doc": "Text and icons on an accent fill"
+    },
+    "accent-hover": {
+      "light": "@mix(accent,text,42)",
+      "dark": "#F093D7",
+      "doc": "Primary button, pointer over it"
+    },
+    "accent-press": {
+      "light": "@mix(accent,text,62)",
+      "dark": "#C75EAE",
+      "doc": "Primary button, pressed"
+    },
+    "accent-disabled": {
+      "light": "@alpha(accent,40)",
+      "dark": "@alpha(accent,40)",
+      "doc": "Primary button, disabled"
+    },
+    "accent-2": {
+      "light": "#B84F9F",
+      "dark": "#B84F9F",
+      "doc": "Second accent: progress fill, charts (Orchid)"
+    },
+    "accent-wash": {
+      "light": "@mix(bg,accent,10)",
+      "dark": "@mix(bg,accent,22)",
+      "doc": "Selected row, selected sidebar item: the accent faintly tinting the neutral"
+    },
+    "ghost-hover": {
+      "light": "@alpha(accent,12)",
+      "dark": "@alpha(accent,12)",
+      "doc": "Ghost button, pointer over it"
+    },
+    "ghost-press": {
+      "light": "@alpha(accent,20)",
+      "dark": "@alpha(accent,20)",
+      "doc": "Ghost button, pressed"
+    },
+    "icon-hover": {
+      "light": "@alpha(accent,22)",
+      "dark": "@alpha(accent,22)",
+      "doc": "Icon button, pointer over it"
+    },
+    "icon-press": {
+      "light": "@alpha(accent,32)",
+      "dark": "@alpha(accent,32)",
+      "doc": "Icon button, pressed"
+    },
+    "focus": {
+      "light": "@accent",
+      "dark": "#F093D7",
+      "doc": "Focus ring"
+    },
+    "secondary-hover": {
+      "light": "@mix(surface,text,9)",
+      "dark": "@mix(surface,text,7)",
+      "doc": "Secondary button, pointer over it"
+    },
+    "secondary-press": {
+      "light": "@mix(surface,text,22)",
+      "dark": "@mix(surface,text,17)",
+      "doc": "Secondary button, pressed"
+    },
+    "success": {
+      "light": "#3F8A1E",
+      "dark": "#7FD35A",
+      "doc": "Success"
+    },
+    "success-soft": {
+      "light": "@alpha(success,18)",
+      "dark": "@alpha(success,20)",
+      "doc": "Success badge fill"
+    },
+    "success-text": {
+      "light": "#2F6D16",
+      "dark": "#7FD35A",
+      "doc": "Text on a success badge"
+    },
+    "warning": {
+      "light": "#F2A33A",
+      "dark": "#FFB85C",
+      "doc": "Warning"
+    },
+    "warning-soft": {
+      "light": "@alpha(warning,22)",
+      "dark": "@alpha(warning,20)",
+      "doc": "Warning badge fill"
+    },
+    "warning-text": {
+      "light": "#8A5300",
+      "dark": "#FFB85C",
+      "doc": "Text on a warning badge"
+    },
+    "danger": {
+      "light": "#D6414F",
+      "dark": "#FF7A85",
+      "doc": "Danger for icons, outlines and dots"
+    },
+    "danger-soft": {
+      "light": "@alpha(danger,12)",
+      "dark": "@alpha(danger,20)",
+      "doc": "Danger badge fill"
+    },
+    "danger-text": {
+      "light": "#C42F3E",
+      "dark": "#FF7A85",
+      "doc": "Error text"
+    },
+    "info": {
+      "light": "#2F6FD6",
+      "dark": "#6BA3FF",
+      "doc": "Information (blue, so it is not mistaken for the brand accent)"
+    },
+    "info-soft": {
+      "light": "@alpha(info,16)",
+      "dark": "@alpha(info,20)",
+      "doc": "Info badge fill"
+    },
+    "info-text": {
+      "light": "#1F55B0",
+      "dark": "#6BA3FF",
+      "doc": "Text on an info badge"
+    },
+    "danger-fill": {
+      "light": "#C42F3E",
+      "dark": "#FF7A85",
+      "doc": "Filled destructive button"
+    },
+    "danger-hover": {
+      "light": "#CE4C54",
+      "dark": "#E16A77",
+      "doc": "Destructive button, pointer over it"
+    },
+    "danger-press": {
+      "light": "#A02531",
+      "dark": "#D1636C",
+      "doc": "Destructive button, pressed"
+    },
+    "danger-disabled": {
+      "light": "@alpha(danger-fill,40)",
+      "dark": "@alpha(danger-fill,40)",
+      "doc": "Destructive button, disabled"
+    },
+    "on-danger": {
+      "light": "#FFFFFF",
+      "dark": "#1D1D1F",
+      "doc": "Text on a destructive fill"
+    },
+    "shadow": {
+      "light": "#000000",
+      "dark": "#000000",
+      "doc": "Colour of every drop shadow (its strength is in elevation.*.alpha)"
+    },
+    "win-close": {
+      "light": "#D6414F",
+      "dark": "#D6414F",
+      "doc": "Window control: close"
+    },
+    "win-min": {
+      "light": "#F2A33A",
+      "dark": "#F2A33A",
+      "doc": "Window control: minimise"
+    },
+    "win-max": {
+      "light": "#3F8A1E",
+      "dark": "#3F8A1E",
+      "doc": "Window control: zoom"
+    }
+  },
+  "radius": {
+    "xs": 6,
+    "s": 10,
+    "m": 14,
+    "l": 22,
+    "xl": 36,
+    "pill": 999
+  },
+  "space": {
+    "xxs": 4,
+    "xs": 8,
+    "s": 12,
+    "m": 16,
+    "l": 24,
+    "xl": 32,
+    "xxl": 48
+  },
+  "size": {
+    "control-s": 32,
+    "control-m": 40,
+    "control-l": 48,
+    "field-height": 42,
+    "toggle-width": 52,
+    "toggle-height": 30,
+    "toggle-knob": 24,
+    "check": 26,
+    "radio": 28,
+    "slider-track": 6,
+    "slider-thumb": 22,
+    "progress": 8,
+    "icon-s": 16,
+    "icon-m": 20,
+    "icon-l": 24,
+    "focus-width": 2,
+    "focus-offset": 2,
+    "menu-width": 230,
+    "menu-item": 34,
+    "dialog-width": 400,
+    "toast-width": 380,
+    "tile": 76,
+    "titlebar": 44,
+    "sidebar": 180
+  },
+  "type": {
+    "family": {
+      "ui": "Inter",
+      "mono": "JetBrains Mono"
+    },
+    "scale": {
+      "title": {
+        "size": 28,
+        "weight": 700,
+        "line": 34
+      },
+      "heading": {
+        "size": 20,
+        "weight": 600,
+        "line": 26
+      },
+      "body": {
+        "size": 14,
+        "weight": 400,
+        "line": 20
+      },
+      "body-strong": {
+        "size": 14,
+        "weight": 600,
+        "line": 20
+      },
+      "label": {
+        "size": 13,
+        "weight": 600,
+        "line": 18
+      },
+      "caption": {
+        "size": 12,
+        "weight": 400,
+        "line": 16
+      },
+      "mono": {
+        "size": 13,
+        "weight": 400,
+        "line": 18
+      }
+    }
+  },
+  "motion": {
+    "duration": {
+      "press": 90,
+      "hover": 160,
+      "fade": 200,
+      "open": 240,
+      "close": 160,
+      "slow": 380
+    },
+    "easing": {
+      "out": [
+        0.0,
+        0.0,
+        0.2,
+        1.0
+      ],
+      "standard": [
+        0.2,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "soft": [
+        0.4,
+        0.0,
+        0.2,
+        1.0
+      ],
+      "spring": [
+        0.34,
+        1.35,
+        0.64,
+        1.0
+      ],
+      "exit": [
+        0.4,
+        0.0,
+        1.0,
+        1.0
+      ]
+    },
+    "spring": {
+      "stiffness": 420.0,
+      "damping": 32.0,
+      "mass": 1.0
+    }
+  },
+  "elevation": {
+    "1": {
+      "y": 1,
+      "blur": 3,
+      "alpha-light": 0.08,
+      "alpha-dark": 0.4
+    },
+    "2": {
+      "y": 6,
+      "blur": 18,
+      "alpha-light": 0.12,
+      "alpha-dark": 0.5
+    },
+    "3": {
+      "y": 16,
+      "blur": 40,
+      "alpha-light": 0.18,
+      "alpha-dark": 0.6
+    }
+  }
+}

@@ -1,0 +1,33 @@
+import { Theme } from "ui/theme.slint";
+import { ListRow, FootLink, Rule, SectionLabel, Scroller } from "ui/components/lists.slint";
+import { CalendarGrid } from "ui/components/calendar.slint";
+import { GlassPlate } from "ui/components/surfaces.slint";
+export component Sheet inherits Window {
+    width: 760px; height: 480px;
+    background: #8aa0c8;
+    GlassPlate { x: 20px; y: 20px; width: 330px; height: 300px;
+      VerticalLayout { padding: 10px; spacing: 2px;
+        SectionLabel { text: "KNOWN NETWORKS"; }
+        ListRow { icon: "wifi-3"; title: "Mangrove 5G"; subtitle: "Connected"; active: true; trailing: "check"; }
+        ListRow { icon: "wifi-2"; title: "Cafe Guest"; subtitle: "Secured"; trailing: "lock"; force-hover: true; }
+        ListRow { icon: "wifi-1"; title: "Neighbour"; subtitle: "Connecting…"; trailing: "spinner"; }
+        ListRow { icon: "headphones"; title: "Studio Buds"; subtitle: "Connected · 82%"; trailing: "text"; trailing-text: "82%"; }
+        Rule {}
+        FootLink { text: "Wi-Fi Settings…"; }
+      }
+    }
+    GlassPlate { x: 370px; y: 20px; width: 360px; height: 340px;
+        CalendarGrid { x: 10px; y: 10px; width: 340px;
+            weekdays: ["M","T","W","T","F","S","S"];
+            cells: [
+              {day: 28, in-month: false, today: false, selected: false, events: 0},{day: 29, in-month: false, today: false, selected: false, events: 0},{day: 30, in-month: false, today: false, selected: false, events: 0},
+              {day: 1, in-month: true, today: false, selected: false, events: 1},{day: 2, in-month: true, today: false, selected: false, events: 0},{day: 3, in-month: true, today: false, selected: false, events: 2},{day: 4, in-month: true, today: false, selected: false, events: 0},
+              {day: 5, in-month: true, today: false, selected: false, events: 0},{day: 6, in-month: true, today: false, selected: true, events: 0},{day: 7, in-month: true, today: false, selected: false, events: 3},{day: 8, in-month: true, today: false, selected: false, events: 0},{day: 9, in-month: true, today: true, selected: false, events: 2},{day: 10, in-month: true, today: false, selected: false, events: 0},{day: 11, in-month: true, today: false, selected: false, events: 0},
+              {day: 12, in-month: true, today: false, selected: false, events: 0},{day: 13, in-month: true, today: false, selected: false, events: 0},{day: 14, in-month: true, today: false, selected: false, events: 0},{day: 15, in-month: true, today: false, selected: false, events: 0},{day: 16, in-month: true, today: false, selected: false, events: 0},{day: 17, in-month: true, today: false, selected: false, events: 0},{day: 18, in-month: true, today: false, selected: false, events: 0},
+              {day: 19, in-month: true, today: false, selected: false, events: 0},{day: 20, in-month: true, today: false, selected: false, events: 0},{day: 21, in-month: true, today: false, selected: false, events: 0},{day: 22, in-month: true, today: false, selected: false, events: 0},{day: 23, in-month: true, today: false, selected: false, events: 0},{day: 24, in-month: true, today: false, selected: false, events: 0},{day: 25, in-month: true, today: false, selected: false, events: 0},
+              {day: 26, in-month: true, today: false, selected: false, events: 0},{day: 27, in-month: true, today: false, selected: false, events: 0},{day: 28, in-month: true, today: false, selected: false, events: 0},{day: 29, in-month: true, today: false, selected: false, events: 0},{day: 30, in-month: true, today: false, selected: false, events: 0},{day: 31, in-month: true, today: false, selected: false, events: 0},{day: 1, in-month: false, today: false, selected: false, events: 0},
+              {day: 2, in-month: false, today: false, selected: false, events: 0},{day: 3, in-month: false, today: false, selected: false, events: 0},{day: 4, in-month: false, today: false, selected: false, events: 0},{day: 5, in-month: false, today: false, selected: false, events: 0},{day: 6, in-month: false, today: false, selected: false, events: 0},{day: 7, in-month: false, today: false, selected: false, events: 0},{day: 8, in-month: false, today: false, selected: false, events: 0}
+            ];
+        }
+    }
+}

@@ -1,0 +1,213 @@
+import { Theme, Motion } from "../theme.slint";
+import { FileEntry } from "../types.slint";
+import { SelectionCard, HoverPlate } from "surfaces.slint";
+import { KindIcon } from "icon.slint";
+
+// One file or folder in the icon view: its icon or thumbnail over a name of up to two lines.
+//
+//  - The pointer lifts the thumbnail a couple of pixels and a plate fades in behind it.
+//  - Selecting it raises the accent card from a little smaller, past its size and back (260 ms),
+//    and lets the name run to three lines.
+//  - New items arrive a few pixels low and a little small, one after another (12 ms apart, for
+//    the first 24), when `entering` is set as their folder opens.
+export component GridItem inherits Rectangle {
+    in property <FileEntry> entry;
+    in property <int> index: 0;
+    in property <length> icon-size: 64px;
+    // True while the folder's items are arriving.
+    in property <bool> entering: false;
+    // For design previews: drawn as if the pointer were on it.
+    in property <bool> force-hover: false;
+
+    // Ctrl and Shift are what the press was made with.
+    callback pressed(bool, bool);
+    callback activated();
+    callback context(length, length);
+
+    // The geometry, from the icon size: a card 32 px wider than the icon, a name 14 px narrower
+    // than the card, and a picture box 12 px wider and 6 px lower than the icon.
+    property <length> card-width: icon-size + 32px;
+    property <length> label-width: icon-size + 18px;
+    property <length> pad: 8px;
+    property <length> line-height: one-line.preferred-height;
+    property <length> name-height-rest: line-height * 2;
+    property <bool> long-name: name-measure.preferred-height > line-height * 2.5;
+    property <length> name-height: entry.selected && long-name ? line-height * 3 : name-height-rest;
+
+    // The size of the card at two lines, which is what the grid lays out.
+    out property <length> rest-height: pad + icon-size + 6px + name-height-rest + pad;
+
+    property <bool> hovered: ta.has-hover || force-hover;
+    property <float> hover: hovered && !entry.selected ? 1 : 0;
+    animate hover {
+        duration: hovered ? Motion.hover-in : Motion.hover-out;
+        easing: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    // What the thumbnail does under the pointer, whether or not the item is selected.
+    property <float> lift: hovered ? 1 : 0;
+    animate lift {
+        duration: hovered ? Motion.hover-in : Motion.hover-out;
+        easing: cubic-bezier(0.2, 0, 0, 1);
+    }
+    property <float> select: entry.selected ? 1 : 0;
+    animate select {
+        duration: Motion.select;
+        easing: entry.selected ? cubic-bezier(0.34, 1.35, 0.64, 1) : cubic-bezier(0.4, 0, 1, 1);
+    }
+    property <bool> arrived: false;
+    property <float> enter: arrived ? 1 : 0;
+    animate enter {
+        duration: root.entering ? Motion.enter : 0ms;
+        delay: root.entering ? min(root.index, Motion.stagger-limit) * Motion.stagger : 0ms;
+        easing: cubic-bezier(0.2, 0, 0, 1);
+    }
+    init => {
+        root.arrived = true;
+    }
+
+    // The picture's size: the thumbnail fitted in its box, or the kind's icon.
+    property <length> box-width: icon-size + 12px;
+    property <length> box-height: icon-size - 6px;
+    property <length> source-width: max(1px, entry.thumbnail.width * 1px);
+    property <length> source-height: max(1px, entry.thumbnail.height * 1px);
+    property <float> fit: min(box-width / source-width, box-height / source-height);
+    property <length> thumb-width: entry.has-thumbnail ? source-width * fit : icon-size;
+    property <length> thumb-height: entry.has-thumbnail ? source-height * fit : icon-size;
+
+    width: card-width;
+    height: rest-height;
+    z: entry.selected ? 2 : (hovered ? 1 : 0);
+
+    // Hidden measurements of the name, for how many lines it takes.
+    one-line := Text {
+        visible: false;
+        text: "Ag";
+        font-size: Theme.font-size;
+    }
+
+    name-measure := Text {
+        visible: false;
+        width: root.label-width;
+        text: root.entry.name;
+        wrap: word-wrap;
+        horizontal-alignment: center;
+        font-size: Theme.font-size;
+    }
+
+    body := Rectangle {
+        opacity: root.enter * (root.entry.hidden ? 0.5 : 1.0);
+        y: (1.0 - root.enter) * 10px;
+        transform-scale: 0.94 + 0.06 * root.enter;
+
+        HoverPlate {
+            width: parent.width;
+            height: parent.height;
+            corner: Theme.radius-big;
+            amount: root.hover;
+        }
+
+        SelectionCard {
+            width: parent.width;
+            height: root.pad + root.icon-size + 6px + root.name-height + root.pad;
+            corner: Theme.radius-big;
+            amount: root.select;
+            animate height {
+                duration: Motion.select;
+                easing: cubic-bezier(0.2, 0, 0, 1);
+            }
+        }
+
+        // The picture: resting on the page, lifting toward the pointer.
+        picture := Rectangle {
+            x: (parent.width - root.thumb-width) / 2;
+            y: root.pad + (root.icon-size - root.thumb-height) / 2 - 2px * root.lift;
+            width: root.thumb-width;
+            height: root.thumb-height;
+            transform-scale: 1.0 + 0.035 * root.lift;
+
+            if root.entry.has-thumbnail: Rectangle {
+                // The resting shadow, drawn under the picture; the two of a lifted one fade in.
+                Rectangle {
+                    background: Theme.bg;
+                    border-radius: root.thumb-height * 0.1;
+                    drop-shadow-color: Theme.shadow.with-alpha(Theme.rest-alpha * (1.0 - 0.5 * root.lift));
+                    drop-shadow-blur: 8px;
+                    drop-shadow-offset-y: 2px;
+                }
+
+                Rectangle {
+                    visible: root.lift > 0.01;
+                    background: Theme.bg;
+                    border-radius: root.thumb-height * 0.1;
+                    drop-shadow-color: Theme.shadow.with-alpha(Theme.lift-wide-alpha * root.lift);
+                    drop-shadow-blur: 16px;
+                    drop-shadow-offset-y: 5px * root.lift;
+                }
+
+                Rectangle {
+                    visible: root.lift > 0.01;
+                    background: Theme.bg;
+                    border-radius: root.thumb-height * 0.1;
+                    drop-shadow-color: Theme.shadow.with-alpha(Theme.lift-tight-alpha * root.lift);
+                    drop-shadow-blur: 5px;
+                    drop-shadow-offset-y: 1px;
+                }
+
+                Rectangle {
+                    border-radius: root.thumb-height * 0.1;
+                    clip: true;
+                    Image {
+                        width: parent.width;
+                        height: parent.height;
+                        source: root.entry.thumbnail;
+                        image-fit: fill;
+                    }
+                    // A hair of edge so a pale picture does not melt into the page.
+                    Rectangle {
+                        border-radius: parent.border-radius;
+                        border-width: 1px;
+                        border-color: Theme.text.with-alpha(Theme.dark ? 0.14 : 0.08);
+                    }
+                }
+            }
+            if !root.entry.has-thumbnail: KindIcon {
+                width: parent.width;
+                height: parent.height;
+                kind: root.entry.kind;
+            }
+        }
+
+        Text {
+            x: (parent.width - root.label-width) / 2;
+            y: root.pad + root.icon-size + 6px;
+            width: root.label-width;
+            height: root.name-height;
+            text: root.entry.name;
+            color: Theme.text;
+            font-size: Theme.font-size;
+            wrap: word-wrap;
+            overflow: elide;
+            horizontal-alignment: center;
+            vertical-alignment: top;
+            animate height {
+                duration: Motion.select;
+                easing: cubic-bezier(0.2, 0, 0, 1);
+            }
+        }
+    }
+
+    ta := TouchArea {
+        pointer-event(e) => {
+            if (e.kind == PointerEventKind.down) {
+                if (e.button == PointerEventButton.left) {
+                    root.pressed(e.modifiers.control, e.modifiers.shift);
+                } else if (e.button == PointerEventButton.right) {
+                    root.context(self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+                }
+            }
+        }
+        double-clicked => {
+            root.activated();
+        }
+    }
+}

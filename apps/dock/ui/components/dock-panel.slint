@@ -1,0 +1,667 @@
+import { Theme, Motion } from "../theme.slint";
+import { DockApp, MinimizedWindow, MenuEntry } from "../types.slint";
+import { DockSlot } from "dock-slot.slint";
+import { DockTooltip } from "tooltip.slint";
+import { GlassPlate } from "surfaces.slint";
+import { DockMenu } from "menu.slint";
+
+// The thin line between groups of icons.
+component Separator inherits Rectangle {
+    in property <bool> vertical: false;
+    in property <string> edge: "bottom";
+    in property <length> along: 14px;
+    in property <length> cross-extent: 100px;
+    in property <length> icon-size: 48px;
+    in property <length> pad-cross: 10px;
+    property <length> line: icon-size * 0.62;
+    // Only drawn once there are icons to separate.
+    in property <bool> shown: true;
+    in property <bool> animated: true;
+    property <bool> arrived: false;
+    property <float> amount: shown && (arrived || !animated) ? 1 : 0;
+    animate amount {
+        duration: animated ? Motion.arrive : 0ms;
+        delay: animated && shown ? 120ms : 0ms;
+    }
+    opacity: amount;
+    Timer {
+        interval: 16ms;
+        running: true;
+        triggered => {
+            root.arrived = true;
+            self.running = false;
+        }
+    }
+
+    width: vertical ? cross-extent : along;
+    height: vertical ? along : cross-extent;
+    Rectangle {
+        width: root.vertical ? root.line : 1px;
+        height: root.vertical ? 1px : root.line;
+        x: root.vertical ? (root.edge == "left" ? root.pad-cross + (root.icon-size - root.line) / 2 : root.cross-extent - root.pad-cross - root.icon-size + (root.icon-size - root.line) / 2) : (root.along - 1px) / 2;
+        y: root.vertical ? (root.along - 1px) / 2 : root.cross-extent - root.pad-cross - root.icon-size + (root.icon-size - root.line) / 2;
+        background: Theme.separator;
+    }
+}
+
+// The dock: glass on the screen's edge, the icons on it, and the label that rises over the one
+// under the pointer. Everything lives inside this rectangle, which should cover the dock's
+// window: the icons rise out of the glass when they grow, and the label rises above them.
+export component DockPanel inherits Rectangle {
+    in property <[DockApp]> apps;
+    in property <[MinimizedWindow]> minimized;
+    // "bottom", "left" or "right".
+    in property <string> edge: "bottom";
+    // The icons' size at rest, in logical pixels.
+    in property <length> icon-size: 48px;
+    // How big the icon under the pointer grows: 1 is not at all.
+    in property <float> magnification: 1.65;
+    in property <bool> show-launcher: true;
+    in property <bool> trash-full: false;
+    // Slid off the screen's edge (auto-hide).
+    in property <bool> hidden: false;
+    // Icons arrive one after another when the dock first appears. Off, they are there at once.
+    in property <bool> animate-entrance: true;
+
+    // The glass shows a blurred copy of the wallpaper when it is given one: the screen's top-left
+    // is at (backdrop-x, backdrop-y) in this panel's coordinates. Without one the glass is simply
+    // translucent, and the compositor's blur (if it has one) shows through.
+    in property <image> backdrop;
+    in property <bool> has-backdrop: false;
+    in property <length> backdrop-x: 0px;
+    in property <length> backdrop-y: 0px;
+    in property <length> backdrop-width: 0px;
+    in property <length> backdrop-height: 0px;
+
+    // ---- for design previews: the pointer drawn as if it were over an app (an index into `apps`,
+    // fractions between icons), and the bin's lid as if something were over it.
+    in property <float> preview-pointer: -100;
+    in property <bool> preview-lid: false;
+
+    // ---- the context menu: the backend fills it in answer to a *-context callback
+    in property <[MenuEntry]> menu-entries;
+    in property <bool> menu-open: false;
+    // For design previews: the menu of this app, open or not, and drawn with its icon at rest.
+    in property <int> preview-menu-app: -1;
+
+    callback app-clicked(int);
+    callback launcher-clicked();
+    callback trash-clicked();
+    callback window-clicked(int);
+    // Right click (or long press) on an icon: fill `menu-entries` and set `menu-open`.
+    callback app-context(int);
+    callback window-context(int);
+    callback launcher-context();
+    callback trash-context();
+    callback menu-chosen(int);
+    // The pointer touched the screen's edge where the hidden dock waits: bring it back.
+    callback reveal-requested();
+    // The menu should close: a click anywhere else.
+    callback menu-dismissed();
+    // An icon was dropped in a new place: from and to are indexes into `apps`.
+    callback reordered(int, int);
+    // An icon was dragged off the dock (or dropped on the bin): remove it from the dock.
+    callback app-dragged-off(int);
+    // Where the pointer is: for auto-hide.
+    out property <bool> pointer-inside: over;
+    // What the dock takes of the screen: how far its glass reaches from the edge (the exclusive
+    // zone, for a compositor that has one), and how long the glass is.
+    out property <length> footprint: thickness + edge-margin;
+    out property <length> dock-length: vertical ? layout.preferred-height : layout.preferred-width;
+
+    // ---- geometry, all from the icon size
+    property <bool> vertical: edge != "bottom";
+    property <length> gap: max(4px, icon-size * 0.125);
+    property <length> unit: icon-size + gap;
+    property <length> pad-along: icon-size * 0.25;
+    property <length> pad-cross: icon-size * 0.2;
+    property <length> thickness: icon-size + 2 * pad-cross;
+    property <length> cross-extent: pad-cross + icon-size * max(magnification, 1.0) + 8px;
+    property <length> sep: icon-size * 0.3;
+    property <length> edge-margin: 10px;
+    property <length> radius: thickness * 0.34;
+    property <length> reach: unit * 2.4;
+
+    // ---- where everything is with nothing magnified, measured from the dock's centre
+    property <int> n-apps: apps.length;
+    property <int> n-min: minimized.length;
+    property <length> rest-length: 2 * pad-along + (show-launcher ? unit : 0px) + (show-launcher && n-apps > 0 ? sep : 0px) + n-apps * unit + sep + n-min * unit + unit;
+    property <length> launcher-start: -rest-length / 2 + pad-along;
+    property <length> apps-start: launcher-start + (show-launcher ? unit + (n-apps > 0 ? sep : 0px) : 0px);
+    property <length> min-start: apps-start + n-apps * unit + sep;
+    property <length> trash-start: min-start + n-min * unit;
+
+    // ---- the pointer
+    property <length> pointer: -10000px;
+    property <bool> over: false;
+    property <int> over-count: 0;
+    property <bool> previewing: preview-pointer > -50;
+    property <bool> hovering: over || previewing;
+    property <length> pointer-now: previewing ? apps-start + preview-pointer * unit + unit / 2 : pointer;
+    property <bool> settled: false;
+
+    // The pointer going from one slot to the next is a leave and an enter a moment apart; the
+    // dock counts it as staying.
+    leave-timer := Timer {
+        interval: 60ms;
+        running: false;
+        triggered => {
+            if (root.over-count <= 0) {
+                root.over = false;
+            }
+            self.running = false;
+        }
+    }
+    // The dock is settled a while after it appears: icons made later arrive with their animation.
+    settle-timer := Timer {
+        interval: 1200ms;
+        // Counted from when the first app is there to arrive, so a dock filled after the window
+        // is up still gets its entrance.
+        running: root.animate-entrance && !root.settled && root.n-apps > 0;
+        triggered => {
+            root.settled = true;
+            self.running = false;
+        }
+    }
+
+    function hover(entered: bool) {
+        if (entered) {
+            root.over-count += 1;
+            root.over = true;
+            leave-timer.running = false;
+        } else {
+            root.over-count = max(0, root.over-count - 1);
+            if (root.over-count == 0) {
+                leave-timer.running = true;
+            }
+        }
+    }
+    function moved(window-position: length) {
+        root.pointer = window-position - (root.vertical ? root.absolute-position.y + root.height / 2 : root.absolute-position.x + root.width / 2);
+    }
+
+    // Slots made once the dock has settled animate in; at first they arrive in a stagger, or at
+    // once if entrance is off.
+    property <bool> slots-animated: animate-entrance || settled;
+    property <bool> entering: animate-entrance && !settled;
+
+    // ---- dragging an app: along the axis it reorders, away from the edge it removes
+    property <int> press-index: -1;
+    property <length> press-along: 0px;
+    property <length> press-across: 0px;
+    property <length> grab: 0px;
+    property <int> drag-index: -1;
+    // The pointer, along the axis and across it, in window coordinates.
+    property <length> drag-pointer: 0px;
+    property <length> drag-across: 0px;
+    property <bool> releasing: false;
+    property <bool> suppress-click: false;
+    property <int> settle-index: -1;
+    property <length> settle-offset: 0px;
+    // Where the dragged icon's centre is, measured from where it rests in the dock.
+    property <length> panel-center: vertical ? self.absolute-position.y + self.height / 2 : self.absolute-position.x + self.width / 2;
+    property <length> drag-rel: drag-index < 0 ? 0px : drag-pointer - grab - panel-center - (apps-start + drag-index * unit + unit / 2);
+    property <int> drag-target: drag-index < 0 ? -1 : max(0, min(n-apps - 1, round(drag-index + drag-rel / unit)));
+    // How far the dragged icon is from the edge, beyond where it sits in the dock.
+    property <length> away: edge == "left" ? drag-across - press-across : press-across - drag-across;
+    property <length> drag-pull: drag-index < 0 ? 0px : max(0px, away);
+    property <bool> over-bin: drag-index >= 0 && drag-pull < icon-size * 0.6 && abs(apps-start + drag-index * unit + unit / 2 + drag-rel - (trash-start + unit / 2)) < unit * 0.7;
+    property <bool> will-remove: drag-index >= 0 && (drag-pull > unit * 1.3 || over-bin);
+    function shift-of(i: int) -> length {
+        if (drag-index < 0 || i == drag-index) {
+            return 0px;
+        }
+        if (drag-target > drag-index && i > drag-index && i <= drag-target) {
+            return -unit;
+        }
+        if (drag-target < drag-index && i < drag-index && i >= drag-target) {
+            return unit;
+        }
+        return 0px;
+    }
+    function press(i: int, along: length, across: length, center: length) {
+        root.suppress-click = false;
+        root.press-index = i;
+        root.press-along = along;
+        root.press-across = across;
+        root.grab = along - center;
+        if (root.menu-open) {
+            root.menu-dismissed();
+        }
+    }
+    function drag(i: int, along: length, across: length) {
+        if (root.drag-index < 0 && root.press-index == i && (abs(along - root.press-along) > 6px || abs(across - root.press-across) > 6px)) {
+            root.drag-index = i;
+            // A press that became a drag is not a click, wherever it ends.
+            root.suppress-click = true;
+            root.tip-on = false;
+        }
+        if (root.drag-index == i) {
+            root.drag-pointer = along;
+            root.drag-across = across;
+        }
+    }
+    function drop() {
+        if (root.drag-index >= 0) {
+            root.suppress-click = true;
+            root.releasing = true;
+            root.settle-index = root.drag-target;
+            root.settle-offset = root.drag-rel - (root.drag-target - root.drag-index) * root.unit;
+            if (root.will-remove) {
+                root.settle-index = -1;
+                root.app-dragged-off(root.drag-index);
+            } else if (root.drag-target != root.drag-index) {
+                root.reordered(root.drag-index, root.drag-target);
+            }
+            root.drag-index = -1;
+            drop-timer.running = true;
+        }
+        root.press-index = -1;
+    }
+    // Dropped icons begin where they were let go and glide home: one tick later their offset is let go.
+    drop-timer := Timer {
+        interval: 40ms;
+        running: false;
+        triggered => {
+            root.releasing = false;
+            root.settle-offset = 0px;
+            self.running = false;
+        }
+    }
+
+    // ---- the menu's anchor: the icon it belongs to
+    property <length> menu-center: 0px;
+    property <length> menu-reach: 0px;
+    // A preview with the pointer on the menu's icon takes its true place, magnified and pushed.
+    property <bool> anchor-live: preview-menu-app >= 0 && previewing && abs(preview-pointer - preview-menu-app) < 0.5;
+    property <length> anchor-center: anchor-live ? tip-center : menu-center;
+    property <length> anchor-reach: anchor-live ? tip-reach : menu-reach;
+    function anchor-menu(center: length, reach: length) {
+        root.tip-on = false;
+        root.menu-center = center;
+        root.menu-reach = reach;
+    }
+    function app-center(i: int) -> length {
+        return pad-along + (show-launcher ? unit + (n-apps > 0 ? sep : 0px) : 0px) + i * unit + unit / 2;
+    }
+    // Where an icon is, in this panel's coordinates, with nothing magnified: for a backend that
+    // places a window's input region over the dock, and for tests. (A dock at the bottom.)
+    public pure function app-x(i: int) -> length {
+        return root.width / 2 + apps-start + i * unit + unit / 2;
+    }
+    public pure function window-x(j: int) -> length {
+        return root.width / 2 + min-start + j * unit + unit / 2;
+    }
+    public pure function launcher-x() -> length {
+        return root.width / 2 + launcher-start + unit / 2;
+    }
+    public pure function trash-x() -> length {
+        return root.width / 2 + trash-start + unit / 2;
+    }
+    public pure function icon-y() -> length {
+        return root.height - edge-margin - pad-cross - icon-size / 2;
+    }
+    function place-preview-menu() {
+        if (root.preview-menu-app >= 0) {
+            root.menu-center = root.app-center(root.preview-menu-app);
+            root.menu-reach = pad-cross + icon-size * (previewing && abs(preview-pointer - preview-menu-app) < 0.5 ? magnification : 1.0);
+        }
+    }
+    changed preview-menu-app => {
+        root.place-preview-menu();
+    }
+    changed icon-size => {
+        root.place-preview-menu();
+    }
+
+    // ---- the label
+    property <bool> tip-on: false;
+    property <bool> tip-armed: false;
+    property <length> tip-center: 0px;
+    property <length> tip-reach: 0px;
+    property <string> tip-text;
+    property <string> tip-sub;
+    property <bool> tip-shown: tip-on && tip-armed && !menu-open && drag-index < 0;
+    // The label waits a moment for the first icon, then follows the pointer from icon to icon
+    // without waiting, until the pointer leaves the dock.
+    tip-timer := Timer {
+        interval: Motion.tip-delay;
+        running: false;
+        triggered => {
+            root.tip-armed = true;
+            self.running = false;
+        }
+    }
+
+    function show-tip(shown: bool, center: length, reach: length, text: string, sub: string) {
+        if (shown) {
+            root.tip-center = center;
+            root.tip-reach = reach;
+            root.tip-text = text;
+            root.tip-sub = sub;
+            root.tip-on = true;
+            if (!root.tip-armed && !root.previewing) {
+                tip-timer.running = true;
+            }
+        } else {
+            root.tip-on = false;
+        }
+    }
+    changed hovering => {
+        if (!self.hovering) {
+            root.tip-armed = false;
+            tip-timer.running = false;
+        }
+    }
+    init => {
+        // A preview shows its label without waiting.
+        if (root.previewing) {
+            root.tip-armed = true;
+        }
+        root.place-preview-menu();
+    }
+    property <float> tip-amount: tip-shown ? 1 : 0;
+    animate tip-amount {
+        duration: Motion.tip-fade;
+        easing: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    // ---- sliding away
+    property <float> hide: hidden ? 1 : 0;
+    animate hide {
+        duration: Motion.hide;
+        easing: cubic-bezier(0.2, 0, 0, 1);
+    }
+    property <length> hide-distance: thickness + edge-margin + 28px;
+
+    // Under everything, so a click on the desk closes the menu and the icons still answer.
+    if root.menu-open: TouchArea {
+        pointer-event(e) => {
+            if (e.kind == PointerEventKind.down) {
+                root.menu-dismissed();
+            }
+        }
+    }
+
+    // The margin between the glass and the screen's edge belongs to the dock: a pointer going
+    // there is still on the dock. While the dock is slid away, it is also where it waits for the
+    // pointer, to come back.
+    TouchArea {
+        x: root.vertical ? (root.edge == "left" ? 0px : root.width - root.edge-margin) : (root.width - root.dock-length) / 2;
+        y: root.vertical ? (root.height - root.dock-length) / 2 : root.height - root.edge-margin;
+        width: root.vertical ? root.edge-margin : root.dock-length;
+        height: root.vertical ? root.dock-length : root.edge-margin;
+        pointer-event(e) => {
+            if (e.kind == PointerEventKind.move) {
+                root.moved(root.vertical ? self.absolute-position.y + self.mouse-y : self.absolute-position.x + self.mouse-x);
+            }
+        }
+        changed has-hover => {
+            root.hover(self.has-hover);
+            if (self.has-hover && root.hidden) {
+                root.reveal-requested();
+            }
+        }
+    }
+
+    // ---- the strip: every slot, in one flexbox that runs along the dock's axis
+    strip := Rectangle {
+        width: root.vertical ? root.cross-extent : layout.preferred-width;
+        height: root.vertical ? layout.preferred-height : root.cross-extent;
+        x: root.vertical ? (root.edge == "left" ? root.edge-margin - root.hide * root.hide-distance : root.width - root.edge-margin - root.cross-extent + root.hide * root.hide-distance) : (root.width - self.width) / 2;
+        y: root.vertical ? (root.height - self.height) / 2 : root.height - root.edge-margin - root.cross-extent + root.hide * root.hide-distance;
+
+        // The glass sits behind the icons, on the edge side of the strip.
+        glass := GlassPlate {
+            x: root.vertical ? (root.edge == "left" ? 0px : parent.width - root.thickness) : 0px;
+            y: root.vertical ? 0px : parent.height - root.thickness;
+            width: root.vertical ? root.thickness : parent.width;
+            height: root.vertical ? parent.height : root.thickness;
+            corner: root.radius;
+            shadow: 1.0 - root.hide;
+            has-backdrop: root.has-backdrop;
+            backdrop: root.backdrop;
+            backdrop-x: root.backdrop-x - (strip.x + self.x);
+            backdrop-y: root.backdrop-y - (strip.y + self.y);
+            backdrop-width: root.backdrop-width;
+            backdrop-height: root.backdrop-height;
+        }
+
+        layout := FlexboxLayout {
+            flex-direction: root.vertical ? column : row;
+            flex-wrap: no-wrap;
+            alignment: start;
+            cross-axis-alignment: end;
+            spacing: 0px;
+            padding-left: root.vertical ? 0px : root.pad-along;
+            padding-right: root.vertical ? 0px : root.pad-along;
+            padding-top: root.vertical ? root.pad-along : 0px;
+            padding-bottom: root.vertical ? root.pad-along : 0px;
+
+            if root.show-launcher: DockSlot {
+                kind: "launcher";
+                name: "Launcher";
+                index: 0;
+                vertical: root.vertical;
+                edge: root.edge;
+                icon-size: root.icon-size;
+                gap: root.gap;
+                pad-cross: root.pad-cross;
+                cross-extent: root.cross-extent;
+                animated: root.slots-animated;
+                entering: root.entering;
+                pointer: root.pointer-now;
+                hovering: root.hovering && root.drag-index < 0;
+                magnification: root.magnification;
+                radius-of-effect: root.reach;
+                rest-center: root.launcher-start + root.unit / 2;
+                context => {
+                    root.anchor-menu(self.tip-center, self.tip-reach);
+                    root.launcher-context();
+                }
+                clicked => {
+                    root.launcher-clicked();
+                }
+                pointer-moved(p) => {
+                    root.moved(p);
+                }
+                hover-changed(h) => {
+                    root.hover(h);
+                }
+                tip(s, c, r) => {
+                    root.show-tip(s, c, r, "Launcher", "");
+                }
+            }
+            if root.show-launcher && root.n-apps > 0: Separator {
+                animated: root.slots-animated;
+                vertical: root.vertical;
+                edge: root.edge;
+                along: root.sep;
+                cross-extent: root.cross-extent;
+                icon-size: root.icon-size;
+                pad-cross: root.pad-cross;
+            }
+
+            for app[i] in root.apps: DockSlot {
+                kind: "app";
+                uid: app.id;
+                name: app.name;
+                sub: app.windows > 1 ? app.windows + " windows" : "";
+                icon: app.icon;
+                system-image: app.icon-image;
+                has-system-image: app.has-icon-image;
+                running: app.running;
+                active: app.active;
+                launching: app.launching;
+                badge: app.badge;
+                removing: app.removing;
+                index: i + 1;
+                vertical: root.vertical;
+                edge: root.edge;
+                icon-size: root.icon-size;
+                gap: root.gap;
+                pad-cross: root.pad-cross;
+                cross-extent: root.cross-extent;
+                animated: root.slots-animated;
+                entering: root.entering;
+                pointer: root.pointer-now;
+                hovering: root.hovering && root.drag-index < 0;
+                magnification: root.magnification;
+                radius-of-effect: root.reach;
+                rest-center: root.apps-start + i * root.unit + root.unit / 2;
+                force-hover: root.previewing && abs(root.preview-pointer - i) < 0.5;
+                dragging: root.drag-index == i;
+                drag-pointer: root.drag-pointer;
+                drag-grab: root.grab;
+                drag-pull: root.drag-index == i ? root.drag-pull : 0px;
+                shift: root.shift-of(i);
+                shift-animated: root.drag-index >= 0 && !root.releasing;
+                settle: root.settle-index == i ? root.settle-offset : 0px;
+                lid-open: false;
+                pressed(a, c) => {
+                    root.press(i, a, c, self.abs-center);
+                }
+                released => {
+                    root.drop();
+                }
+                drag-delta(a, c) => {
+                    root.drag(i, a, c);
+                }
+                context => {
+                    root.anchor-menu(self.tip-center, self.tip-reach);
+                    root.app-context(i);
+                }
+                clicked => {
+                    if (!root.suppress-click) {
+                        root.app-clicked(i);
+                    }
+                }
+                pointer-moved(p) => {
+                    root.moved(p);
+                }
+                hover-changed(h) => {
+                    root.hover(h);
+                }
+                tip(s, c, r) => {
+                    root.show-tip(s, c, r, app.name, self.sub);
+                }
+            }
+
+            Separator {
+                animated: root.slots-animated;
+                shown: root.n-apps > 0;
+                vertical: root.vertical;
+                edge: root.edge;
+                along: root.sep;
+                cross-extent: root.cross-extent;
+                icon-size: root.icon-size;
+                pad-cross: root.pad-cross;
+            }
+
+            for w[j] in root.minimized: DockSlot {
+                kind: "window";
+                name: w.title;
+                icon: w.icon;
+                preview: w.preview;
+                has-preview: w.has-preview;
+                index: root.n-apps + j + 2;
+                vertical: root.vertical;
+                edge: root.edge;
+                icon-size: root.icon-size;
+                gap: root.gap;
+                pad-cross: root.pad-cross;
+                cross-extent: root.cross-extent;
+                animated: root.slots-animated;
+                entering: false;
+                pointer: root.pointer-now;
+                hovering: root.hovering && root.drag-index < 0;
+                magnification: root.magnification;
+                radius-of-effect: root.reach;
+                rest-center: root.min-start + j * root.unit + root.unit / 2;
+                context => {
+                    root.anchor-menu(self.tip-center, self.tip-reach);
+                    root.window-context(j);
+                }
+                clicked => {
+                    root.window-clicked(j);
+                }
+                pointer-moved(p) => {
+                    root.moved(p);
+                }
+                hover-changed(h) => {
+                    root.hover(h);
+                }
+                tip(s, c, r) => {
+                    root.show-tip(s, c, r, w.title, "");
+                }
+            }
+
+            DockSlot {
+                kind: "trash";
+                name: "Trash";
+                sub: root.trash-full ? "Contains items" : "Empty";
+                trash-full: root.trash-full;
+                lid-open: root.preview-lid || self.is-hovered || root.over-bin;
+                force-hover: root.preview-lid;
+                index: root.n-apps + root.n-min + 2;
+                vertical: root.vertical;
+                edge: root.edge;
+                icon-size: root.icon-size;
+                gap: root.gap;
+                pad-cross: root.pad-cross;
+                cross-extent: root.cross-extent;
+                animated: root.slots-animated;
+                entering: root.entering;
+                pointer: root.pointer-now;
+                hovering: root.hovering && root.drag-index < 0;
+                magnification: root.magnification;
+                radius-of-effect: root.reach;
+                rest-center: root.trash-start + root.unit / 2;
+                context => {
+                    root.anchor-menu(self.tip-center, self.tip-reach);
+                    root.trash-context();
+                }
+                clicked => {
+                    root.trash-clicked();
+                }
+                pointer-moved(p) => {
+                    root.moved(p);
+                }
+                hover-changed(h) => {
+                    root.hover(h);
+                }
+                tip(s, c, r) => {
+                    root.show-tip(s, c, r, "Trash", self.sub);
+                }
+            }
+        }
+    }
+
+    // ---- the label, over the icon under the pointer
+    DockTooltip {
+        text: root.tip-text;
+        sub: root.tip-sub;
+        opacity: root.tip-amount;
+        visible: root.tip-amount > 0.01;
+        property <length> slide: (1.0 - root.tip-amount) * 6px;
+        x: root.vertical ? (root.edge == "left" ? strip.x + root.tip-reach + 12px + self.slide : strip.x + root.cross-extent - root.tip-reach - 12px - self.width - self.slide) : max(8px, min(root.width - self.width - 8px, strip.x + root.tip-center - self.width / 2));
+        y: root.vertical ? max(8px, min(root.height - self.height - 8px, strip.y + root.tip-center - self.height / 2)) : strip.y + root.cross-extent - root.tip-reach - self.height - 12px + self.slide;
+        animate x, y {
+            duration: root.tip-armed && root.tip-amount > 0.05 ? Motion.tip-glide : 0ms;
+            easing: cubic-bezier(0.2, 0, 0, 1);
+        }
+    }
+
+    // ---- the menu, grown out of its icon
+    DockMenu {
+        entries: root.menu-entries;
+        open: root.menu-open;
+        x: root.vertical ? (root.edge == "left" ? strip.x + root.anchor-reach + 16px : strip.x + root.cross-extent - root.anchor-reach - 16px - self.width) : max(8px, min(root.width - self.width - 8px, strip.x + root.anchor-center - self.width / 2));
+        y: root.vertical ? max(8px, min(root.height - self.height - 8px, strip.y + root.anchor-center - 30px)) : strip.y + root.cross-extent - root.anchor-reach - self.height - 16px;
+        origin-x: root.vertical ? (root.edge == "left" ? -8px : self.width + 8px) : strip.x + root.anchor-center - self.x;
+        origin-y: root.vertical ? strip.y + root.anchor-center - self.y : self.height + 8px;
+        chosen(i) => {
+            root.menu-chosen(i);
+        }
+    }
+}

@@ -1,0 +1,164 @@
+// A modal dialog over a scrim: icon, title, message, optional content, two buttons. Escape dismisses, Enter
+// takes the primary action. Place it last in the window so it covers everything, and give it the window's size.
+import { Theme, Size, Radius, Space, Typo, Motion, Elevation } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+import { Tone, ForceState } from "base.slint";
+import { Button, ButtonKind, ButtonGroup } from "button.slint";
+import { ToneColors } from "feedback.slint";
+
+// The card of a dialog on its own, for dialogs that are not modal (a sheet in a window) or for design sheets.
+export component DialogCard inherits Rectangle {
+    in property <string> title;
+    in property <string> message;
+    in property <Tone> tone: Tone.accent;
+    in property <string> icon;
+    in property <string> primary-text: "OK";
+    in property <string> secondary-text: "Cancel";
+    callback primary();
+    callback secondary();
+
+    width: Size.dialog-width;
+    height: body.preferred-height;
+    border-radius: Radius.l;
+    background: Theme.raised;
+    border-width: 1px;
+    border-color: Theme.border;
+    drop-shadow-color: Theme.shadow.with-alpha(Theme.shadow-alpha3);
+    drop-shadow-blur: Elevation.blur3;
+    drop-shadow-offset-y: Elevation.y3;
+    // keeps clicks inside the card from reaching a scrim behind it
+    TouchArea { }
+    body := VerticalLayout {
+        padding: Space.l;
+        spacing: Space.l - 4px;
+        HorizontalLayout {
+            spacing: Space.m;
+            if root.icon != "" || root.tone != Tone.neutral: Rectangle {
+                width: 40px;
+                height: 40px;
+                border-radius: 20px;
+                background: ToneColors.soft(root.tone);
+                Icon {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    width: Size.icon-l;
+                    height: Size.icon-l;
+                    name: root.icon != "" ? root.icon : ToneColors.glyph(root.tone);
+                    tint: ToneColors.text(root.tone);
+                }
+            }
+            VerticalLayout {
+                spacing: Space.xxs;
+                Text {
+                    text: root.title;
+                    font-family: Typo.ui;
+                    font-size: 18px;
+                    font-weight: Typo.heading-weight;
+                    color: Theme.text;
+                    wrap: word-wrap;
+                }
+                Text {
+                    text: root.message;
+                    font-family: Typo.ui;
+                    font-size: Typo.body-size;
+                    color: Theme.text-2;
+                    wrap: word-wrap;
+                }
+            }
+        }
+        @children
+        ButtonGroup {
+            if root.secondary-text != "": Button {
+                text: root.secondary-text;
+                clicked => {
+                    root.secondary();
+                }
+            }
+            Button {
+                text: root.primary-text;
+                kind: root.tone == Tone.danger ? ButtonKind.danger : ButtonKind.primary;
+                clicked => {
+                    root.primary();
+                }
+            }
+        }
+    }
+}
+
+// A modal dialog over a scrim. Escape dismisses, Enter takes the primary action. Place it last in the window,
+// as large as the window, so it covers everything. Children go between the message and the buttons.
+export component Dialog inherits Rectangle {
+    in property <bool> open: false;
+    in property <string> title;
+    in property <string> message;
+    // The tone colours the icon; `danger` also makes the primary button red.
+    in property <Tone> tone: Tone.accent;
+    in property <string> icon;
+    in property <string> primary-text: "OK";
+    in property <string> secondary-text: "Cancel";
+    // Clicking the scrim dismisses.
+    in property <bool> scrim-dismisses: true;
+    callback primary();
+    callback secondary();
+    callback dismissed();
+    // The size of the card in the middle (it is as wide as Size.dialog-width and as tall as its content).
+    out property <length> card-width: card.width;
+    out property <length> card-height: card.height;
+
+    property <float> amount: open ? 1 : 0;
+    animate amount { duration: open ? Motion.open : Motion.close; easing: open ? Motion.curve-spring : Motion.curve-exit; }
+    visible: amount > 0.004;
+
+    changed open => {
+        if root.open {
+            fs.focus();
+        }
+    }
+    fs := FocusScope {
+        focus-on-click: false;
+        key-pressed(e) => {
+            if !root.open {
+                return reject;
+            }
+            if e.text == Key.Escape {
+                root.dismissed();
+                return accept;
+            }
+            if e.text == "\n" {
+                root.primary();
+                return accept;
+            }
+            return reject;
+        }
+        Rectangle {
+            background: Theme.scrim;
+            opacity: min(root.amount, 1.0);
+            TouchArea {
+                clicked => {
+                    if root.scrim-dismisses {
+                        root.dismissed();
+                    }
+                }
+            }
+        }
+        card := DialogCard {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2 + (1.0 - min(root.amount, 1.0)) * 18px;
+            opacity: min(root.amount * 1.5, 1.0);
+            transform-scale: 0.95 + 0.05 * min(root.amount, 1.0);
+            title: root.title;
+            message: root.message;
+            tone: root.tone;
+            icon: root.icon;
+            primary-text: root.primary-text;
+            secondary-text: root.secondary-text;
+            primary => {
+                root.primary();
+            }
+            secondary => {
+                root.secondary();
+            }
+            @children
+        }
+    }
+}

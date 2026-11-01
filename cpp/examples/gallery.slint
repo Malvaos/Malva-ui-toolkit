@@ -1,0 +1,104 @@
+// A small settings window built from the kit, as a program would use it: the C++ side owns the data (the theme
+// mode, the volume, the name) and the window shows and edits it.
+import {
+    Theme, Button, ButtonKind, IconButton, Toggle, Slider, TextField, Dropdown, SegmentedControl, SidebarItem,
+    SidebarSection, Sidebar, Card, Badge, Heading, Body, Caption, Divider, ToastStack, ToastItem, Tone, Logo, TitleBar,
+    Space, Radius, Size, Dialog,
+} from "@malva/malva.slint";
+
+export { Theme } from "@malva/malva.slint";
+export { ToastItem } from "@malva/malva.slint";
+
+export component GalleryWindow inherits Window {
+    title: "Malva UI kit: example";
+    width: 900px;
+    height: 600px;
+    background: Theme.bg;
+
+    in-out property <bool> dark <=> Theme.dark;
+    in-out property <string> user-name: "Ada Lovelace";
+    in-out property <float> volume: 40;
+    in-out property <bool> wifi: true;
+    in-out property <int> page: 0;
+    in property <[ToastItem]> toasts;
+    callback saved(string);
+    callback toast-gone(int);
+    callback reset-asked();
+    callback confirmed-reset();
+    in-out property <bool> confirm-open: false;
+
+    HorizontalLayout {
+        Sidebar {
+            VerticalLayout {
+                padding: Space.m;
+                spacing: Space.xs;
+                alignment: start;
+                Logo { kind: "horizontal"; reverse: Theme.dark; height: 32px; }
+                SidebarSection { text: "SETTINGS"; }
+                SidebarItem { text: "General"; icon: "settings"; selected: root.page == 0; clicked => { root.page = 0; } }
+                SidebarItem { text: "Network"; icon: "wifi"; selected: root.page == 1; clicked => { root.page = 1; } }
+                SidebarItem { text: "Sound"; icon: "volume"; selected: root.page == 2; clicked => { root.page = 2; } }
+            }
+        }
+        VerticalLayout {
+            padding: Space.l;
+            spacing: Space.m;
+            alignment: start;
+            Heading { text: root.page == 0 ? "General" : root.page == 1 ? "Network" : "Sound"; }
+            if root.page == 0: Card {
+                VerticalLayout {
+                    padding: Space.m;
+                    spacing: Space.m;
+                    TextField { label: "Name"; text <=> root.user-name; clearable: true; accepted(t) => { root.saved(t); } }
+                    SegmentedControl {
+                        model: ["Light", "Dark"];
+                        current-index: root.dark ? 1 : 0;
+                        selected(i) => { root.dark = i == 1; }
+                    }
+                    HorizontalLayout {
+                        spacing: Space.s;
+                        alignment: end;
+                        Button { text: "Reset…"; kind: ButtonKind.danger; clicked => { root.confirm-open = true; } }
+                        Button { text: "Save"; kind: ButtonKind.primary; clicked => { root.saved(root.user-name); } }
+                    }
+                }
+            }
+            if root.page == 1: Card {
+                VerticalLayout {
+                    padding: Space.m;
+                    spacing: Space.m;
+                    HorizontalLayout {
+                        Body { text: "Wi-Fi"; vertical-alignment: center; }
+                        Toggle { checked <=> root.wifi; }
+                    }
+                    Badge { text: root.wifi ? "Connected" : "Off"; tone: root.wifi ? Tone.success : Tone.neutral; }
+                }
+            }
+            if root.page == 2: Card {
+                VerticalLayout {
+                    padding: Space.m;
+                    spacing: Space.m;
+                    Slider { value <=> root.volume; show-value: true; }
+                    Caption { text: "Volume " + round(root.volume) + " %"; }
+                }
+            }
+        }
+    }
+    ToastStack {
+        x: parent.width - self.width - Space.l;
+        y: Space.l;
+        height: parent.height - 2 * Space.l;
+        model: root.toasts;
+        dismissed(id) => { root.toast-gone(id); }
+    }
+    Dialog {
+        open: root.confirm-open;
+        title: "Reset all settings?";
+        message: "Name, volume and network choices go back to their defaults.";
+        tone: Tone.danger;
+        primary-text: "Reset";
+        primary => { root.confirm-open = false; root.confirmed-reset(); }
+        secondary => { root.confirm-open = false; }
+        dismissed => { root.confirm-open = false; }
+    }
+}

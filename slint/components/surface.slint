@@ -1,0 +1,388 @@
+// Surfaces and small display parts: Card, Divider, Panel, GlassPanel, Avatar, Chip, ListItem, Picture and QuickTile.
+import { Theme, Size, Radius, Space, Typo, Motion, Elevation } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+import { FocusRing, ForceState } from "base.slint";
+
+// A card: 22 px corners, a hairline, and a shadow of level 0-3. Children go inside it.
+export component Card inherits Rectangle {
+    // 0 flat, 1 resting, 2 raised, 3 floating.
+    in property <int> level: 1;
+    in property <bool> interactive: false;
+    in property <ForceState> force: ForceState.none;
+    callback clicked();
+
+    property <bool> hot: interactive && (ta.has-hover || force == ForceState.hover);
+    border-radius: Radius.l;
+    background: Theme.surface;
+    border-width: 1px;
+    border-color: Theme.border;
+    drop-shadow-color: level <= 0 ? transparent : Theme.shadow.with-alpha(level == 1 ? Theme.shadow-alpha1 : level == 2 ? Theme.shadow-alpha2 : Theme.shadow-alpha3);
+    drop-shadow-blur: level == 1 ? Elevation.blur1 : level == 2 ? Elevation.blur2 : Elevation.blur3;
+    drop-shadow-offset-y: level == 1 ? Elevation.y1 : level == 2 ? Elevation.y2 : Elevation.y3;
+    transform-scale: interactive && ta.pressed ? 0.985 : 1.0;
+    animate transform-scale { duration: Motion.press; easing: Motion.curve-out; }
+    animate drop-shadow-blur { duration: Motion.hover; easing: Motion.curve-out; }
+    @children
+    if root.hot: Rectangle {
+        border-radius: root.border-radius;
+        border-width: 2px;
+        border-color: Theme.accent.with-alpha(0.35);
+    }
+    ta := TouchArea {
+        enabled: root.interactive;
+        mouse-cursor: root.interactive ? MouseCursor.pointer : MouseCursor.default;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// A horizontal hairline: as wide as its parent (or its place in a layout), 1 px tall.
+export component Divider inherits Rectangle {
+    background: Theme.line;
+    height: 1px;
+}
+
+// A vertical hairline, 1 px wide.
+export component VDivider inherits Rectangle {
+    background: Theme.line;
+    width: 1px;
+}
+
+// A flat region of the window in one of the three layers: 0 = bg, 1 = panel, 2 = surface.
+export component Panel inherits Rectangle {
+    in property <int> layer: 1;
+    background: layer == 0 ? Theme.bg : layer == 1 ? Theme.panel : Theme.surface;
+    @children
+}
+
+// A translucent plate for a bar or dock over a wallpaper. (Slint cannot blur what is behind a plate; for frosted glass
+// draw a blurred copy of the wallpaper under it, as the menu bar does.)
+export component GlassPanel inherits Rectangle {
+    border-radius: Radius.l;
+    background: Theme.glass;
+    border-width: 1px;
+    border-color: Theme.glass-border;
+    @children
+}
+
+// A person or thing: initials or a picture, in a circle or a rounded square, with an optional presence dot.
+export component Avatar inherits Rectangle {
+    in property <string> initials;
+    in property <image> source;
+    in property <bool> has-image: false;
+    in property <bool> square: false;
+    // "" none, "online", "busy", "away", "offline"
+    in property <string> presence;
+    in property <color> tone: Theme.accent;
+    width: 40px;
+    height: 40px;
+    Rectangle {
+        border-radius: square ? root.width * 0.3 : root.width / 2;
+        background: root.tone.with-alpha(Theme.dark ? 0.30 : 0.16);
+        clip: true;
+        Text {
+            text: root.initials;
+            font-family: Typo.ui;
+            font-size: root.width * 0.36;
+            font-weight: 600;
+            color: Theme.dark ? Theme.text : root.tone;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        if root.has-image: Image {
+            source: root.source;
+            image-fit: cover;
+            width: parent.width;
+            height: parent.height;
+        }
+    }
+    if root.presence != "": Rectangle {
+        x: parent.width - self.width + 1px;
+        y: parent.height - self.height + 1px;
+        width: root.width * 0.3;
+        height: root.width * 0.3;
+        border-radius: self.width / 2;
+        background: root.presence == "online" ? Theme.success : root.presence == "busy" ? Theme.danger : root.presence == "away" ? Theme.warning : Theme.muted;
+        border-width: 2px;
+        border-color: Theme.surface;
+    }
+}
+
+// A pill that can be picked (a filter) and removed (a tag).
+export component Chip inherits Rectangle {
+    in property <string> text;
+    in property <string> icon;
+    in property <bool> selected: false;
+    in property <bool> removable: false;
+    in property <bool> enabled: true;
+    callback clicked();
+    callback removed();
+    height: 32px;
+    width: row.preferred-width;
+    border-radius: self.height / 2;
+    background: selected ? Theme.accent-wash : (ta.has-hover && enabled ? Theme.secondary-hover : Theme.surface);
+    border-width: 1px;
+    border-color: selected ? Theme.accent.with-alpha(0.55) : Theme.border;
+    opacity: enabled ? 1.0 : 0.5;
+    animate background { duration: Motion.hover; easing: Motion.curve-out; }
+    // Under the layout, so the remove button, which is inside it, gets its own clicks.
+    ta := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+    row := HorizontalLayout {
+        padding-left: Space.s + 2px;
+        padding-right: root.removable ? 6px : Space.s + 2px;
+        spacing: 6px;
+        if root.icon != "": Icon {
+            name: root.icon;
+            tint: root.selected ? Theme.accent : Theme.text-2;
+            width: Size.icon-s;
+            height: Size.icon-s;
+            y: (parent.height - self.height) / 2;
+        }
+        Text {
+            text: root.text;
+            font-family: Typo.ui;
+            font-size: Typo.label-size;
+            font-weight: 500;
+            color: root.selected ? Theme.accent : Theme.text;
+            vertical-alignment: center;
+        }
+        if root.removable: Rectangle {
+            width: 20px;
+            height: 20px;
+            y: (parent.height - self.height) / 2;
+            border-radius: 10px;
+            background: rm.has-hover ? Theme.icon-hover : transparent;
+            Icon {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                width: 12px;
+                height: 12px;
+                name: "close";
+                tint: Theme.text-2;
+            }
+            rm := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.removed();
+                }
+            }
+        }
+    }
+}
+
+// A row of a list: leading icon or avatar slot, title, subtitle, trailing text; children go at the right edge.
+export component ListItem inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+    in property <string> icon;
+    in property <string> trailing;
+    in property <bool> chevron: false;
+    in property <bool> selected: false;
+    in property <bool> enabled: true;
+    in property <ForceState> force: ForceState.none;
+    callback clicked();
+
+    property <bool> kbd: false;
+    property <bool> hot: (ta.has-hover || force == ForceState.hover) && enabled;
+    height: subtitle != "" ? 56px : 44px;
+    border-radius: Radius.s;
+    background: selected ? Theme.accent-wash : (ta.pressed ? Theme.ghost-press : hot ? Theme.ghost-hover : transparent);
+    animate background { duration: Motion.hover; easing: Motion.curve-out; }
+    HorizontalLayout {
+        padding-left: Space.s;
+        padding-right: Space.s;
+        spacing: Space.s;
+        if root.icon != "": Rectangle {
+            width: 32px;
+            height: 32px;
+            y: (parent.height - self.height) / 2;
+            border-radius: Radius.s - 2px;
+            background: Theme.accent.with-alpha(Theme.dark ? 0.22 : 0.12);
+            Icon {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                name: root.icon;
+                tint: Theme.accent;
+                width: Size.icon-m;
+                height: Size.icon-m;
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Text {
+                text: root.title;
+                font-family: Typo.ui;
+                font-size: Typo.body-size;
+                font-weight: Typo.body-strong-weight;
+                color: root.enabled ? Theme.text : Theme.disabled-text;
+                overflow: elide;
+            }
+            if root.subtitle != "": Text {
+                text: root.subtitle;
+                font-family: Typo.ui;
+                font-size: Typo.caption-size;
+                color: Theme.muted;
+                overflow: elide;
+            }
+        }
+        if root.trailing != "": Text {
+            text: root.trailing;
+            font-family: Typo.ui;
+            font-size: Typo.caption-size;
+            color: Theme.muted;
+            vertical-alignment: center;
+            horizontal-alignment: right;
+        }
+        if root.chevron: Icon {
+            name: "chevron-right";
+            tint: Theme.muted;
+            width: Size.icon-s + 2px;
+            height: Size.icon-s + 2px;
+            y: (parent.height - self.height) / 2;
+        }
+        @children
+    }
+    ta := TouchArea {
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                fs.focus();
+            }
+        }
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+    fs := FocusScope {
+        focus-on-click: false;
+        enabled: root.enabled;
+        focus-gained(reason) => {
+            root.kbd = reason == FocusReason.tab-navigation;
+        }
+        focus-lost => {
+            root.kbd = false;
+        }
+        key-pressed(e) => {
+            if (e.text == " " || e.text == "\n") && root.enabled {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+    FocusRing {
+        active: root.kbd || root.force == ForceState.focus;
+        radius: root.border-radius;
+        host-width: root.width;
+        host-height: root.height;
+    }
+}
+
+export enum PictureShape { rounded, squircle, circle, square }
+
+// An image clipped to a shape. `squircle` is a rounded square with corners at 30% of the side (close to the
+// superellipse of the brand's app icons); `rounded` uses the 14 px radius token.
+export component Picture inherits Rectangle {
+    in property <image> source;
+    in property <PictureShape> shape: PictureShape.rounded;
+    in property <ImageFit> fit: ImageFit.cover;
+    border-radius: shape == PictureShape.circle ? min(self.width, self.height) / 2
+        : shape == PictureShape.squircle ? min(self.width, self.height) * 0.3
+        : shape == PictureShape.rounded ? Radius.m : 0px;
+    background: Theme.accent-wash;
+    clip: true;
+    Image {
+        width: parent.width;
+        height: parent.height;
+        source: root.source;
+        image-fit: root.fit;
+    }
+}
+
+// A quick-settings tile, 76 x 76: an icon over a label. On, it is filled with the accent.
+export component QuickTile inherits Rectangle {
+    in property <string> icon;
+    in property <string> text;
+    in-out property <bool> on: false;
+    in property <bool> enabled: true;
+    in property <ForceState> force: ForceState.none;
+    callback toggled(bool);
+
+    property <bool> kbd: false;
+    property <bool> hot: (ta.has-hover || force == ForceState.hover) && enabled;
+    property <bool> down: (ta.pressed || force == ForceState.pressed) && enabled;
+    width: Size.tile;
+    height: Size.tile;
+    border-radius: Radius.l - 2px;
+    background: on ? (down ? Theme.accent-press : hot ? Theme.accent-hover : Theme.accent)
+        : (down ? Theme.secondary-press : hot ? Theme.secondary-hover : Theme.search-fill);
+    opacity: enabled ? 1.0 : 0.5;
+    transform-scale: down ? 0.96 : 1.0;
+    animate background { duration: Motion.hover; easing: Motion.curve-out; }
+    animate transform-scale { duration: Motion.press; easing: Motion.curve-out; }
+    VerticalLayout {
+        alignment: center;
+        spacing: 6px;
+        Icon {
+            name: root.icon;
+            tint: root.on ? Theme.on-accent : Theme.text-2;
+            width: 24px;
+            height: 24px;
+            x: (parent.width - self.width) / 2;
+        }
+        Text {
+            text: root.text;
+            font-family: Typo.ui;
+            font-size: Typo.caption-size;
+            font-weight: 600;
+            color: root.on ? Theme.on-accent : Theme.text-2;
+            horizontal-alignment: center;
+            overflow: elide;
+        }
+    }
+    ta := TouchArea {
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                fs.focus();
+            }
+        }
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => {
+            root.on = !root.on;
+            root.toggled(root.on);
+        }
+    }
+    fs := FocusScope {
+        focus-on-click: false;
+        enabled: root.enabled;
+        focus-gained(reason) => {
+            root.kbd = reason == FocusReason.tab-navigation;
+        }
+        focus-lost => {
+            root.kbd = false;
+        }
+        key-pressed(e) => {
+            if (e.text == " " || e.text == "\n") && root.enabled {
+                root.on = !root.on;
+                root.toggled(root.on);
+                return accept;
+            }
+            return reject;
+        }
+    }
+    FocusRing {
+        active: root.kbd || root.force == ForceState.focus;
+        radius: root.border-radius;
+        host-width: root.width;
+        host-height: root.height;
+    }
+}

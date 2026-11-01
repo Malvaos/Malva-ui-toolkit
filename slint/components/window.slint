@@ -1,0 +1,149 @@
+// Window chrome: TitleBar, WindowFrame, Sidebar and SidebarSection.
+import { Theme, Size, Radius, Space, Typo, Motion, Elevation } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+
+// A title bar, 44 px, with the three window controls at the left and the title in the middle. `@children` land at
+// the right edge (toolbar buttons).
+export component TitleBar inherits Rectangle {
+    in property <string> title;
+    in property <bool> active: true;
+    in property <bool> show-controls: true;
+    callback close();
+    callback minimize();
+    callback maximize();
+
+    property <bool> group: closer.has-hover || minner.has-hover || maxer.has-hover;
+    height: Size.titlebar;
+    background: Theme.panel;
+
+    Rectangle {
+        visible: root.show-controls;
+        x: 14px;
+        width: 72px;
+        for c[i] in [{ glyph: "close", color: Theme.win-close }, { glyph: "minus", color: Theme.win-min }, { glyph: "plus", color: Theme.win-max }]: Rectangle {
+            x: i * 22px;
+            y: (parent.height - self.height) / 2;
+            width: 14px;
+            height: 14px;
+            border-radius: 7px;
+            background: root.active ? c.color : Theme.line;
+            border-width: 1px;
+            border-color: Theme.shadow.with-alpha(0.16);
+            Icon {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                width: 9px;
+                height: 9px;
+                name: c.glyph;
+                tint: #1D1D1F;
+                opacity: root.group && root.active ? 0.7 : 0;
+                animate opacity { duration: Motion.hover; }
+            }
+        }
+        closer := TouchArea {
+            x: 0px;
+            width: 22px;
+            clicked => {
+                root.close();
+            }
+        }
+        minner := TouchArea {
+            x: 22px;
+            width: 22px;
+            clicked => {
+                root.minimize();
+            }
+        }
+        maxer := TouchArea {
+            x: 44px;
+            width: 22px;
+            clicked => {
+                root.maximize();
+            }
+        }
+    }
+    Text {
+        x: 0px;
+        width: parent.width;
+        text: root.title;
+        font-family: Typo.ui;
+        font-size: Typo.body-size;
+        font-weight: Typo.body-strong-weight;
+        color: root.active ? Theme.text : Theme.muted;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    HorizontalLayout {
+        padding-right: Space.s;
+        spacing: Space.xxs;
+        alignment: end;
+        @children
+    }
+}
+
+// A window: rounded, hairline, shadow, a title bar over a content area (the children).
+export component WindowFrame inherits Rectangle {
+    in property <string> title;
+    in property <bool> active: true;
+    callback close();
+    callback minimize();
+    callback maximize();
+
+    border-radius: Radius.l;
+    background: Theme.surface;
+    border-width: 1px;
+    border-color: Theme.border;
+    drop-shadow-color: Theme.shadow.with-alpha(Theme.shadow-alpha3);
+    drop-shadow-blur: Elevation.blur3;
+    drop-shadow-offset-y: Elevation.y3;
+    Rectangle {
+        clip: true;
+        border-radius: root.border-radius;
+        VerticalLayout {
+            TitleBar {
+                title: root.title;
+                active: root.active;
+                close => {
+                    root.close();
+                }
+                minimize => {
+                    root.minimize();
+                }
+                maximize => {
+                    root.maximize();
+                }
+            }
+            Rectangle {
+                @children
+            }
+        }
+    }
+}
+
+// The column of places at the left of a window. Children are SidebarItem and SidebarSection.
+export component Sidebar inherits Rectangle {
+    width: Size.sidebar;
+    background: Theme.bg;
+    VerticalLayout {
+        padding: Space.xs;
+        spacing: 2px;
+        alignment: start;
+        @children
+    }
+}
+
+// A small heading over a group of sidebar items.
+export component SidebarSection inherits Rectangle {
+    in property <string> text;
+    height: 30px;
+    Text {
+        x: Space.s;
+        y: 8px;
+        text: root.text;
+        font-family: Typo.ui;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.6px;
+        color: Theme.muted;
+    }
+}

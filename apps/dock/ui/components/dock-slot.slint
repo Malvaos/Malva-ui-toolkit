@@ -1,0 +1,386 @@
+import { Theme, Motion } from "../theme.slint";
+import { AppIcon } from "icon.slint";
+
+// One place in the dock: an app, the launcher, a minimised window or the bin. It owns everything
+// that happens to a single icon (growing under the pointer, arriving and leaving, hopping while
+// its app starts, the mark that says it is running, the red count) and reports what the person
+// does to it. The panel owns what is shared: where the pointer is, the label, the menu, dragging.
+export component DockSlot inherits Rectangle {
+    // ---- geometry, from the panel
+    in property <bool> vertical: false;
+    // The screen edge the dock sits on: "bottom", "left" or "right".
+    in property <string> edge: "bottom";
+    in property <length> icon-size: 48px;
+    in property <length> gap: 6px;
+    in property <length> pad-cross: 10px;
+    // How far the slot reaches from the screen edge: room for the icon at full magnification.
+    in property <length> cross-extent: 120px;
+    in property <int> index: 0;
+    // Who is in this slot. Slots are made in order, so when an icon leaves or two swap, the slots
+    // stay and their contents change: a slot given someone else just shows them, with no arrival.
+    in property <string> uid;
+    // True while the dock is first appearing: icons arrive one after another.
+    in property <bool> entering: false;
+    // Off, a slot is simply there when it is made (a static preview, or a dock that opens quietly).
+    in property <bool> animated: true;
+
+    // ---- what it shows
+    // "app", "launcher", "window" or "trash".
+    in property <string> kind: "app";
+    in property <string> name;
+    in property <string> sub;
+    in property <string> icon;
+    in property <image> system-image;
+    in property <bool> has-system-image: false;
+    in property <image> preview;
+    in property <bool> has-preview: false;
+    in property <bool> running: false;
+    in property <bool> active: false;
+    in property <bool> launching: false;
+    in property <int> badge: 0;
+    in property <bool> removing: false;
+    in property <bool> trash-full: false;
+    // The bin's lid swings open for what is dragged over it.
+    in property <bool> lid-open: false;
+    // For design previews: this slot's label shows as if the pointer were on it, as if it were
+    // being pressed, and as if it were this far through a hop (0 to 1; a negative value is none).
+    in property <bool> force-hover: false;
+    in property <bool> force-press: false;
+    in property <float> force-bounce: -1;
+
+    // ---- the pointer, along the dock's axis, measured from the dock's centre
+    in property <length> pointer: -10000px;
+    in property <bool> hovering: false;
+    // Where this slot's centre is with nothing magnified. Magnifying from rest positions, not
+    // from where the icons have been pushed to, keeps the effect steady as it moves.
+    in property <length> rest-center: 0px;
+    in property <float> magnification: 1.65;
+    // How far from the pointer an icon still feels it.
+    in property <length> radius-of-effect: 130px;
+
+    // ---- dragging, from the panel
+    // This slot's icon is the one being dragged. It stays under the pointer, wherever the layout
+    // moves: `drag-pointer` is the pointer's place along the axis in window coordinates, and
+    // `drag-grab` how far from the icon's centre it took hold.
+    in property <bool> dragging: false;
+    in property <length> drag-pointer: 0px;
+    in property <length> drag-grab: 0px;
+    // How far the icon is moved out of the way of a dragged one, and whether it glides there.
+    in property <length> shift: 0px;
+    in property <bool> shift-animated: true;
+    // A dropped icon starts this far from its place and glides home.
+    in property <length> settle: 0px;
+    // How far the dragged icon has been pulled away from the dock, across its axis.
+    in property <length> drag-pull: 0px;
+
+    // The pointer went down: its place along the axis and across it, in window coordinates.
+    callback pressed(length, length);
+    callback released();
+    callback clicked();
+    callback context();
+    // The pointer's position along the axis, in window coordinates, as it moves over this slot.
+    callback pointer-moved(length);
+    // The pointer, while it is down, along the axis and across it, in window coordinates.
+    callback drag-delta(length, length);
+    callback hover-changed(bool);
+    // This slot's label should show (or not) at this centre along the strip and reach from the edge.
+    callback tip(bool, length, length);
+
+    // ---- the magnification
+    property <length> distance: abs(pointer - rest-center);
+    property <float> falloff: distance >= radius-of-effect ? 0 : (1 + cos(distance / radius-of-effect * 180deg)) / 2;
+    property <float> target: hovering && !dragging ? 1 + (magnification - 1) * falloff : 1;
+    property <float> scale: target;
+    animate scale {
+        duration: hovering ? Motion.magnify-in : Motion.magnify-out;
+        easing: cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    // ---- arriving and leaving
+    property <string> seen;
+    property <bool> swapped: seen != "" && uid != seen;
+    changed uid => {
+        root.seen = root.uid;
+    }
+    property <bool> arrived: false;
+    property <float> appear: (arrived || !animated) && !removing ? 1 : 0;
+    animate appear {
+        duration: !animated || swapped ? 0ms : (removing ? Motion.leave : Motion.arrive);
+        delay: animated && !swapped && entering && !removing ? min(index, 16) * Motion.stagger : 0ms;
+        easing: removing ? cubic-bezier(0.4, 0, 1, 1) : cubic-bezier(0.2, 0, 0, 1);
+    }
+    // The icon itself arrives with a little overshoot, a beat after its room has opened.
+    property <float> pop: (arrived || !animated) && !removing ? 1 : 0;
+    animate pop {
+        duration: !animated || swapped ? 0ms : (removing ? Motion.leave : Motion.arrive);
+        delay: !animated || swapped || removing ? 0ms : (entering ? min(index, 16) * Motion.stagger : 0ms) + 60ms;
+        easing: removing ? cubic-bezier(0.4, 0, 1, 1) : cubic-bezier(0.34, 1.35, 0.64, 1);
+    }
+    init => {
+        root.seen = root.uid;
+    }
+    // A slot is first drawn small, and grows on the next beat: set in `init`, the first thing drawn
+    // would already be the finished icon and there would be nothing to animate.
+    arrive-timer := Timer {
+        interval: 16ms;
+        running: true;
+        triggered => {
+            root.arrived = true;
+            self.running = false;
+        }
+    }
+
+    // ---- hopping while the app starts: up with a decelerating rise, down with a quickening fall
+    property <float> bounce: launching ? 1 : 0;
+    animate bounce {
+        duration: Motion.bounce;
+        easing: cubic-bezier(0.25, 0.75, 0.45, 1);
+        iteration-count: launching ? -1 : 1;
+        direction: alternate;
+    }
+
+    // ---- the press
+    property <float> press: (ta.pressed || force-press) && !dragging ? 1 : 0;
+    animate press { duration: Motion.press; }
+
+    // ---- the lid of the bin
+    property <float> lid: lid-open ? 1 : 0;
+    animate lid {
+        duration: Motion.lid;
+        easing: cubic-bezier(0.34, 1.35, 0.64, 1);
+    }
+
+    // ---- the running mark
+    property <float> mark: running && kind != "trash" ? 1 : 0;
+    animate mark {
+        duration: swapped ? 0ms : Motion.indicator;
+        easing: cubic-bezier(0.34, 1.35, 0.64, 1);
+    }
+    property <length> mark-long: active ? 16px : 4px;
+    animate mark-long {
+        duration: swapped ? 0ms : Motion.indicator;
+        easing: cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    property <length> shift-now: shift;
+    animate shift-now {
+        duration: shift-animated ? Motion.part : 0ms;
+        easing: cubic-bezier(0.2, 0, 0, 1);
+    }
+    property <length> settle-now: settle;
+    animate settle-now {
+        duration: settle == 0px ? Motion.plate-glide : 0ms;
+        easing: cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    // ---- sizes and places
+    property <length> size: icon-size * scale;
+    property <length> along: (size + gap) * appear;
+    property <length> lift: (force-bounce >= 0 ? force-bounce : bounce) * icon-size * 0.5 + (dragging ? 6px : 0px) + drag-pull;
+    property <length> along-pos: (along - size) / 2;
+    property <length> cross-pos: edge == "left" ? pad-cross + lift : cross-extent - pad-cross - size - lift;
+
+    // The slot's centre along the strip, and how far its icon reaches from the screen edge:
+    // what the label needs to sit above it.
+    // Where this slot's centre is along the axis, in window coordinates.
+    out property <length> abs-center: (vertical ? self.absolute-position.y : self.absolute-position.x) + along / 2;
+    property <length> drag-offset: drag-pointer - drag-grab - abs-center;
+    out property <length> tip-center: vertical ? self.y + self.height / 2 : self.x + self.width / 2;
+    out property <length> tip-reach: pad-cross + size + lift;
+    out property <bool> is-hovered: (ta.has-hover || force-hover) && appear > 0.5 && !dragging;
+    changed is-hovered => {
+        root.tip(self.is-hovered, self.tip-center, self.tip-reach);
+    }
+    changed tip-center => {
+        if (self.is-hovered) {
+            root.tip(true, self.tip-center, self.tip-reach);
+        }
+    }
+    changed tip-reach => {
+        if (self.is-hovered) {
+            root.tip(true, self.tip-center, self.tip-reach);
+        }
+    }
+
+    width: vertical ? cross-extent : along;
+    height: vertical ? along : cross-extent;
+    z: dragging ? 10 : 0;
+
+    // ---- the icon
+    box := Rectangle {
+        x: vertical ? root.cross-pos : root.along-pos + (root.dragging ? root.drag-offset : root.shift-now + root.settle-now);
+        y: vertical ? root.along-pos + (root.dragging ? root.drag-offset : root.shift-now + root.settle-now) : root.cross-pos;
+        width: root.size;
+        height: root.size;
+        opacity: min(root.pop, 1.0) * (root.dragging && root.drag-pull > 60px ? 0.55 : 1.0);
+        transform-scale: (0.4 + 0.6 * root.pop) * (1.0 - 0.08 * root.press) * (root.dragging ? 1.1 : 1.0);
+
+        // What the icon rests on: its shadow, cast by a shape the icon covers.
+        if root.kind != "trash": Rectangle {
+            x: 1px;
+            y: 1px;
+            width: parent.width - 2px;
+            height: parent.height - 2px;
+            border-radius: parent.width * 0.226;
+            background: Theme.bg;
+            drop-shadow-color: Theme.shadow.with-alpha(Theme.icon-shadow * (0.6 + 0.4 * min(root.scale, 1.5) / 1.5) * (root.dragging ? 1.4 : 1.0));
+            drop-shadow-blur: parent.width * 0.2;
+            drop-shadow-offset-y: parent.width * (root.dragging ? 0.16 : 0.07);
+        }
+
+        if root.kind == "app" || root.kind == "launcher": AppIcon {
+            width: parent.width;
+            height: parent.height;
+            name: root.kind == "launcher" ? "launcher" : root.icon;
+            system-image: root.system-image;
+            has-system-image: root.has-system-image;
+        }
+
+        // A minimised window: its picture, with its app's icon on the corner.
+        if root.kind == "window": Rectangle {
+            border-radius: parent.width * 0.226;
+            clip: true;
+            background: Theme.second;
+            if root.has-preview: Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.preview;
+                image-fit: cover;
+            }
+            // No picture of the window: a small drawing of one.
+            if !root.has-preview: Rectangle {
+                background: @linear-gradient(180deg, Theme.second, Theme.bg);
+                Rectangle {
+                    height: parent.height * 0.24;
+                    y: 0px;
+                    background: Theme.text.with-alpha(0.07);
+                    for c[k] in [Theme.close, Theme.minimize, Theme.zoom]: Rectangle {
+                        x: parent.width * (0.10 + 0.09 * k);
+                        y: (parent.height - self.height) / 2;
+                        width: parent.width * 0.065;
+                        height: self.width;
+                        border-radius: self.width / 2;
+                        background: c;
+                    }
+                }
+
+                for w[k] in [0.62, 0.78, 0.46]: Rectangle {
+                    x: parent.width * 0.12;
+                    y: parent.height * (0.36 + 0.13 * k);
+                    width: parent.width * w;
+                    height: parent.height * 0.05;
+                    border-radius: self.height / 2;
+                    background: Theme.text.with-alpha(0.16);
+                }
+            }
+            Rectangle {
+                border-radius: parent.border-radius;
+                border-width: 1px;
+                border-color: Theme.text.with-alpha(0.18);
+            }
+        }
+        if root.kind == "window": AppIcon {
+            x: parent.width * 0.52;
+            y: parent.height * 0.52;
+            width: parent.width * 0.5;
+            height: parent.height * 0.5;
+            name: root.icon;
+        }
+
+        // The bin: body, paper when it holds something, and a lid that swings open.
+        if root.kind == "trash": AppIcon {
+            width: parent.width;
+            height: parent.height;
+            name: "trash-body";
+        }
+        if root.kind == "trash" && root.trash-full: AppIcon {
+            width: parent.width;
+            height: parent.height;
+            name: "trash-paper";
+            y: -parent.height * 0.02 * (1.0 + 2.0 * root.lid);
+        }
+        if root.kind == "trash": AppIcon {
+            width: parent.width;
+            height: parent.height;
+            name: "trash-lid";
+            y: -parent.height * 0.03 * root.lid;
+            transform-rotation: -26deg * root.lid;
+            transform-origin: { x: parent.width * 0.19, y: parent.height * 0.36 };
+        }
+
+        // The red count.
+        if root.badge > 0: Rectangle {
+            property <length> badge-size: 18px * (0.85 + 0.15 * min(root.scale, 1.4));
+            x: parent.width - self.width * 0.62;
+            y: -self.height * 0.38;
+            width: max(self.height, count.preferred-width + 10px);
+            height: badge-size;
+            border-radius: self.height / 2;
+            background: Theme.badge;
+            border-width: 1.5px;
+            border-color: #FFFFFFE6;
+            drop-shadow-color: #00000055;
+            drop-shadow-blur: 4px;
+            drop-shadow-offset-y: 1px;
+            count := Text {
+                text: root.badge > 99 ? "99+" : root.badge;
+                color: #FFFFFF;
+                font-size: 11px;
+                font-weight: 700;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+    }
+
+    // ---- the mark under a running app, on the dock's own edge
+    if root.kind != "trash" && root.kind != "launcher": Rectangle {
+        property <length> thick: 4px;
+        // It stays under its icon when the icon makes way for a dragged one or is dragged itself.
+        property <length> follow: root.dragging ? root.drag-offset : root.shift-now + root.settle-now;
+        width: root.vertical ? thick : root.mark-long;
+        height: root.vertical ? root.mark-long : thick;
+        x: root.vertical ? (root.edge == "left" ? 3px : root.cross-extent - 3px - thick) : (root.along - self.width) / 2 + self.follow;
+        y: root.vertical ? (root.along - self.height) / 2 + self.follow : root.cross-extent - 3px - thick;
+        border-radius: 2px;
+        background: root.active ? Theme.accent : Theme.dot;
+        opacity: min(root.mark, 1.0) * root.appear;
+        transform-scale: root.mark;
+        animate background { duration: Motion.indicator; }
+        // The active mark glows, as the selection does in Files.
+        Rectangle {
+            x: -2px;
+            y: -2px;
+            width: parent.width + 4px;
+            height: parent.height + 4px;
+            border-radius: 4px;
+            background: Theme.accent.with-alpha(root.active ? 0.30 : 0.0);
+            animate background { duration: Motion.indicator; }
+        }
+    }
+
+    ta := TouchArea {
+        pointer-event(e) => {
+            if (e.kind == PointerEventKind.move) {
+                root.pointer-moved(root.vertical ? self.absolute-position.y + self.mouse-y : self.absolute-position.x + self.mouse-x);
+            } else if (e.kind == PointerEventKind.down && e.button == PointerEventButton.left) {
+                root.pressed(root.vertical ? self.absolute-position.y + self.mouse-y : self.absolute-position.x + self.mouse-x, root.vertical ? self.absolute-position.x + self.mouse-x : self.absolute-position.y + self.mouse-y);
+            } else if (e.kind == PointerEventKind.up) {
+                if (e.button == PointerEventButton.right) {
+                    root.context();
+                } else {
+                    root.released();
+                }
+            }
+        }
+        moved => {
+            root.drag-delta(root.vertical ? self.absolute-position.y + self.mouse-y : self.absolute-position.x + self.mouse-x, root.vertical ? self.absolute-position.x + self.mouse-x : self.absolute-position.y + self.mouse-y);
+        }
+        changed has-hover => {
+            root.hover-changed(self.has-hover);
+        }
+        clicked => {
+            root.clicked();
+        }
+    }
+}

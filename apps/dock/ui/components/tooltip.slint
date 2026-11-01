@@ -1,0 +1,52 @@
+import { Theme } from "../theme.slint";
+
+// The label that rises over an icon: its name and, under it, a quieter line ("2 windows").
+export component DockTooltip inherits Rectangle {
+    in property <string> text;
+    in property <string> sub;
+
+    width: max(title.preferred-width, caption.preferred-width) + 28px;
+    height: root.sub == "" ? 28px : 46px;
+    border-radius: Theme.radius-medium;
+    background: Theme.pop-bg;
+    border-width: 1px;
+    border-color: Theme.text.with-alpha(Theme.pop-edge);
+    drop-shadow-color: Theme.shadow.with-alpha(Theme.pop-shadow * 0.55);
+    drop-shadow-blur: 16px;
+    drop-shadow-offset-y: 5px;
+
+    // The line of light along the top, as on the dock's glass.
+    Rectangle {
+        x: root.border-radius;
+        y: 1px;
+        width: max(0px, parent.width - root.border-radius * 2);
+        height: 1px;
+        background: #FFFFFF.with-alpha(Theme.dark ? 0.12 : 0.9);
+    }
+
+    title := Text {
+        x: 0px;
+        y: root.sub == "" ? 0px : 8px;
+        width: parent.width;
+        height: root.sub == "" ? parent.height : 16px;
+        text: root.text;
+        color: Theme.text;
+        font-size: 13px;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    caption := Text {
+        x: 0px;
+        y: 25px;
+        width: parent.width;
+        height: 14px;
+        text: root.sub;
+        visible: root.sub != "";
+        color: Theme.disabled;
+        font-size: 11px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}

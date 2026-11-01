@@ -1,0 +1,58 @@
+import { Theme, Motion } from "../theme.slint";
+
+// A thin scroll bar that floats over the content, brightens when the pointer is near it or it is
+// being dragged, and is otherwise barely there. It does not own the scrolling: give it the sizes
+// and the offset, and it says where the offset should go.
+export component Scroller inherits Rectangle {
+    in property <length> content-height;
+    in property <length> view-height;
+    // How far the content is scrolled: 0 at the top.
+    in property <length> offset;
+    // Where the top of the track is, so a header floating over the content does not cover it.
+    in property <length> inset-top: 0px;
+    in property <length> inset-bottom: 8px;
+    // True while something else is scrolling, for the bar to show itself.
+    in property <bool> active: false;
+
+    callback scrolled(length);
+
+    property <length> max-scroll: max(0px, content-height - view-height);
+    property <length> track: max(1px, view-height - inset-top - inset-bottom);
+    property <length> thumb-height: max(36px, track * min(1.0, view-height / max(view-height, content-height)));
+    property <length> thumb-y: inset-top + (track - thumb-height) * (max-scroll > 0px ? min(1.0, max(0.0, offset / max-scroll)) : 0.0);
+    property <length> origin;
+    property <bool> near: area.has-hover || area.pressed;
+
+    width: 14px;
+    visible: max-scroll > 0px;
+
+    property <float> glance: near ? 1 : (active ? 0.7 : 0);
+    animate glance {
+        duration: near ? Motion.hover-in : 600ms;
+        easing: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    Rectangle {
+        x: parent.width - 4px - 3px - 2px * root.glance;
+        y: root.thumb-y;
+        width: 4px + 2px * root.glance;
+        height: root.thumb-height;
+        border-radius: self.width / 2;
+        background: Theme.text.with-alpha(0.16 + 0.22 * root.glance);
+    }
+
+    area := TouchArea {
+        x: 0;
+        y: root.thumb-y;
+        height: root.thumb-height;
+        changed pressed => {
+            if (self.pressed) {
+                root.origin = root.offset;
+            }
+        }
+        moved => {
+            if (self.pressed && root.track > root.thumb-height) {
+                root.scrolled(min(root.max-scroll, max(0px, root.origin + (self.mouse-y - self.pressed-y) * root.max-scroll / (root.track - root.thumb-height))));
+            }
+        }
+    }
+}

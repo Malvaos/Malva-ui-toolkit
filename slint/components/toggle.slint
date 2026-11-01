@@ -1,0 +1,316 @@
+// Switches and choices: Toggle, Checkbox, Radio and RadioGroup.
+import { Theme, Size, Radius, Space, Typo, Motion } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+import { FocusRing, ForceState } from "base.slint";
+
+// An on/off switch, 52 x 30. The knob springs across and stretches while it is pressed.
+export component Toggle inherits Rectangle {
+    in-out property <bool> checked: false;
+    in property <bool> enabled: true;
+    in property <string> text;
+    in property <ForceState> force: ForceState.none;
+    callback toggled(bool);
+
+    property <bool> kbd: false;
+    property <bool> hot: (ta.has-hover || force == ForceState.hover) && enabled;
+    property <bool> down: (ta.pressed || force == ForceState.pressed) && enabled;
+    property <length> knob-w: down ? Size.toggle-knob + 4px : Size.toggle-knob;
+    property <length> inset: (Size.toggle-height - Size.toggle-knob) / 2;
+
+    height: Size.toggle-height;
+    width: row.preferred-width;
+
+    row := HorizontalLayout {
+        spacing: Space.s;
+        track := Rectangle {
+            width: Size.toggle-width;
+            height: Size.toggle-height;
+            y: (parent.height - self.height) / 2;
+            border-radius: self.height / 2;
+            background: root.checked
+                ? (!root.enabled ? Theme.accent-disabled : root.hot ? Theme.accent-hover : Theme.accent)
+                : (!root.enabled ? Theme.toggle-off.with-alpha(0.5) : root.hot ? Theme.toggle-off.mix(Theme.text, 0.88) : Theme.toggle-off);
+            animate background { duration: Motion.hover; easing: Motion.curve-out; }
+            knob := Rectangle {
+                width: root.knob-w;
+                height: Size.toggle-knob;
+                y: root.inset;
+                x: root.checked ? Size.toggle-width - root.inset - self.width : root.inset;
+                border-radius: self.height / 2;
+                background: root.enabled ? #FFFFFF : (Theme.dark ? Theme.text.with-alpha(0.5) : #FFFFFF);
+                drop-shadow-color: #00000030;
+                drop-shadow-blur: 3px;
+                drop-shadow-offset-y: 1px;
+                animate x { duration: Motion.open; easing: Motion.curve-spring; }
+                animate width { duration: Motion.press; easing: Motion.curve-out; }
+            }
+            FocusRing {
+                active: root.kbd || root.force == ForceState.focus;
+                radius: track.border-radius;
+                host-width: track.width;
+                host-height: track.height;
+            }
+        }
+        if root.text != "": Text {
+            text: root.text;
+            font-family: Typo.ui;
+            font-size: Typo.body-size;
+            color: root.enabled ? Theme.text : Theme.disabled-text;
+            vertical-alignment: center;
+        }
+    }
+    ta := TouchArea {
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                fs.focus();
+            }
+        }
+        mouse-cursor: root.enabled ? MouseCursor.pointer : MouseCursor.default;
+        clicked => {
+            if root.enabled {
+                root.checked = !root.checked;
+                root.toggled(root.checked);
+            }
+        }
+    }
+    fs := FocusScope {
+        focus-on-click: false;
+        enabled: root.enabled;
+        focus-gained(reason) => {
+            root.kbd = reason == FocusReason.tab-navigation;
+        }
+        focus-lost => {
+            root.kbd = false;
+        }
+        key-pressed(e) => {
+            if (e.text == " " || e.text == "\n") && root.enabled {
+                root.checked = !root.checked;
+                root.toggled(root.checked);
+                return accept;
+            }
+            return reject;
+        }
+    }
+    public function take-focus() {
+        fs.focus();
+    }
+}
+
+// A checkbox, 26 px, with an optional label. `indeterminate` draws a dash (a parent of a partly selected list).
+export component Checkbox inherits Rectangle {
+    in-out property <bool> checked: false;
+    in property <bool> indeterminate: false;
+    in property <bool> enabled: true;
+    in property <string> text;
+    in property <ForceState> force: ForceState.none;
+    callback toggled(bool);
+
+    property <bool> kbd: false;
+    property <bool> hot: (ta.has-hover || force == ForceState.hover) && enabled;
+    property <bool> down: (ta.pressed || force == ForceState.pressed) && enabled;
+    property <bool> filled: checked || indeterminate;
+
+    height: Size.check;
+    width: row.preferred-width;
+
+    row := HorizontalLayout {
+        spacing: Space.s;
+        box := Rectangle {
+            width: Size.check;
+            height: Size.check;
+            y: (parent.height - self.height) / 2;
+            border-radius: Radius.xs + 1px;
+            border-width: 2px;
+            border-color: root.filled ? (root.enabled ? (root.down ? Theme.accent-press : Theme.accent) : Theme.accent-disabled)
+                : !root.enabled ? Theme.disabled-text : root.hot ? Theme.text : Theme.text-2;
+            background: root.filled ? (root.enabled ? (root.down ? Theme.accent-press : root.hot ? Theme.accent-hover : Theme.accent) : Theme.accent-disabled) : (root.down ? Theme.ghost-hover : transparent);
+            transform-scale: root.down ? 0.94 : 1.0;
+            animate background { duration: Motion.hover; easing: Motion.curve-out; }
+            animate border-color { duration: Motion.hover; easing: Motion.curve-out; }
+            animate transform-scale { duration: Motion.press; easing: Motion.curve-out; }
+            Icon {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                width: 18px;
+                height: 18px;
+                name: root.indeterminate ? "minus" : "check";
+                tint: Theme.on-accent;
+                opacity: root.filled ? 1 : 0;
+                transform-scale: root.filled ? 1.0 : 0.5;
+                animate opacity { duration: Motion.hover; easing: Motion.curve-out; }
+                animate transform-scale { duration: Motion.open; easing: Motion.curve-spring; }
+            }
+            FocusRing {
+                active: root.kbd || root.force == ForceState.focus;
+                radius: box.border-radius;
+                host-width: box.width;
+                host-height: box.height;
+            }
+        }
+        if root.text != "": Text {
+            text: root.text;
+            font-family: Typo.ui;
+            font-size: Typo.body-size;
+            color: root.enabled ? Theme.text : Theme.disabled-text;
+            vertical-alignment: center;
+        }
+    }
+    ta := TouchArea {
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                fs.focus();
+            }
+        }
+        mouse-cursor: root.enabled ? MouseCursor.pointer : MouseCursor.default;
+        clicked => {
+            if root.enabled {
+                root.checked = root.indeterminate ? true : !root.checked;
+                root.toggled(root.checked);
+            }
+        }
+    }
+    fs := FocusScope {
+        focus-on-click: false;
+        enabled: root.enabled;
+        focus-gained(reason) => {
+            root.kbd = reason == FocusReason.tab-navigation;
+        }
+        focus-lost => {
+            root.kbd = false;
+        }
+        key-pressed(e) => {
+            if e.text == " " && root.enabled {
+                root.checked = root.indeterminate ? true : !root.checked;
+                root.toggled(root.checked);
+                return accept;
+            }
+            return reject;
+        }
+    }
+    public function take-focus() {
+        fs.focus();
+    }
+}
+
+// One radio button, 28 px. Use RadioGroup to keep exactly one of several selected.
+export component Radio inherits Rectangle {
+    in property <bool> selected: false;
+    in property <bool> enabled: true;
+    in property <string> text;
+    in property <ForceState> force: ForceState.none;
+    callback activated();
+
+    property <bool> kbd: false;
+    property <bool> hot: (ta.has-hover || force == ForceState.hover) && enabled;
+    property <bool> down: (ta.pressed || force == ForceState.pressed) && enabled;
+
+    height: Size.radio;
+    width: row.preferred-width;
+
+    row := HorizontalLayout {
+        spacing: Space.s;
+        ring := Rectangle {
+            width: Size.radio;
+            height: Size.radio;
+            y: (parent.height - self.height) / 2;
+            border-radius: self.width / 2;
+            border-width: 2px;
+            border-color: !root.enabled ? Theme.disabled-text : root.selected ? Theme.accent : root.hot ? Theme.text : Theme.text-2;
+            background: root.down ? Theme.ghost-hover : transparent;
+            animate border-color { duration: Motion.hover; easing: Motion.curve-out; }
+            Rectangle {
+                x: (parent.width - self.width) / 2 - 2px;
+                y: (parent.height - self.height) / 2 - 2px;
+                property <length> d: root.selected ? 12px : 2px;
+                width: self.d;
+                height: self.d;
+                border-radius: self.d / 2;
+                background: root.enabled ? Theme.accent : Theme.accent-disabled;
+                opacity: root.selected ? 1 : 0;
+                animate d { duration: Motion.open; easing: Motion.curve-spring; }
+                animate opacity { duration: Motion.hover; easing: Motion.curve-out; }
+            }
+            FocusRing {
+                active: root.kbd || root.force == ForceState.focus;
+                radius: ring.border-radius;
+                host-width: ring.width;
+                host-height: ring.height;
+            }
+        }
+        if root.text != "": Text {
+            text: root.text;
+            font-family: Typo.ui;
+            font-size: Typo.body-size;
+            color: root.enabled ? Theme.text : Theme.disabled-text;
+            vertical-alignment: center;
+        }
+    }
+    ta := TouchArea {
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                fs.focus();
+            }
+        }
+        mouse-cursor: root.enabled ? MouseCursor.pointer : MouseCursor.default;
+        clicked => {
+            if root.enabled {
+                root.activated();
+            }
+        }
+    }
+    fs := FocusScope {
+        focus-on-click: false;
+        enabled: root.enabled;
+        focus-gained(reason) => {
+            root.kbd = reason == FocusReason.tab-navigation;
+        }
+        focus-lost => {
+            root.kbd = false;
+        }
+        key-pressed(e) => {
+            if e.text == " " && root.enabled {
+                root.activated();
+                return accept;
+            }
+            return reject;
+        }
+    }
+}
+
+// A column of radios of which exactly one is selected.
+export component RadioGroup inherits VerticalLayout {
+    in property <[string]> model;
+    in-out property <int> current-index: 0;
+    in property <bool> enabled: true;
+    callback selected(int);
+    spacing: Space.xs;
+    alignment: start;
+    for item[i] in root.model: Radio {
+        text: item;
+        enabled: root.enabled;
+        selected: root.current-index == i;
+        activated => {
+            root.current-index = i;
+            root.selected(i);
+        }
+    }
+}
+
+// The same, laid out in a row.
+export component RadioRow inherits HorizontalLayout {
+    in property <[string]> model;
+    in-out property <int> current-index: 0;
+    in property <bool> enabled: true;
+    callback selected(int);
+    spacing: Space.l;
+    alignment: start;
+    for item[i] in root.model: Radio {
+        text: item;
+        enabled: root.enabled;
+        selected: root.current-index == i;
+        activated => {
+            root.current-index = i;
+            root.selected(i);
+        }
+    }
+}

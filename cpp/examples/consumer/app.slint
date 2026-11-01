@@ -1,0 +1,19 @@
+import { Theme, Button, ButtonKind, Toggle, Body } from "@malva/malva.slint";
+
+export component App inherits Window {
+    title: "Malva consumer";
+    default-font-family: "Inter";
+    background: Theme.bg;
+    preferred-width: 360px;
+    preferred-height: 180px;
+    in-out property <bool> dark <=> Theme.dark;
+    callback saved();
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: center;
+        Body { text: "Dark mode"; }
+        Toggle { checked <=> root.dark; }
+        Button { text: "Save"; kind: ButtonKind.primary; clicked => { root.saved(); } }
+    }
+}

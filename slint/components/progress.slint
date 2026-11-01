@@ -1,0 +1,89 @@
+// Progress: a bar, a spinner and a ring.
+import { Theme, Size, Radius, Motion } from "../tokens.slint";
+
+// A horizontal progress bar. `value` is 0..1; `indeterminate` slides a segment along the track.
+export component ProgressBar inherits Rectangle {
+    in property <float> value: 0;
+    in property <bool> indeterminate: false;
+    in property <color> tone: Theme.accent-2;
+    height: Size.progress;
+    border-radius: self.height / 2;
+    background: Theme.line;
+    clip: true;
+    property <float> shown: min(max(value, 0.0), 1.0);
+    animate shown { duration: Motion.slow; easing: Motion.curve-standard; }
+    property <float> phase: mod(animation-tick() / 1ms, 1500.0) / 1500.0;
+    Rectangle {
+        x: root.indeterminate ? -root.width * 0.4 + root.phase * root.width * 1.4 : 0px;
+        width: root.indeterminate ? root.width * 0.4 : max(root.shown * root.width, root.shown > 0 ? root.height : 0px);
+        border-radius: root.border-radius;
+        background: root.tone;
+    }
+}
+
+// A circular activity indicator: a faint ring with a quarter that turns.
+export component Spinner inherits Rectangle {
+    in property <color> tone: Theme.accent;
+    in property <length> thickness: 3px;
+    width: 24px;
+    height: 24px;
+    property <length> r: (min(self.width, self.height) - thickness) / 2;
+    Path {
+        width: parent.width;
+        height: parent.height;
+        viewbox-width: parent.width / 1px;
+        viewbox-height: parent.height / 1px;
+        stroke: Theme.line;
+        stroke-width: root.thickness;
+        fill: transparent;
+        commands: "M " + (root.width / 2) / 1px + " " + (root.height / 2 - root.r) / 1px + " A " + root.r / 1px + " " + root.r / 1px + " 0 1 1 " + (root.width / 2) / 1px + " " + (root.height / 2 + root.r) / 1px + " A " + root.r / 1px + " " + root.r / 1px + " 0 1 1 " + (root.width / 2) / 1px + " " + (root.height / 2 - root.r) / 1px;
+    }
+    Path {
+        width: parent.width;
+        height: parent.height;
+        viewbox-width: parent.width / 1px;
+        viewbox-height: parent.height / 1px;
+        stroke: root.tone;
+        stroke-width: root.thickness;
+        stroke-line-cap: round;
+        fill: transparent;
+        commands: "M " + (root.width / 2) / 1px + " " + (root.height / 2 - root.r) / 1px + " A " + root.r / 1px + " " + root.r / 1px + " 0 0 1 " + (root.width / 2 + root.r) / 1px + " " + (root.height / 2) / 1px;
+        transform-rotation: mod(animation-tick() / 1ms * 0.36, 360) * 1deg;
+    }
+}
+
+// A ring that fills clockwise from the top; `value` is 0..1. Children are drawn in its middle.
+export component ProgressRing inherits Rectangle {
+    in property <float> value: 0.5;
+    in property <color> tone: Theme.accent;
+    in property <length> thickness: 7px;
+    property <float> shown: min(max(value, 0.0), 1.0);
+    animate shown { duration: Motion.slow; easing: Motion.curve-standard; }
+    property <length> r: (min(self.width, self.height) - thickness) / 2;
+    property <length> cx: self.width / 2;
+    property <length> cy: self.height / 2;
+    property <angle> a: 359.9deg * min(max(shown, 0.002), 1.0);
+    Path {
+        width: parent.width;
+        height: parent.height;
+        viewbox-width: parent.width / 1px;
+        viewbox-height: parent.height / 1px;
+        stroke: Theme.line;
+        stroke-width: root.thickness;
+        fill: transparent;
+        commands: "M " + root.cx / 1px + " " + (root.cy - root.r) / 1px + " A " + root.r / 1px + " " + root.r / 1px + " 0 1 1 " + root.cx / 1px + " " + (root.cy + root.r) / 1px + " A " + root.r / 1px + " " + root.r / 1px + " 0 1 1 " + root.cx / 1px + " " + (root.cy - root.r) / 1px;
+    }
+    Path {
+        width: parent.width;
+        height: parent.height;
+        viewbox-width: parent.width / 1px;
+        viewbox-height: parent.height / 1px;
+        stroke: root.tone;
+        stroke-width: root.thickness;
+        stroke-line-cap: round;
+        fill: transparent;
+        visible: root.shown > 0.003;
+        commands: "M " + root.cx / 1px + " " + (root.cy - root.r) / 1px + " A " + root.r / 1px + " " + root.r / 1px + " 0 " + (root.a > 180deg ? "1" : "0") + " 1 " + (root.cx + root.r * root.a.sin()) / 1px + " " + (root.cy - root.r * root.a.cos()) / 1px;
+    }
+    @children
+}

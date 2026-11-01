@@ -1,0 +1,134 @@
+// The data a backend gives the menu bar and the choices it hears back. Plain structs: no behaviour.
+
+// One row of a menu. `kind` is "item", "header" (a small title) or "separator". A row with
+// `submenu` set opens a flyout of the rows that follow it whose `parent` is its index.
+export struct MenuEntry {
+    text: string,
+    kind: string,
+    shortcut: string,
+    // A name from the symbol set, shown before the text.
+    icon: string,
+    checked: bool,
+    enabled: bool,
+    destructive: bool,
+    submenu: bool,
+    // The index of the row this one is the flyout of; -1 for a row of the menu itself.
+    parent: int,
+}
+
+// A small icon on the right of the bar (a running recorder, a VPN, a clipboard manager).
+export struct TrayItem {
+    icon: string,
+    tip: string,
+    // Drawn with a dot in the accent colour.
+    active: bool,
+}
+
+export struct WifiNetwork {
+    name: string,
+    // 0 (barely there) to 3 (full).
+    strength: int,
+    secured: bool,
+    connected: bool,
+    connecting: bool,
+    saved: bool,
+}
+
+export struct BtDevice {
+    name: string,
+    // A symbol name: headphones, mouse, keyboard, phone, speaker.
+    icon: string,
+    connected: bool,
+    connecting: bool,
+    // Percent, or -1 when the device does not say.
+    battery: int,
+}
+
+export struct AudioDevice {
+    name: string,
+    icon: string,
+    selected: bool,
+}
+
+// One day in the month grid, 42 of them (six weeks), starting on the week's first day.
+export struct CalCell {
+    day: int,
+    in-month: bool,
+    today: bool,
+    selected: bool,
+    // How many events: shown as up to three dots.
+    events: int,
+}
+
+export struct CalEvent {
+    time: string,
+    title: string,
+    place: string,
+    // 0 accent, 1 green, 2 orange, 3 purple, 4 red.
+    tone: int,
+}
+
+// One tile of the Control Center. `detail` adds a chevron that opens the matching popover.
+export struct QuickTile {
+    id: string,
+    icon: string,
+    title: string,
+    subtitle: string,
+    on: bool,
+    enabled: bool,
+    detail: bool,
+}
+
+// One notification. The backend keeps the list sorted by group, newest first inside a group, and
+// fills the three group fields so the UI can stack and fold without counting.
+export struct Notice {
+    id: int,
+    app: string,
+    app-icon: string,
+    title: string,
+    body: string,
+    time: string,
+    group: string,
+    // Position inside the group (0 for the newest) and the size of the group.
+    group-index: int,
+    group-count: int,
+    unread: bool,
+    urgent: bool,
+    actions: [string],
+}
+
+export struct HourForecast {
+    label: string,
+    icon: string,
+    temp: string,
+}
+
+export struct Weather {
+    has-weather: bool,
+    city: string,
+    icon: string,
+    temp: string,
+    condition: string,
+    range: string,
+    hours: [HourForecast],
+}
+
+export struct Media {
+    has-media: bool,
+    title: string,
+    artist: string,
+    app: string,
+    playing: bool,
+    // 0 to 1.
+    progress: float,
+    position: string,
+    length: string,
+    art: image,
+    has-art: bool,
+}
+
+// A small figure with a label ("Health", "94 %").
+export struct Fact {
+    label: string,
+    value: string,
+}

@@ -1,0 +1,329 @@
+import { Theme, Motion } from "../theme.slint";
+import { QuickTile, Media } from "../types.slint";
+import { Symbol } from "icon.slint";
+import { FillSlider, IconButton } from "controls.slint";
+import { SectionLabel } from "lists.slint";
+import { PopCard } from "popovers.slint";
+
+// One tile of the grid: a round chip that lights with the accent when the thing is on, a title and a
+// line beneath. The body toggles; the chevron (when there is more to see) opens the detail.
+export component QuickTileView inherits Rectangle {
+    in property <QuickTile> tile;
+    callback toggled();
+    callback detail();
+
+    property <float> hover: body.has-hover ? 1 : 0;
+    animate hover { duration: body.has-hover ? Motion.hover-in : Motion.hover-out; }
+    property <float> on: tile.on ? 1 : 0;
+    animate on { duration: 220ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+
+    height: 60px;
+    border-radius: 14px;
+    opacity: tile.enabled ? 1.0 : 0.45;
+    background: Theme.tile.mix(Theme.tile-hover, 1.0 - hover * 0.9);
+    border-width: 1px;
+    border-color: Theme.text.with-alpha(Theme.dark ? 0.07 : 0.05);
+    transform-scale: body.pressed ? 0.97 : 1.0;
+    animate transform-scale { duration: Motion.press; }
+
+    Rectangle {
+        x: 12px;
+        y: (parent.height - self.height) / 2;
+        width: 36px;
+        height: 36px;
+        border-radius: 18px;
+        background: Theme.field.mix(Theme.accent, 1.0 - root.on * 0.9 - 0.0);
+        Symbol {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 19px;
+            height: 19px;
+            name: root.tile.icon;
+            tint: root.on > 0.5 ? Theme.on-accent : Theme.text;
+        }
+    }
+    Text {
+        x: 58px;
+        y: root.tile.subtitle != "" ? 11px : (parent.height - self.height) / 2;
+        width: parent.width - 58px - (root.tile.detail ? 34px : 10px);
+        text: root.tile.title;
+        font-size: 13.5px;
+        font-weight: 600;
+        color: Theme.text;
+        overflow: elide;
+    }
+    if root.tile.subtitle != "": Text {
+        x: 58px;
+        y: 31px;
+        width: parent.width - 58px - (root.tile.detail ? 34px : 10px);
+        text: root.tile.subtitle;
+        font-size: 11.5px;
+        color: root.tile.on ? Theme.accent : Theme.text-2;
+        overflow: elide;
+    }
+    // Always there, so a press on a tile that cannot be used is taken (it does not fall through and close the popover).
+    body := TouchArea {
+        mouse-cursor: root.tile.enabled ? MouseCursor.pointer : MouseCursor.default;
+        clicked => {
+            if root.tile.enabled {
+                root.toggled();
+            }
+        }
+    }
+    if root.tile.detail: Rectangle {
+        x: parent.width - 32px;
+        width: 32px;
+        property <float> h: dta.has-hover ? 1 : 0;
+        animate h { duration: Motion.hover-out; }
+        border-radius: 14px;
+        background: Theme.text.with-alpha(self.h * 0.07);
+        Symbol {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 14px;
+            height: 14px;
+            name: "chevron-right";
+            tint: Theme.text-2;
+        }
+        dta := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                root.detail();
+            }
+        }
+    }
+}
+
+// What is playing: the picture, the title, and the three buttons.
+export component MediaCard inherits Rectangle {
+    in property <Media> media;
+    callback previous();
+    callback play-pause();
+    callback next();
+    height: 76px;
+    border-radius: 14px;
+    background: Theme.tile;
+    border-width: 1px;
+    border-color: Theme.text.with-alpha(Theme.dark ? 0.07 : 0.05);
+
+    Rectangle {
+        x: 12px;
+        y: 12px;
+        width: 52px;
+        height: 52px;
+        border-radius: 10px;
+        clip: true;
+        background: @linear-gradient(135deg, Theme.art-from, Theme.art-to);
+        if root.media.has-art: Image {
+            source: root.media.art;
+            image-fit: cover;
+        }
+        if !root.media.has-art: Symbol {
+            x: 14px;
+            y: 14px;
+            width: 24px;
+            height: 24px;
+            name: "headphones";
+            tint: #FFFFFFE6;
+        }
+    }
+    Text {
+        x: 76px;
+        y: 14px;
+        width: parent.width - 76px - 104px;
+        text: root.media.title;
+        font-size: 13.5px;
+        font-weight: 600;
+        color: Theme.text;
+        overflow: elide;
+    }
+    Text {
+        x: 76px;
+        y: 33px;
+        width: parent.width - 76px - 104px;
+        text: root.media.artist;
+        font-size: 12px;
+        color: Theme.text-2;
+        overflow: elide;
+    }
+    // Where in the track.
+    Rectangle {
+        x: 76px;
+        y: 56px;
+        width: parent.width - 76px - 104px;
+        height: 3px;
+        border-radius: 1.5px;
+        background: Theme.track;
+        Rectangle {
+            x: 0px;
+            width: parent.width * min(max(root.media.progress, 0.0), 1.0);
+            border-radius: 1.5px;
+            background: Theme.text-2;
+        }
+    }
+    IconButton {
+        x: parent.width - 100px;
+        y: 24px;
+        icon: "previous";
+        strong: true;
+        clicked => {
+            root.previous();
+        }
+    }
+    IconButton {
+        x: parent.width - 70px;
+        y: 22px;
+        width: 32px;
+        height: 32px;
+        glyph: 19px;
+        icon: root.media.playing ? "pause" : "play";
+        strong: true;
+        clicked => {
+            root.play-pause();
+        }
+    }
+    IconButton {
+        x: parent.width - 36px;
+        y: 24px;
+        icon: "next";
+        strong: true;
+        clicked => {
+            root.next();
+        }
+    }
+}
+
+// A square button for a thing you do rather than a thing you switch (screenshot, lock, settings).
+export component ActionButton inherits Rectangle {
+    in property <string> icon;
+    in property <string> text;
+    callback clicked();
+    property <float> hover: ta.has-hover ? 1 : 0;
+    animate hover { duration: ta.has-hover ? Motion.hover-in : Motion.hover-out; }
+    height: 56px;
+    border-radius: 14px;
+    background: Theme.tile.mix(Theme.tile-hover, 1.0 - hover * 0.9);
+    border-width: 1px;
+    border-color: Theme.text.with-alpha(Theme.dark ? 0.07 : 0.05);
+    transform-scale: ta.pressed ? 0.96 : 1.0;
+    animate transform-scale { duration: Motion.press; }
+    Symbol {
+        x: (parent.width - self.width) / 2;
+        y: 10px;
+        width: 20px;
+        height: 20px;
+        name: root.icon;
+        tint: Theme.text;
+    }
+    Text {
+        y: 34px;
+        width: parent.width;
+        text: root.text;
+        horizontal-alignment: center;
+        font-size: 11.5px;
+        color: Theme.text-2;
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+export component ControlCenter inherits PopCard {
+    in property <[QuickTile]> tiles;
+    in-out property <float> brightness: 0.7;
+    in-out property <float> volume: 0.5;
+    in property <bool> muted: false;
+    in property <Media> media;
+    callback tile-toggled(int);
+    callback tile-detail(int);
+    callback brightness-edited(float);
+    callback volume-edited(float);
+    callback media-previous();
+    callback media-play-pause();
+    callback media-next();
+    // "screenshot", "lock", "settings"
+    callback action(string);
+
+    property <int> rows: ceil(tiles.length / 2.0);
+    property <length> tiles-h: rows > 0 ? rows * 60px + (rows - 1) * 8px : 0px;
+    width: 360px;
+    height: 12px + tiles-h + 10px + 24px + 38px + 2px + 24px + 38px + 10px + (media.has-media ? 76px + 10px : 0px) + 56px + 12px;
+
+    // the tiles, two across
+    for t[i] in root.tiles: QuickTileView {
+        x: 12px + mod(i, 2) * ((root.width - 24px - 8px) / 2 + 8px);
+        y: 12px + floor(i / 2) * 68px;
+        width: (root.width - 24px - 8px) / 2;
+        tile: t;
+        toggled => {
+            root.tile-toggled(i);
+        }
+        detail => {
+            root.tile-detail(i);
+        }
+    }
+    Text {
+        x: 20px;
+        y: 12px + root.tiles-h + 10px + 6px;
+        text: "Display";
+        font-size: 12.5px;
+        font-weight: 700;
+        color: Theme.text-2;
+    }
+    FillSlider {
+        x: 12px;
+        y: 12px + root.tiles-h + 10px + 24px;
+        width: parent.width - 24px;
+        icon: "sun";
+        value <=> root.brightness;
+        edited(v) => {
+            root.brightness-edited(v);
+        }
+    }
+    Text {
+        x: 20px;
+        y: 12px + root.tiles-h + 10px + 24px + 38px + 2px + 6px;
+        text: "Sound";
+        font-size: 12.5px;
+        font-weight: 700;
+        color: Theme.text-2;
+    }
+    FillSlider {
+        x: 12px;
+        y: 12px + root.tiles-h + 10px + 24px + 38px + 2px + 24px;
+        width: parent.width - 24px;
+        icon: root.muted || root.volume <= 0.001 ? "volume-mute" : root.volume < 0.5 ? "volume-1" : "volume-2";
+        value <=> root.volume;
+        edited(v) => {
+            root.volume-edited(v);
+        }
+    }
+    if root.media.has-media: MediaCard {
+        x: 12px;
+        y: 12px + root.tiles-h + 10px + 24px + 38px + 2px + 24px + 38px + 10px;
+        width: parent.width - 24px;
+        media: root.media;
+        previous => {
+            root.media-previous();
+        }
+        play-pause => {
+            root.media-play-pause();
+        }
+        next => {
+            root.media-next();
+        }
+    }
+    for a[i] in [{ id: "screenshot", icon: "screenshot", text: "Screenshot" }, { id: "lock", icon: "lock", text: "Lock" }, { id: "settings", icon: "gear", text: "Settings" }]: ActionButton {
+        x: 12px + i * ((root.width - 24px - 16px) / 3 + 8px);
+        y: root.height - 12px - 56px;
+        width: (root.width - 24px - 16px) / 3;
+        icon: a.icon;
+        text: a.text;
+        clicked => {
+            root.action(a.id);
+        }
+    }
+}

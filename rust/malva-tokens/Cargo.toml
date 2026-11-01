@@ -1,0 +1,10 @@
+[package]
+name = "malva-tokens"
+description = "The Malva design tokens as Rust constants: colours of both modes, radii, spacing, sizes, type, motion, elevation."
+version.workspace = true
+edition.workspace = true
+publish = false
+rust-version.workspace = true
+
+[dependencies]
+malva-color = { path = "../malva-color" }

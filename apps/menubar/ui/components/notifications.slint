@@ -1,0 +1,831 @@
+import { Theme, Motion } from "../theme.slint";
+import { Notice, Weather, Media, CalCell } from "../types.slint";
+import { Symbol, AppIcon } from "icon.slint";
+import { GlassPlate } from "surfaces.slint";
+import { PillButton, IconButton } from "controls.slint";
+import { Scroller } from "lists.slint";
+import { CalendarGrid } from "calendar.slint";
+
+// A soft shadow around a toast: outside only.
+component ShadowSoft inherits Rectangle {
+    for i in 18: Rectangle {
+        property <float> near: 1.0 - i / 18.0;
+        x: -(i + 1) * 1px;
+        y: -(i + 1) * 1px + 7px;
+        width: parent.width + (i + 1) * 2px;
+        height: parent.height + (i + 1) * 2px;
+        border-radius: 14px + (i + 1) * 1px;
+        border-width: 1px;
+        border-color: Theme.shadow.with-alpha(Theme.pop-shadow * near * near * 0.36);
+    }
+}
+
+// The card of one notification, as it sits in the notification centre or in a toast: the app and the
+// time, the title, up to two lines of body, buttons. Pulled sideways (or closed) it slides away and
+// says `dismissed`. `toast` draws it opaque and shadowed rather than as a card on the panel.
+export component NoticeCard inherits Rectangle {
+    in property <Notice> notice;
+    in property <bool> toast: false;
+    // For design previews: drawn as if the pointer were on it.
+    in property <bool> force-hover: false;
+    callback clicked();
+    callback action(int);
+    callback dismissed();
+    // The pointer on a toast holds it open.
+    out property <bool> hovering: ta.has-hover || force-hover || close.has-hover;
+    out property <length> shown-height: 50px + body.height + (notice.actions.length > 0 ? 38px : 0px) + 12px;
+
+    property <length> drag: 0px;
+    property <bool> swiping: false;
+    // The pointer has pulled this press sideways: letting go is the end of a pull, not a click.
+    property <bool> pulled: false;
+    animate drag { duration: swiping ? 0ms : Motion.card-dismiss; easing: cubic-bezier(0.2, 0, 0, 1); }
+    property <float> hover: hovering ? 1 : 0;
+    animate hover { duration: hovering ? Motion.hover-in : Motion.hover-out; }
+    // Slides off the side it was pulled toward, then reports.
+    function slide-away(dir: float) {
+        root.swiping = false;
+        root.drag = dir * (root.width + 60px);
+        root.dismissed();
+    }
+    // A new notice in a reused card starts at rest.
+    property <int> uid: notice.id;
+    changed uid => {
+        root.swiping = false;
+        root.drag = 0px;
+    }
+
+    height: shown-height;
+
+    if root.toast: ShadowSoft {
+        x: root.drag;
+        width: parent.width;
+        height: parent.height;
+        opacity: 1.0 - min(abs(root.drag) / 260px, 1.0) * 0.9;
+    }
+    sheet := Rectangle {
+        x: root.drag;
+        width: parent.width;
+        height: parent.height;
+        opacity: 1.0 - min(abs(root.drag) / 260px, 1.0) * 0.9;
+        border-radius: 14px;
+        background: root.toast ? Theme.pop-bg : Theme.tile.mix(Theme.tile-hover, 1.0 - root.hover * 0.5);
+        border-width: 1px;
+        border-color: Theme.text.with-alpha(root.toast ? Theme.pop-edge : (Theme.dark ? 0.07 : 0.05));
+
+        if root.notice.urgent: Rectangle {
+            x: 0px;
+            y: 12px;
+            width: 3px;
+            height: parent.height - 24px;
+            border-top-right-radius: 1.5px;
+            border-bottom-right-radius: 1.5px;
+            background: Theme.warn;
+        }
+        AppIcon {
+            x: 12px;
+            y: 10px;
+            width: 20px;
+            height: 20px;
+            name: root.notice.app-icon;
+        }
+        Text {
+            x: 40px;
+            y: 10px;
+            height: 20px;
+            text: root.notice.app;
+            font-size: 11.5px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            color: Theme.text-2;
+            vertical-alignment: center;
+        }
+        Text {
+            x: parent.width - self.preferred-width - 12px;
+            y: 10px;
+            height: 20px;
+            text: root.notice.time;
+            font-size: 11.5px;
+            color: Theme.text-3;
+            vertical-alignment: center;
+            opacity: 1.0 - root.hover;
+        }
+        Text {
+            x: 12px;
+            y: 31px;
+            width: parent.width - 24px - (root.notice.unread ? 14px : 0px);
+            height: 18px;
+            text: root.notice.title;
+            font-size: 13.5px;
+            font-weight: 700;
+            color: Theme.text;
+            overflow: elide;
+        }
+        if root.notice.unread: Rectangle {
+            x: parent.width - 19px;
+            y: 36px;
+            width: 7px;
+            height: 7px;
+            border-radius: 3.5px;
+            background: Theme.accent;
+        }
+        body := Text {
+            x: 12px;
+            y: 50px;
+            width: parent.width - 24px;
+            height: min(self.preferred-height, 34px);
+            text: root.notice.body;
+            wrap: word-wrap;
+            overflow: elide;
+            font-size: 12.5px;
+            color: Theme.text-2;
+        }
+        // The card itself: a click opens it, a pull sideways dismisses it.
+        ta := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                if !root.pulled {
+                    root.clicked();
+                }
+            }
+            pointer-event(e) => {
+                if e.kind == PointerEventKind.down {
+                    root.swiping = true;
+                    root.pulled = false;
+                } else if e.kind == PointerEventKind.up || e.kind == PointerEventKind.cancel {
+                    root.swiping = false;
+                    if abs(root.drag) > 90px {
+                        root.slide-away(root.drag > 0px ? 1.0 : -1.0);
+                    } else {
+                        root.drag = 0px;
+                    }
+                }
+            }
+            moved => {
+                if self.pressed && abs(self.mouse-x - self.pressed-x) > 6px {
+                    root.pulled = true;
+                    root.drag = self.mouse-x - self.pressed-x;
+                }
+            }
+        }
+        for a[i] in root.notice.actions: PillButton {
+            x: 12px + i * 96px;
+            y: 50px + body.height + 8px;
+            width: 88px;
+            height: 28px;
+            pad: 8px;
+            text: a;
+            kind: i == 0 ? "accent" : "normal";
+            clicked => {
+                root.action(i);
+                // Done: the card goes, as if it had been pulled away.
+                root.slide-away(1.0);
+            }
+        }
+        // The pointer on the card brings a close button where the time was.
+        close := Rectangle {
+            x: parent.width - 34px;
+            y: 7px;
+            width: 24px;
+            height: 24px;
+            border-radius: 12px;
+            opacity: root.hover;
+            visible: root.hover > 0.02;
+            background: Theme.text.with-alpha(cta.has-hover ? 0.12 : 0.06);
+            property <bool> has-hover: cta.has-hover;
+            Symbol {
+                x: 6px;
+                y: 6px;
+                width: 12px;
+                height: 12px;
+                name: "close";
+                tint: Theme.text-2;
+            }
+            cta := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.slide-away(1.0);
+                }
+            }
+        }
+    }
+}
+
+// A notice as it stands in the centre's list: its group's heading when it is the first of its group,
+// the card (folded away when the group is folded), and the closing-up when it is dismissed.
+component NoticeRow inherits Rectangle {
+    in property <Notice> notice;
+    // Whether the person has unfolded this notice's group.
+    in property <bool> expanded: false;
+    callback clicked();
+    callback action(int);
+    // After the card has slid away and the row has closed up: the backend may drop it now.
+    callback removed();
+    callback clear-group();
+    callback toggle-group();
+
+    property <bool> first: notice.group-index == 0;
+    property <bool> shown: notice.group-index < 2 || expanded;
+    // 0 resting, 1 sliding away, 2 closing up, 3 gone (waiting for the backend).
+    property <int> phase: 0;
+    property <int> uid: notice.id;
+    changed uid => {
+        root.phase = 0;
+    }
+
+    height: (first ? 34px : 0px) + (shown && phase < 2 ? card.shown-height + 8px : 0px);
+    animate height { duration: 220ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+    clip: true;
+
+    Timer {
+        interval: Motion.card-dismiss - 40ms;
+        running: root.phase == 1;
+        triggered => {
+            root.phase = 2;
+        }
+    }
+    Timer {
+        interval: 230ms;
+        running: root.phase == 2;
+        triggered => {
+            root.phase = 3;
+            root.removed();
+        }
+    }
+
+    if root.first: Rectangle {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: 34px;
+        AppIcon {
+            x: 6px;
+            y: 12px;
+            width: 16px;
+            height: 16px;
+            name: root.notice.app-icon;
+        }
+        Text {
+            x: 28px;
+            y: 10px;
+            height: 20px;
+            text: root.notice.app + (root.notice.group-count > 1 ? "  ·  " + root.notice.group-count : "");
+            font-size: 12px;
+            font-weight: 700;
+            color: Theme.text-2;
+            vertical-alignment: center;
+        }
+        if root.notice.group-count > 2: Text {
+            x: parent.width - clear.preferred-width - 12px - self.preferred-width - 14px;
+            y: 10px;
+            height: 20px;
+            text: root.expanded ? "Show less" : "Show " + (root.notice.group-count - 2) + " more";
+            font-size: 12px;
+            color: Theme.accent;
+            vertical-alignment: center;
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.toggle-group();
+                }
+            }
+        }
+        clear := Text {
+            x: parent.width - self.preferred-width - 8px;
+            y: 10px;
+            height: 20px;
+            text: "Clear";
+            font-size: 12px;
+            color: Theme.text-3;
+            vertical-alignment: center;
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.clear-group();
+                }
+            }
+        }
+    }
+    card := NoticeCard {
+        x: 0px;
+        y: root.first ? 34px : 0px;
+        width: parent.width;
+        notice: root.notice;
+        visible: root.shown;
+        clicked => {
+            root.clicked();
+        }
+        action(i) => {
+            root.action(i);
+        }
+        dismissed => {
+            root.phase = 1;
+        }
+    }
+}
+
+// The weather: a card of sky with the city, the temperature and the next few hours.
+component WeatherCard inherits Rectangle {
+    in property <Weather> weather;
+    height: 172px;
+    border-radius: 16px;
+    clip: true;
+    background: @linear-gradient(160deg, Theme.sky-top, Theme.sky-bottom);
+    border-width: 1px;
+    border-color: #FFFFFF.with-alpha(0.14);
+    // A soft light in the corner, as of a sun behind cloud.
+    Rectangle {
+        x: parent.width - 150px;
+        y: -70px;
+        width: 220px;
+        height: 220px;
+        border-radius: 110px;
+        background: @radial-gradient(circle, #FFFFFF.with-alpha(0.22) 0%, #FFFFFF.with-alpha(0.0) 70%);
+    }
+    Text {
+        x: 16px;
+        y: 12px;
+        text: root.weather.city;
+        font-size: 13px;
+        font-weight: 700;
+        color: #FFFFFF;
+    }
+    Text {
+        x: 15px;
+        y: 28px;
+        text: root.weather.temp;
+        font-size: 42px;
+        font-weight: 300;
+        color: #FFFFFF;
+    }
+    Text {
+        x: 16px;
+        y: 80px;
+        text: root.weather.condition;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #FFFFFFE6;
+    }
+    Text {
+        x: 16px;
+        y: 96px;
+        text: root.weather.range;
+        font-size: 11.5px;
+        color: #FFFFFFB3;
+    }
+    AppIcon {
+        x: parent.width - 84px;
+        y: 8px;
+        width: 68px;
+        height: 68px;
+        name: root.weather.icon;
+    }
+    // The next hours.
+    Rectangle {
+        x: 10px;
+        y: parent.height - 62px;
+        width: parent.width - 20px;
+        height: 54px;
+        border-radius: 12px;
+        background: #FFFFFF.with-alpha(0.14);
+        for h[i] in root.weather.hours: Rectangle {
+            x: i * (parent.width / max(root.weather.hours.length, 1));
+            width: parent.width / max(root.weather.hours.length, 1);
+            Text {
+                y: 6px;
+                width: parent.width;
+                text: h.label;
+                horizontal-alignment: center;
+                font-size: 10.5px;
+                color: #FFFFFFB3;
+            }
+            AppIcon {
+                x: (parent.width - self.width) / 2;
+                y: 20px;
+                width: 18px;
+                height: 18px;
+                name: h.icon;
+            }
+            Text {
+                y: 38px;
+                width: parent.width;
+                text: h.temp;
+                horizontal-alignment: center;
+                font-size: 12px;
+                font-weight: 600;
+                color: #FFFFFF;
+            }
+        }
+    }
+}
+
+// The notification centre: a panel that slides in from the right edge, with the day, a switch for
+// Do Not Disturb, widgets (weather, a calendar, what is playing) and the notifications grouped by app.
+export component NotificationCenter inherits Rectangle {
+    in property <bool> open: false;
+    in property <[Notice]> notices;
+    in-out property <bool> dnd: false;
+    in property <string> date-text: "";
+    in property <Weather> weather;
+    in property <Media> media;
+    in property <string> month-title: "";
+    in property <[string]> weekdays;
+    in property <[CalCell]> cells;
+    callback notice-clicked(int);
+    callback notice-action(int, int);
+    // After a card has slid away and closed up: the notice at this index may go.
+    callback notice-removed(int);
+    callback group-cleared(string);
+    callback cleared();
+    callback dnd-toggled(bool);
+    callback media-previous();
+    callback media-play-pause();
+    callback media-next();
+    callback calendar-previous();
+    callback calendar-next();
+    callback calendar-picked(int);
+
+    property <string> expanded-group: "";
+    property <float> amount: open ? 1 : 0;
+    animate amount {
+        duration: open ? Motion.panel-in : Motion.panel-out;
+        easing: open ? cubic-bezier(0.2, 0, 0, 1) : cubic-bezier(0.4, 0, 1, 1);
+    }
+    visible: amount > 0.005;
+
+    panel := Rectangle {
+        x: (1.0 - root.amount) * (root.width + 40px);
+        width: parent.width;
+        height: parent.height;
+        opacity: min(root.amount * 1.6, 1.0);
+
+        GlassPlate {
+            width: parent.width;
+            height: parent.height;
+            corner: 20px;
+        }
+        // The panel's own surface takes presses, so a click on it does not close it.
+        TouchArea {}
+        Text {
+            x: 22px;
+            y: 20px;
+            text: root.date-text;
+            font-size: 18px;
+            font-weight: 700;
+            color: Theme.text;
+        }
+        // Do Not Disturb
+        dnd-pill := Rectangle {
+            x: parent.width - self.width - 16px;
+            y: 17px;
+            width: 112px;
+            height: 28px;
+            border-radius: 14px;
+            background: root.dnd ? Theme.accent : Theme.field;
+            animate background { duration: 180ms; }
+            Symbol {
+                x: 9px;
+                y: 7px;
+                width: 14px;
+                height: 14px;
+                name: "moon";
+                tint: root.dnd ? Theme.on-accent : Theme.text;
+            }
+            Text {
+                x: 28px;
+                width: parent.width - 32px;
+                height: parent.height;
+                text: root.dnd ? "Focus on" : "Do not disturb";
+                font-size: 11.5px;
+                font-weight: 600;
+                color: root.dnd ? Theme.on-accent : Theme.text;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.dnd = !root.dnd;
+                    root.dnd-toggled(root.dnd);
+                }
+            }
+        }
+        Scroller {
+            x: 8px;
+            y: 58px;
+            width: parent.width - 16px;
+            height: parent.height - 58px - 10px;
+            inner-height: col.preferred-height + 12px;
+
+            col := VerticalLayout {
+                x: 8px;
+                width: parent.width - 16px;
+                spacing: 8px;
+                if root.weather.has-weather: WeatherCard {
+                    weather: root.weather;
+                }
+                HorizontalLayout {
+                    height: 200px;
+                    spacing: 8px;
+                    // the calendar widget
+                    Rectangle {
+                        border-radius: 16px;
+                        background: Theme.tile;
+                        border-width: 1px;
+                        border-color: Theme.text.with-alpha(Theme.dark ? 0.07 : 0.05);
+                        Text {
+                            x: 14px;
+                            y: 9px;
+                            text: root.month-title;
+                            font-size: 12.5px;
+                            font-weight: 700;
+                            color: Theme.text;
+                        }
+                        IconButton {
+                            x: parent.width - 52px;
+                            y: 5px;
+                            width: 24px;
+                            height: 24px;
+                            glyph: 13px;
+                            icon: "chevron-left";
+                            clicked => {
+                                root.calendar-previous();
+                            }
+                        }
+                        IconButton {
+                            x: parent.width - 28px;
+                            y: 5px;
+                            width: 24px;
+                            height: 24px;
+                            glyph: 13px;
+                            icon: "chevron-right";
+                            clicked => {
+                                root.calendar-next();
+                            }
+                        }
+                        CalendarGrid {
+                            x: 6px;
+                            y: 32px;
+                            width: parent.width - 12px;
+                            compact: true;
+                            cells: root.cells;
+                            weekdays: root.weekdays;
+                            picked(i) => {
+                                root.calendar-picked(i);
+                            }
+                        }
+                    }
+                    // the media widget
+                    Rectangle {
+                        border-radius: 16px;
+                        background: Theme.tile;
+                        border-width: 1px;
+                        border-color: Theme.text.with-alpha(Theme.dark ? 0.07 : 0.05);
+                        if !root.media.has-media: Rectangle {
+                            Symbol {
+                                x: (parent.width - self.width) / 2;
+                                y: 60px;
+                                width: 30px;
+                                height: 30px;
+                                name: "headphones";
+                                tint: Theme.text-3;
+                            }
+                            Text {
+                                y: 100px;
+                                width: parent.width;
+                                text: "Nothing playing";
+                                horizontal-alignment: center;
+                                font-size: 12.5px;
+                                color: Theme.text-2;
+                            }
+                        }
+                        if root.media.has-media: Rectangle {
+                            Rectangle {
+                                x: (parent.width - self.width) / 2;
+                                y: 12px;
+                                width: 96px;
+                                height: 96px;
+                                border-radius: 12px;
+                                clip: true;
+                                background: @linear-gradient(135deg, Theme.art-from, Theme.art-to);
+                                if root.media.has-art: Image {
+                                    source: root.media.art;
+                                    image-fit: cover;
+                                }
+                                if !root.media.has-art: Symbol {
+                                    x: 30px;
+                                    y: 30px;
+                                    width: 36px;
+                                    height: 36px;
+                                    name: "headphones";
+                                    tint: #FFFFFFE6;
+                                }
+                            }
+                            Text {
+                                x: 10px;
+                                y: 116px;
+                                width: parent.width - 20px;
+                                text: root.media.title;
+                                horizontal-alignment: center;
+                                font-size: 13px;
+                                font-weight: 700;
+                                color: Theme.text;
+                                overflow: elide;
+                            }
+                            Text {
+                                x: 10px;
+                                y: 134px;
+                                width: parent.width - 20px;
+                                text: root.media.artist;
+                                horizontal-alignment: center;
+                                font-size: 11.5px;
+                                color: Theme.text-2;
+                                overflow: elide;
+                            }
+                            IconButton {
+                                x: parent.width / 2 - 62px;
+                                y: 158px;
+                                icon: "previous";
+                                strong: true;
+                                clicked => {
+                                    root.media-previous();
+                                }
+                            }
+                            IconButton {
+                                x: parent.width / 2 - 18px;
+                                y: 156px;
+                                width: 36px;
+                                height: 36px;
+                                glyph: 20px;
+                                icon: root.media.playing ? "pause" : "play";
+                                strong: true;
+                                clicked => {
+                                    root.media-play-pause();
+                                }
+                            }
+                            IconButton {
+                                x: parent.width / 2 + 34px;
+                                y: 158px;
+                                icon: "next";
+                                strong: true;
+                                clicked => {
+                                    root.media-next();
+                                }
+                            }
+                        }
+                    }
+                }
+                // the notifications
+                Rectangle {
+                    height: 30px;
+                    Text {
+                        x: 6px;
+                        y: 6px;
+                        height: 24px;
+                        text: "Notifications";
+                        font-size: 15px;
+                        font-weight: 700;
+                        color: Theme.text;
+                        vertical-alignment: center;
+                    }
+                    if root.notices.length > 0: Rectangle {
+                        x: parent.width - 80px;
+                        y: 5px;
+                        width: 74px;
+                        height: 24px;
+                        border-radius: 12px;
+                        background: Theme.field;
+                        Text {
+                            text: "Clear all";
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                            font-size: 11.5px;
+                            font-weight: 600;
+                            color: Theme.text-2;
+                        }
+                        TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                root.cleared();
+                            }
+                        }
+                    }
+                }
+                if root.notices.length == 0: Rectangle {
+                    height: 120px;
+                    Symbol {
+                        x: (parent.width - self.width) / 2;
+                        y: 26px;
+                        width: 30px;
+                        height: 30px;
+                        name: "bell-off";
+                        tint: Theme.text-3;
+                    }
+                    Text {
+                        y: 66px;
+                        width: parent.width;
+                        text: "No new notifications";
+                        horizontal-alignment: center;
+                        font-size: 13px;
+                        color: Theme.text-2;
+                    }
+                }
+                VerticalLayout {
+                    spacing: 0px;
+                    for n[i] in root.notices: NoticeRow {
+                        notice: n;
+                        expanded: root.expanded-group == n.group;
+                        clicked => {
+                            root.notice-clicked(i);
+                        }
+                        action(a) => {
+                            root.notice-action(i, a);
+                        }
+                        removed => {
+                            root.notice-removed(i);
+                        }
+                        clear-group => {
+                            root.group-cleared(n.group);
+                        }
+                        toggle-group => {
+                            root.expanded-group = root.expanded-group == n.group ? "" : n.group;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// A toast: a notice card that arrives from the right, waits (the pointer on it holds it), and leaves.
+// The backend owns the list; when a toast has gone, it says `expired` and the backend drops it.
+export component ToastItem inherits Rectangle {
+    in property <Notice> notice;
+    in property <bool> force-hover: false;
+    // For design previews: drawn arrived, and kept.
+    in property <bool> preview-shown: false;
+    callback clicked();
+    callback action(int);
+    callback closed();
+    callback expired();
+
+    property <bool> arrived: preview-shown;
+    property <bool> leaving: false;
+    property <int> uid: notice.id;
+    changed uid => {
+        root.arrived = false;
+        root.leaving = false;
+    }
+    property <float> appear: arrived && !leaving ? 1 : 0;
+    animate appear {
+        duration: leaving ? Motion.toast-out : Motion.toast-in;
+        easing: leaving ? cubic-bezier(0.4, 0, 1, 1) : cubic-bezier(0.34, 1.2, 0.64, 1);
+    }
+    // (Set by a timer, not at init, so the arrival is seen once the window is up.)
+    Timer {
+        interval: 16ms;
+        running: !root.arrived && !root.preview-shown;
+        triggered => {
+            root.arrived = true;
+        }
+    }
+    Timer {
+        interval: Motion.toast-life;
+        running: root.arrived && !root.leaving && !card.hovering && !root.preview-shown;
+        triggered => {
+            root.leaving = true;
+        }
+    }
+    Timer {
+        interval: Motion.toast-out;
+        running: root.leaving;
+        triggered => {
+            root.expired();
+        }
+    }
+
+    height: leaving ? 0px : card.shown-height + 10px;
+    animate height { duration: Motion.toast-out; easing: cubic-bezier(0.4, 0, 0.2, 1); }
+    opacity: min(appear * 1.5, 1.0);
+
+    card := NoticeCard {
+        x: (1.0 - root.appear) * 70px;
+        y: 0px;
+        width: parent.width;
+        notice: root.notice;
+        toast: true;
+        force-hover: root.force-hover;
+        clicked => {
+            // Opening it is answering it: the banner leaves.
+            root.leaving = true;
+            root.clicked();
+        }
+        action(i) => {
+            root.action(i);
+        }
+        dismissed => {
+            root.leaving = true;
+            root.closed();
+        }
+    }
+}

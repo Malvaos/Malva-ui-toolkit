@@ -1,0 +1,48 @@
+// Parts every control is made of: the focus ring, the preview switch, shared enums and the shadow helper.
+import { Theme, Size, Radius, Motion } from "../tokens.slint";
+
+// The fonts of the brand: Inter for the interface, JetBrains Mono for code. Importing them here registers them
+// with every program that uses the kit.
+import "../fonts/Inter-Regular.otf";
+import "../fonts/Inter-Medium.otf";
+import "../fonts/Inter-SemiBold.otf";
+import "../fonts/Inter-Bold.otf";
+import "../fonts/JetBrainsMono-Regular.ttf";
+import "../fonts/JetBrainsMono-Medium.ttf";
+import "../fonts/JetBrainsMono-Bold.ttf";
+
+// Sizes shared by buttons, icon buttons, fields and segmented controls: 32, 40 and 48 px.
+export enum ControlSize { small, medium, large }
+
+// The semantic colours of status: badges, toasts and banners use them. `accent` is the brand's own plum.
+export enum Tone { neutral, accent, success, warning, danger, info }
+
+// Lets a design sheet draw a control in a state the pointer is not producing. Real code leaves it at `none`.
+export enum ForceState { none, hover, pressed, focus }
+
+// The ring that shows keyboard focus: 2 px wide, 2 px outside the control. Put it last in a control that
+// does not clip, and give it the control's radius.
+export component FocusRing inherits Rectangle {
+    in property <bool> active: false;
+    in property <length> radius: Radius.s;
+    // The size of the control it rings.
+    in property <length> host-width;
+    in property <length> host-height;
+    x: -(Size.focus-offset + Size.focus-width);
+    y: -(Size.focus-offset + Size.focus-width);
+    width: host-width + 2 * (Size.focus-offset + Size.focus-width);
+    height: host-height + 2 * (Size.focus-offset + Size.focus-width);
+    border-radius: radius + Size.focus-offset + Size.focus-width;
+    border-width: Size.focus-width;
+    border-color: Theme.focus;
+    background: transparent;
+    opacity: active ? 1 : 0;
+    animate opacity { duration: Motion.hover; easing: Motion.curve-out; }
+}
+
+// The height of a control of a given size.
+export global Sizing {
+    pure public function control(s: ControlSize) -> length {
+        return s == ControlSize.small ? Size.control-s : s == ControlSize.large ? Size.control-l : Size.control-m;
+    }
+}

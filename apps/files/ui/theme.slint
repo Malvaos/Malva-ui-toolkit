@@ -1,0 +1,81 @@
+// Design tokens of the Files app, on the Malva kit.
+//
+// Every animated value in the UI takes its timing from Motion; the easing curves are written
+// out where they are used and come in four kinds (the kit's Motion.curve-* are the same numbers):
+//   standard   cubic-bezier(0.2, 0, 0, 1)       most movement: quick start, long soft landing
+//   soft       cubic-bezier(0.4, 0, 0.2, 1)     fades in and out
+//   overshoot  cubic-bezier(0.34, 1.35, 0.64, 1) things that arrive: rises ~4% past, settles
+//   exit       cubic-bezier(0.4, 0, 1, 1)       things that leave: accelerate away
+
+// The look of the Files app is the Malva kit's: this global maps the names the app already uses onto the kit's
+// Theme, Radius and Typo, so one change in tokens/malva-tokens.json restyles the app, in light and dark.
+import { Theme as Kit, Radius, Typo } from "@malva/malva.slint";
+
+export global Theme {
+    // The backend (or a settings screen) flips this. It IS the kit's switch: set it here, the kit follows.
+    in-out property <bool> dark <=> Kit.dark;
+    // The accent: Plum on light, the lighter orchid-pink on dark. A settings screen may set another.
+    in-out property <color> accent: Kit.accent;
+    // The text drawn on the accent.
+    in-out property <color> on-accent: Kit.on-accent;
+
+    out property <color> bg: Kit.bg;
+    out property <color> second: Kit.surface;
+    out property <color> text: Kit.text;
+    out property <color> disabled: Kit.text-2;
+    // The colour of every drop shadow (ink-tinted in light, black in dark) and of the close control.
+    out property <color> shadow: Kit.shadow;
+    out property <color> close: Kit.win-close;
+
+    // A selected name is lit from above: the accent a shade lighter at the top than the bottom.
+    out property <color> accent-top: accent;
+    out property <color> accent-bottom: accent.darker(0.05);
+
+    out property <length> radius-small: Radius.xs;
+    out property <length> radius-medium: Radius.s;
+    out property <length> radius-big: Radius.m;
+    out property <length> radius-window: Radius.l;
+    out property <length> font-size: 12px;
+    out property <string> font-family: Typo.ui;
+
+    // ---- glass ----
+    // The sidebar is a little denser at the top, where the light falls.
+    out property <color> sidebar-top: bg.with-alpha(dark ? 0.76 : 0.82);
+    out property <color> sidebar-bottom: bg.with-alpha(dark ? 0.62 : 0.68);
+    out property <color> sidebar-edge: text.with-alpha(dark ? 0.09 : 0.07);
+    // The folder's page darkens toward its foot, which lifts the items above it.
+    out property <color> page-top: second;
+    out property <color> page-bottom: Kit.bg;
+    out property <color> window-edge: dark ? #FFFFFF1A : Kit.shadow.with-alpha(0.10);
+    out property <color> alternate-row: text.with-alpha(dark ? 0.03 : 0.025);
+
+    // ---- hover plate ----
+    out property <float> plate-alpha: dark ? 0.075 : 0.055;
+    out property <float> plate-border-alpha: dark ? 0.07 : 0.05;
+
+    // ---- selection card: lit from above, edged, glowing ----
+    out property <float> sel-top: dark ? 0.36 : 0.24;
+    out property <float> sel-bottom: dark ? 0.20 : 0.12;
+    out property <float> sel-border: dark ? 0.62 : 0.50;
+    out property <float> sel-glow: dark ? 0.50 : 0.32;
+    // The line of light along a card's top edge.
+    out property <float> sheen: dark ? 0.14 : 0.60;
+
+    // ---- shadows of thumbnails (the kit's shadow colour) ----
+    out property <float> rest-alpha: dark ? 0.34 : 0.15;
+    out property <float> lift-tight-alpha: dark ? 0.50 : 0.22;
+    out property <float> lift-wide-alpha: dark ? 0.36 : 0.14;
+}
+
+export global Motion {
+    out property <duration> hover-in: 140ms;
+    out property <duration> hover-out: 220ms;
+    out property <duration> select: 260ms;
+    out property <duration> glide: 300ms;
+    out property <duration> plate-glide: 170ms;
+    out property <duration> enter: 340ms;
+    // The gap between one item's entrance and the next's, and how many stagger before the
+    // rest arrive together.
+    out property <duration> stagger: 12ms;
+    out property <int> stagger-limit: 24;
+}

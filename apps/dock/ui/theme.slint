@@ -1,0 +1,94 @@
+// Design tokens of the dock, on the Malva kit. Palette, radii and type come from the kit's Theme, Radius and Typo
+// (so one change in tokens/malva-tokens.json restyles the dock, in light and dark); the glass, indicator and tooltip
+// tokens are the dock's own, built from the kit's colours.
+//
+//   standard   cubic-bezier(0.2, 0, 0, 1)        most movement: quick start, long soft landing
+//   soft       cubic-bezier(0.4, 0, 0.2, 1)      fades in and out
+//   overshoot  cubic-bezier(0.34, 1.35, 0.64, 1) things that arrive: rises ~4% past, settles
+//   exit       cubic-bezier(0.4, 0, 1, 1)        things that leave: accelerate away
+import { Theme as Kit, Radius, Typo } from "@malva/malva.slint";
+
+export global Theme {
+    // The kit's switch: set it here, the kit follows.
+    in-out property <bool> dark <=> Kit.dark;
+    in-out property <color> accent: Kit.accent;
+    in-out property <color> on-accent: Kit.on-accent;
+
+    out property <color> bg: Kit.bg;
+    out property <color> second: Kit.surface;
+    out property <color> text: Kit.text;
+    out property <color> disabled: Kit.text-2;
+    // The colour of every drop shadow, and the window controls.
+    out property <color> shadow: Kit.shadow;
+    out property <color> close: Kit.win-close;
+    out property <color> minimize: Kit.win-min;
+    out property <color> zoom: Kit.win-max;
+
+    out property <length> radius-small: Radius.xs;
+    out property <length> radius-medium: Radius.s;
+    out property <length> radius-big: Radius.m;
+    out property <length> font-size: 12px;
+    out property <string> font-family: Typo.ui;
+
+    // ---- the dock's glass: denser at the top, where the light falls ----
+    out property <color> glass-top: dark ? Kit.panel.with-alpha(0.80) : Kit.surface.with-alpha(0.65);
+    out property <color> glass-bottom: dark ? Kit.bg.with-alpha(0.82) : Kit.surface.with-alpha(0.45);
+    // The light edge just inside the glass, and the hairline just outside it.
+    out property <float> glass-rim: dark ? 0.16 : 0.70;
+    out property <float> glass-hairline: dark ? 0.55 : 0.14;
+    // The bright line along the glass's top.
+    out property <float> glass-sheen: dark ? 0.26 : 0.95;
+    out property <float> glass-shadow: dark ? 0.50 : 0.24;
+
+    // ---- marks on the glass ----
+    out property <color> dot: Kit.text.with-alpha(dark ? 0.85 : 0.80);
+    // What sits under an icon.
+    out property <float> icon-shadow: dark ? 0.50 : 0.30;
+    out property <color> separator: Kit.text.with-alpha(dark ? 0.22 : 0.15);
+
+    // ---- tooltips and menus: nearly opaque glass ----
+    out property <color> pop-bg: Kit.raised.with-alpha(0.93);
+    out property <float> pop-edge: dark ? 0.14 : 0.10;
+    out property <float> pop-shadow: dark ? 0.55 : 0.22;
+    out property <color> danger: Kit.danger;
+
+    // ---- hover plate and selection, as in Files ----
+    out property <float> plate-alpha: dark ? 0.09 : 0.06;
+    out property <float> sel-top: dark ? 0.36 : 0.24;
+    out property <float> sel-bottom: dark ? 0.20 : 0.12;
+    out property <float> sel-border: dark ? 0.62 : 0.50;
+
+    out property <color> badge: Kit.danger;
+}
+
+export global Motion {
+    // The pointer arriving at an icon and leaving the dock. Out is slower than in so a sweep
+    // across the icons never flickers, and the dock settles rather than snaps back.
+    out property <duration> magnify-in: 90ms;
+    out property <duration> magnify-out: 260ms;
+    out property <duration> hover-in: 140ms;
+    out property <duration> hover-out: 220ms;
+    out property <duration> press: 90ms;
+    // One hop of a launching icon (up, or down): the full hop is twice this.
+    out property <duration> bounce: 300ms;
+    // An item arriving (growing its slot and its icon) and leaving.
+    out property <duration> arrive: 360ms;
+    out property <duration> leave: 260ms;
+    // The running mark turning from a dot into the active pill, and appearing.
+    out property <duration> indicator: 240ms;
+    out property <duration> badge: 260ms;
+    // The label: its wait, its fade, and its glide from icon to icon.
+    out property <duration> tip-delay: 320ms;
+    out property <duration> tip-fade: 140ms;
+    out property <duration> tip-glide: 170ms;
+    out property <duration> menu: 200ms;
+    out property <duration> menu-stagger: 16ms;
+    out property <duration> plate-glide: 170ms;
+    // Neighbours making way for a dragged icon.
+    out property <duration> part: 180ms;
+    out property <duration> lid: 280ms;
+    // Sliding off the screen edge and back, and the dock's first appearance.
+    out property <duration> hide: 320ms;
+    out property <duration> enter: 420ms;
+    out property <duration> stagger: 28ms;
+}

@@ -1,0 +1,258 @@
+// Navigation between views: SegmentedControl, Tabs, SidebarItem and Breadcrumbs.
+import { Theme, Size, Radius, Space, Typo, Motion, Elevation } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+import { FocusRing, ForceState } from "base.slint";
+
+// A rail of 2-5 options with a thumb that springs to the selected one: Day | Week | Month.
+export component SegmentedControl inherits Rectangle {
+    in property <[string]> model;
+    in-out property <int> current-index: 0;
+    in property <bool> enabled: true;
+    callback selected(int);
+
+    property <int> count: max(model.length, 1);
+    property <length> seg: (self.width - 8px) / count;
+    height: Size.control-m;
+    min-width: 160px;
+    border-radius: Radius.m;
+    background: Theme.search-fill;
+    opacity: enabled ? 1.0 : 0.5;
+
+    Rectangle {
+        x: 4px + root.current-index * root.seg;
+        y: 4px;
+        width: root.seg;
+        height: root.height - 8px;
+        border-radius: Radius.s;
+        background: Theme.dark ? Theme.accent-wash : Theme.surface;
+        drop-shadow-color: Theme.shadow.with-alpha(Theme.shadow-alpha1);
+        drop-shadow-blur: Elevation.blur1 + 1px;
+        drop-shadow-offset-y: Elevation.y1;
+        animate x { duration: Motion.open; easing: Motion.curve-spring; }
+    }
+    for item[i] in root.model: Rectangle {
+        x: 4px + i * root.seg;
+        y: 4px;
+        width: root.seg;
+        height: root.height - 8px;
+        Text {
+            text: item;
+            font-family: Typo.ui;
+            font-size: Typo.label-size;
+            font-weight: root.current-index == i ? Typo.label-weight : 500;
+            color: root.current-index == i ? Theme.text : (ta.has-hover ? Theme.text : Theme.text-2);
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            animate color { duration: Motion.hover; easing: Motion.curve-out; }
+        }
+        ta := TouchArea {
+            pointer-event(e) => {
+                if e.kind == PointerEventKind.down {
+                    fs.focus();
+                }
+            }
+            enabled: root.enabled;
+            mouse-cursor: pointer;
+            clicked => {
+                if root.current-index != i {
+                    root.current-index = i;
+                    root.selected(i);
+                }
+            }
+        }
+    }
+    fs := FocusScope {
+        focus-on-click: false;
+        enabled: root.enabled;
+        key-pressed(e) => {
+            if e.text == Key.RightArrow && root.current-index < root.model.length - 1 {
+                root.current-index += 1;
+                root.selected(root.current-index);
+                return accept;
+            }
+            if e.text == Key.LeftArrow && root.current-index > 0 {
+                root.current-index -= 1;
+                root.selected(root.current-index);
+                return accept;
+            }
+            return reject;
+        }
+    }
+    public function take-focus() {
+        fs.focus();
+    }
+}
+
+// Text tabs with an underline under the current one: General  Network  Privacy.
+export component Tabs inherits Rectangle {
+    in property <[string]> model;
+    in-out property <int> current-index: 0;
+    callback selected(int);
+
+    height: 36px;
+    // the hairline under all the tabs
+    Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.line;
+    }
+    HorizontalLayout {
+        spacing: Space.l;
+        alignment: start;
+        for item[i] in root.model: Rectangle {
+            // A Rectangle has no size of its own: without this each tab would be 0 wide, with no underline and
+            // nothing to click.
+            preferred-width: lbl.preferred-width;
+            lbl := Text {
+                text: item;
+                font-family: Typo.ui;
+                font-size: Typo.body-size;
+                font-weight: root.current-index == i ? Typo.body-strong-weight : Typo.body-weight;
+                color: root.current-index == i ? Theme.text : (ta.has-hover ? Theme.text : Theme.text-2);
+                vertical-alignment: center;
+                animate color { duration: Motion.hover; easing: Motion.curve-out; }
+            }
+            Rectangle {
+                y: parent.height - 2px;
+                x: (parent.width - self.width) / 2;
+                width: root.current-index == i ? parent.width : 0px;
+                height: 2px;
+                border-radius: 1px;
+                background: Theme.accent;
+                animate width { duration: Motion.open; easing: Motion.curve-spring; }
+            }
+            ta := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    if root.current-index != i {
+                        root.current-index = i;
+                        root.selected(i);
+                    }
+                }
+            }
+        }
+    }
+}
+
+// A row of a sidebar: icon, label, optional count. The selected one is washed in the accent.
+export component SidebarItem inherits Rectangle {
+    in property <string> text;
+    in property <string> icon;
+    in property <int> count: 0;
+    in property <bool> selected: false;
+    in property <ForceState> force: ForceState.none;
+    callback clicked();
+
+    property <bool> kbd: false;
+    property <bool> hot: ta.has-hover || force == ForceState.hover;
+    height: 36px;
+    border-radius: Radius.s;
+    background: selected ? Theme.accent-wash : (ta.pressed ? Theme.ghost-press : hot ? Theme.ghost-hover : transparent);
+    animate background { duration: Motion.hover; easing: Motion.curve-out; }
+    HorizontalLayout {
+        padding-left: Space.s;
+        padding-right: Space.s;
+        spacing: Space.xs + 2px;
+        if root.icon != "": Icon {
+            name: root.icon;
+            tint: root.selected ? Theme.accent : Theme.text-2;
+            width: Size.icon-m;
+            height: Size.icon-m;
+            y: (parent.height - self.height) / 2;
+        }
+        Text {
+            text: root.text;
+            font-family: Typo.ui;
+            font-size: Typo.body-size;
+            font-weight: root.selected ? Typo.body-strong-weight : Typo.body-weight;
+            color: root.selected ? Theme.accent : Theme.text;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        if root.count > 0: Text {
+            text: root.count;
+            font-family: Typo.ui;
+            font-size: Typo.caption-size;
+            font-weight: 600;
+            color: root.selected ? Theme.accent : Theme.muted;
+            vertical-alignment: center;
+            horizontal-alignment: right;
+        }
+    }
+    ta := TouchArea {
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                fs.focus();
+            }
+        }
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+    fs := FocusScope {
+        focus-on-click: false;
+        focus-gained(reason) => {
+            root.kbd = reason == FocusReason.tab-navigation;
+        }
+        focus-lost => {
+            root.kbd = false;
+        }
+        key-pressed(e) => {
+            if e.text == " " || e.text == "\n" {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+    FocusRing {
+        active: root.kbd || root.force == ForceState.focus;
+        radius: root.border-radius;
+        host-width: root.width;
+        host-height: root.height;
+    }
+}
+
+// A trail: Home / Documents / Reports. The last one is the current place and is not a link.
+export component Breadcrumbs inherits Rectangle {
+    in property <[string]> model;
+    // Index of the part that was clicked (never the last).
+    callback navigate(int);
+    height: 28px;
+    HorizontalLayout {
+        spacing: Space.xxs;
+        alignment: start;
+        for item[i] in root.model: HorizontalLayout {
+            spacing: Space.xxs;
+            Rectangle {
+                width: label.preferred-width + 12px;
+                border-radius: Radius.xs;
+                background: i < root.model.length - 1 && ta.has-hover ? Theme.ghost-hover : transparent;
+                label := Text {
+                    x: 6px;
+                    text: item;
+                    font-family: Typo.ui;
+                    font-size: Typo.body-size;
+                    font-weight: i == root.model.length - 1 ? Typo.body-strong-weight : Typo.body-weight;
+                    color: i == root.model.length - 1 ? Theme.text : Theme.text-2;
+                    vertical-alignment: center;
+                }
+                ta := TouchArea {
+                    enabled: i < root.model.length - 1;
+                    mouse-cursor: i < root.model.length - 1 ? MouseCursor.pointer : MouseCursor.default;
+                    clicked => {
+                        root.navigate(i);
+                    }
+                }
+            }
+            if i < root.model.length - 1: Icon {
+                name: "chevron-right";
+                tint: Theme.muted;
+                width: Size.icon-s;
+                height: Size.icon-s;
+                y: (parent.height - self.height) / 2;
+            }
+        }
+    }
+}

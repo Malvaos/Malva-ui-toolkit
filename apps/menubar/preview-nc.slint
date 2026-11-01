@@ -1,0 +1,26 @@
+import { Theme } from "ui/theme.slint";
+import { NotificationCenter, ToastItem } from "ui/components/notifications.slint";
+export component Sheet inherits Window {
+    width: 880px; height: 860px;
+    background: #8aa0c8;
+    NotificationCenter { x: 20px; y: 20px; width: 420px; height: 820px; open: true;
+        date-text: "Wednesday 28 Oct"; month-title: "October 2026"; weekdays: ["M","T","W","T","F","S","S"];
+        weather: {has-weather: true, city: "Hyderabad", icon: "weather-partly", temp: "27°", condition: "Partly Cloudy", range: "H 31°  L 22°",
+                  hours: [{label: "Now", icon: "weather-partly", temp: "27°"}, {label: "6 AM", icon: "weather-clear", temp: "28°"}, {label: "7 AM", icon: "weather-clear", temp: "29°"}, {label: "8 AM", icon: "weather-cloudy", temp: "29°"}, {label: "9 AM", icon: "weather-rain", temp: "26°"}]};
+        media: {has-media: true, title: "Golden Hour", artist: "Kacey Musgraves", app: "Music", playing: true, progress: 0.42, position: "1:34", length: "3:53", has-art: false};
+        notices: [
+          {id: 1, app: "Mail", app-icon: "mail", title: "Aria Patel", body: "Lunch at 1? The corner cafe has the good tables on Wednesdays, and they're holding one for us.", time: "5m", group: "mail", group-index: 0, group-count: 3, unread: true, urgent: false, actions: ["Reply", "Archive"]},
+          {id: 2, app: "Mail", app-icon: "mail", title: "Design weekly", body: "The notes from Monday are up.", time: "1h", group: "mail", group-index: 1, group-count: 3, unread: false, urgent: false, actions: []},
+          {id: 3, app: "Mail", app-icon: "mail", title: "Invoice 1042", body: "Your invoice is ready to download.", time: "3h", group: "mail", group-index: 2, group-count: 3, unread: false, urgent: false, actions: []},
+          {id: 4, app: "Calendar", app-icon: "calendar", title: "Design review in 10 minutes", body: "Room 4 · 09:30", time: "now", group: "calendar", group-index: 0, group-count: 1, unread: true, urgent: true, actions: ["Join", "Snooze"]}
+        ];
+        cells: [{day: 28, in-month: false, today: false, selected: false, events: 0},{day: 29, in-month: false, today: false, selected: false, events: 0},{day: 30, in-month: false, today: false, selected: false, events: 0},{day: 1, in-month: true, today: false, selected: false, events: 0},{day: 2, in-month: true, today: false, selected: false, events: 0},{day: 3, in-month: true, today: false, selected: false, events: 0},{day: 4, in-month: true, today: false, selected: false, events: 0},
+          {day: 5, in-month: true, today: false, selected: false, events: 0},{day: 6, in-month: true, today: false, selected: false, events: 0},{day: 7, in-month: true, today: false, selected: false, events: 0},{day: 8, in-month: true, today: false, selected: false, events: 0},{day: 9, in-month: true, today: false, selected: false, events: 0},{day: 10, in-month: true, today: false, selected: false, events: 0},{day: 11, in-month: true, today: false, selected: false, events: 0},
+          {day: 12, in-month: true, today: false, selected: false, events: 0},{day: 13, in-month: true, today: false, selected: false, events: 0},{day: 14, in-month: true, today: false, selected: false, events: 0},{day: 15, in-month: true, today: false, selected: false, events: 0},{day: 16, in-month: true, today: false, selected: false, events: 0},{day: 17, in-month: true, today: false, selected: false, events: 0},{day: 18, in-month: true, today: false, selected: false, events: 0},
+          {day: 19, in-month: true, today: false, selected: false, events: 0},{day: 20, in-month: true, today: false, selected: false, events: 0},{day: 21, in-month: true, today: false, selected: false, events: 0},{day: 22, in-month: true, today: false, selected: false, events: 0},{day: 23, in-month: true, today: false, selected: false, events: 0},{day: 24, in-month: true, today: false, selected: false, events: 0},{day: 25, in-month: true, today: false, selected: false, events: 0},
+          {day: 26, in-month: true, today: false, selected: false, events: 0},{day: 27, in-month: true, today: false, selected: false, events: 0},{day: 28, in-month: true, today: true, selected: true, events: 0},{day: 29, in-month: true, today: false, selected: false, events: 0},{day: 30, in-month: true, today: false, selected: false, events: 0},{day: 31, in-month: true, today: false, selected: false, events: 0},{day: 1, in-month: false, today: false, selected: false, events: 0},
+          {day: 2, in-month: false, today: false, selected: false, events: 0},{day: 3, in-month: false, today: false, selected: false, events: 0},{day: 4, in-month: false, today: false, selected: false, events: 0},{day: 5, in-month: false, today: false, selected: false, events: 0},{day: 6, in-month: false, today: false, selected: false, events: 0},{day: 7, in-month: false, today: false, selected: false, events: 0},{day: 8, in-month: false, today: false, selected: false, events: 0}];
+    }
+    ToastItem { x: 470px; y: 20px; width: 380px; preview-shown: true;
+        notice: {id: 9, app: "Messages", app-icon: "notes", title: "Aria", body: "Running 5 minutes late, save me a seat?", time: "now", group: "msg", group-index: 0, group-count: 1, unread: true, urgent: false, actions: ["Reply", "Mute"]}; }
+}

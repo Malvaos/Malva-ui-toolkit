@@ -1,0 +1,355 @@
+import { Theme, Motion } from "../theme.slint";
+import { FileEntry, Place } from "../types.slint";
+import { Sidebar } from "sidebar.slint";
+import { Header } from "header.slint";
+import { FileGrid } from "file-grid.slint";
+import { FileList } from "file-list.slint";
+import { KindIcon } from "icon.slint";
+
+// The whole file manager, as a rectangle: the sidebar, the page with its floating header, and
+// the items as icons or as a list. The window wraps it; the backend fills it.
+export component FilesApp inherits Rectangle {
+    // ---- What the backend gives it.
+    // The name of the folder showing, titling the sidebar.
+    in property <string> folder-name;
+    in property <[Place]> places;
+    // The index in `places` of the place that is, or holds, the folder showing; -1 for none.
+    in property <int> selected-place: -1;
+    in property <[string]> crumbs;
+    in property <[FileEntry]> entries;
+    // 0: icons, 1: list.
+    in property <int> view-mode: 0;
+    in property <length> icon-size: 64px;
+    in property <bool> can-back: false;
+    in property <bool> can-forward: false;
+    in property <string> empty-text: "This folder is empty";
+    // A line under the items: "24 items, 2 selected".
+    in property <string> status;
+    // "name", "modified", "size" or "kind".
+    in property <string> sort-column: "name";
+    in property <bool> sort-ascending: true;
+    // Rounded corners and an edge, for a window the app draws itself.
+    in property <bool> rounded: false;
+    in property <bool> show-window-controls: false;
+    in property <length> sidebar-width: 190px;
+    // The folder's items arrive one by one when it opens (see `folder-opening`).
+    in property <bool> animate-entrance: true;
+
+    // ---- What it keeps for the backend.
+    in-out property <bool> editing <=> header.editing;
+    in-out property <string> editor-text <=> header.editor-text;
+    // How many items sit on a row of the icon view, for the arrow keys.
+    out property <int> columns: grid.columns;
+
+    // ---- For design previews: parts drawn as if the pointer were on them.
+    in property <int> preview-hover-place: -1;
+    in property <int> preview-hover-item: -1;
+    in property <int> preview-hover-crumb: -1;
+
+    // ---- What it tells the backend.
+    callback place-clicked(int);
+    callback place-context(int, length, length);
+    callback eject-clicked(int);
+    callback back();
+    callback forward();
+    callback crumb-clicked(int);
+    // The path typed into the editor, on Enter.
+    callback path-accepted(string);
+    // The text of the editor as it changes, for searching.
+    callback search-edited(string);
+    callback view-mode-selected(int);
+    callback sort-requested(string);
+    // The index, and whether Ctrl and Shift were down.
+    callback item-pressed(int, bool, bool);
+    callback item-activated(int);
+    callback item-context(int, length, length);
+    callback background-pressed();
+    callback background-context(length, length);
+    // "minimize", "maximize" or "close", from the buttons of a window the app draws itself.
+    callback window-control(string);
+    // The pointer's distance from where it went down on the header, as the window is dragged.
+    callback window-drag(length, length);
+    // A key the app maps to a command, with whether Ctrl and Shift were down. The commands:
+    // "up", "down", "left", "right", "home", "end" (move the selection), "open", "parent",
+    // "back", "forward", "select-all", "toggle-hidden", "clear-selection", "delete".
+    callback key-command(string, bool, bool);
+
+    // Call before replacing `entries` when a folder opens.
+    public function folder-opening() {
+        grid.folder-opening();
+        list.folder-opening();
+    }
+    // Scrolls to an item, as the arrow keys move the selection.
+    public function reveal(index: int) {
+        grid.reveal(index);
+        list.reveal(index);
+    }
+    public function open-editor() {
+        header.open-editor();
+    }
+    public function focus-items() {
+        keys.focus();
+    }
+
+    background: Theme.bg;
+    border-radius: root.rounded ? Theme.radius-window : 0px;
+    clip: root.rounded;
+    border-width: root.rounded ? 1px : 0px;
+    border-color: Theme.window-edge;
+
+    // 1 while the list shows, 0 while the icons do.
+    property <float> list-amount: view-mode == 1 ? 1 : 0;
+    animate list-amount {
+        duration: Motion.glide;
+        easing: cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    keys := FocusScope {
+        x: 0;
+        y: 0;
+        width: parent.width;
+        height: parent.height;
+        key-pressed(e) => {
+            if (e.modifiers.control && (e.text == "l" || e.text == "L")) {
+                header.open-editor();
+                return accept;
+            }
+            if (e.modifiers.control && (e.text == "f" || e.text == "F")) {
+                header.open-editor();
+                return accept;
+            }
+            if (e.text == Key.UpArrow) {
+                if (e.modifiers.alt) {
+                    root.key-command("parent", false, false);
+                } else {
+                    root.key-command("up", e.modifiers.control, e.modifiers.shift);
+                }
+                return accept;
+            }
+            if (e.text == Key.DownArrow) {
+                root.key-command(e.modifiers.alt ? "open" : "down", e.modifiers.control, e.modifiers.shift);
+                return accept;
+            }
+            if (e.text == Key.LeftArrow) {
+                root.key-command(e.modifiers.alt ? "back" : "left", e.modifiers.control, e.modifiers.shift);
+                return accept;
+            }
+            if (e.text == Key.RightArrow) {
+                root.key-command(e.modifiers.alt ? "forward" : "right", e.modifiers.control, e.modifiers.shift);
+                return accept;
+            }
+            if (e.text == Key.Home) {
+                root.key-command("home", e.modifiers.control, e.modifiers.shift);
+                return accept;
+            }
+            if (e.text == Key.End) {
+                root.key-command("end", e.modifiers.control, e.modifiers.shift);
+                return accept;
+            }
+            if (e.text == Key.Return) {
+                root.key-command("open", false, false);
+                return accept;
+            }
+            if (e.text == Key.Backspace) {
+                root.key-command("parent", false, false);
+                return accept;
+            }
+            if (e.text == Key.Escape) {
+                root.key-command("clear-selection", false, false);
+                return accept;
+            }
+            if (e.text == Key.Delete) {
+                root.key-command("delete", false, e.modifiers.shift);
+                return accept;
+            }
+            if (e.modifiers.control && (e.text == "a" || e.text == "A")) {
+                root.key-command("select-all", false, false);
+                return accept;
+            }
+            if (e.modifiers.control && (e.text == "h" || e.text == "H")) {
+                root.key-command("toggle-hidden", false, false);
+                return accept;
+            }
+            return reject;
+        }
+
+        page := Rectangle {
+            x: root.sidebar-width;
+            y: 0;
+            width: parent.width - root.sidebar-width;
+            height: parent.height;
+            background: @linear-gradient(180deg, Theme.page-top, Theme.page-bottom);
+
+            grid := FileGrid {
+                x: 0;
+                y: 0;
+                width: parent.width;
+                height: parent.height;
+                opacity: 1.0 - root.list-amount;
+                visible: self.opacity > 0.01;
+                transform-scale: 1.0 - 0.015 * root.list-amount;
+                entries: root.entries;
+                icon-size: root.icon-size;
+                top-inset: header.height + 4px;
+                bottom-inset: 60px;
+                force-hover: root.preview-hover-item;
+                animate-entrance: root.animate-entrance;
+                item-pressed(i, ctrl, shift) => {
+                    root.item-pressed(i, ctrl, shift);
+                }
+                item-activated(i) => {
+                    root.item-activated(i);
+                }
+                item-context(i, x, y) => {
+                    root.item-context(i, x, y);
+                }
+                background-pressed => {
+                    root.background-pressed();
+                    keys.focus();
+                }
+                background-context(x, y) => {
+                    root.background-context(x, y);
+                }
+            }
+
+            list := FileList {
+                x: 0;
+                y: 0;
+                width: parent.width;
+                height: parent.height;
+                opacity: root.list-amount;
+                visible: self.opacity > 0.01;
+                transform-scale: 0.985 + 0.015 * root.list-amount;
+                entries: root.entries;
+                top-inset: header.height + 4px;
+                bottom-inset: 60px;
+                sort-column: root.sort-column;
+                sort-ascending: root.sort-ascending;
+                force-hover: root.preview-hover-item;
+                animate-entrance: root.animate-entrance;
+                item-pressed(i, ctrl, shift) => {
+                    root.item-pressed(i, ctrl, shift);
+                }
+                item-activated(i) => {
+                    root.item-activated(i);
+                }
+                item-context(i, x, y) => {
+                    root.item-context(i, x, y);
+                }
+                background-pressed => {
+                    root.background-pressed();
+                    keys.focus();
+                }
+                background-context(x, y) => {
+                    root.background-context(x, y);
+                }
+                sort-requested(c) => {
+                    root.sort-requested(c);
+                }
+            }
+
+            // An empty folder.
+            if root.entries.length == 0: Rectangle {
+                x: 0;
+                width: parent.width;
+                y: header.height;
+                height: parent.height - header.height;
+                VerticalLayout {
+                    alignment: center;
+                    spacing: 10px;
+                    KindIcon {
+                        kind: "folder";
+                        height: 72px;
+                        opacity: 0.35;
+                    }
+
+                    Text {
+                        text: root.empty-text;
+                        color: Theme.disabled;
+                        font-size: 13px;
+                        horizontal-alignment: center;
+                    }
+                }
+            }
+
+            header := Header {
+                x: 0;
+                y: 0;
+                width: parent.width;
+                crumbs: root.crumbs;
+                can-back: root.can-back;
+                can-forward: root.can-forward;
+                view-mode: root.view-mode;
+                show-window-controls: root.show-window-controls;
+                force-hover-crumb: root.preview-hover-crumb;
+                back => {
+                    root.back();
+                }
+                forward => {
+                    root.forward();
+                }
+                crumb-clicked(i) => {
+                    root.crumb-clicked(i);
+                }
+                path-accepted(t) => {
+                    root.path-accepted(t);
+                    keys.focus();
+                }
+                search-edited(t) => {
+                    root.search-edited(t);
+                }
+                view-mode-selected(m) => {
+                    root.view-mode-selected(m);
+                }
+                window-control(c) => {
+                    root.window-control(c);
+                }
+                window-drag(dx, dy) => {
+                    root.window-drag(dx, dy);
+                }
+            }
+
+            // What is showing, on a chip of glass over the bottom edge.
+            if root.status != "": Rectangle {
+                x: (parent.width - self.width) / 2;
+                y: parent.height - self.height - 14px;
+                width: status-text.preferred-width + 28px;
+                height: 28px;
+                border-radius: 14px;
+                background: Theme.second.with-alpha(Theme.dark ? 0.82 : 0.86);
+                border-width: 1px;
+                border-color: Theme.text.with-alpha(Theme.dark ? 0.12 : 0.08);
+                drop-shadow-color: Theme.shadow.with-alpha(Theme.dark ? 0.45 : 0.14);
+                drop-shadow-blur: 14px;
+                drop-shadow-offset-y: 4px;
+                status-text := Text {
+                    text: root.status;
+                    color: Theme.text.with-alpha(0.72);
+                    font-size: 12px;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+        }
+
+        Sidebar {
+            x: 0;
+            y: 0;
+            width: root.sidebar-width;
+            height: parent.height;
+            title: root.folder-name;
+            places: root.places;
+            selected: root.selected-place;
+            force-hover: root.preview-hover-place;
+            place-clicked(i) => {
+                root.place-clicked(i);
+            }
+            place-context(i, x, y) => {
+                root.place-context(i, x, y);
+            }
+            eject-clicked(i) => {
+                root.eject-clicked(i);
+            }
+        }
+    }
+}

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<defs>
+<linearGradient id="sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd84a"/><stop offset="1" stop-color="#ff9f1a"/></linearGradient>
+<linearGradient id="cl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9d9df"/></linearGradient>
+<linearGradient id="cd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bcbcc4"/><stop offset="1" stop-color="#8e8e98"/></linearGradient>
+<filter id="sh" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#1d1d1f" flood-opacity=".25"/></filter>
+</defs>
+<line x1="49.0" y1="32.0" x2="53.0" y2="32.0" stroke="#ffb82e" stroke-width="3.4" stroke-linecap="round"/><line x1="44.0" y1="44.0" x2="46.8" y2="46.8" stroke="#ffb82e" stroke-width="3.4" stroke-linecap="round"/><line x1="32.0" y1="49.0" x2="32.0" y2="53.0" stroke="#ffb82e" stroke-width="3.4" stroke-linecap="round"/><line x1="20.0" y1="44.0" x2="17.2" y2="46.8" stroke="#ffb82e" stroke-width="3.4" stroke-linecap="round"/><line x1="15.0" y1="32.0" x2="11.0" y2="32.0" stroke="#ffb82e" stroke-width="3.4" stroke-linecap="round"/><line x1="20.0" y1="20.0" x2="17.2" y2="17.2" stroke="#ffb82e" stroke-width="3.4" stroke-linecap="round"/><line x1="32.0" y1="15.0" x2="32.0" y2="11.0" stroke="#ffb82e" stroke-width="3.4" stroke-linecap="round"/><line x1="44.0" y1="20.0" x2="46.8" y2="17.2" stroke="#ffb82e" stroke-width="3.4" stroke-linecap="round"/><circle cx="32" cy="32" r="13" fill="url(#sun)"/><ellipse cx="28.75" cy="26.8" rx="7.15" ry="3.9" fill="#fff" opacity=".4"/>
+</svg>

@@ -1,0 +1,29 @@
+[package]
+name = "malva-iced"
+description = "The Malva theme for iced: a Theme for each mode and style functions for iced's widgets, built on malva-tokens."
+version = "1.0.0"
+edition = "2021"
+publish = false
+rust-version = "1.88"   # iced 0.14 needs it
+
+# Not a member of ../Cargo.toml: iced is a large dependency, and the std-only crates should test offline.
+[workspace]
+
+[dependencies]
+iced = { version = "=0.14.0", default-features = false }
+malva-color = { path = "../malva-color" }
+malva-tokens = { path = "../malva-tokens" }
+
+[dev-dependencies]
+# The example needs a renderer and a window backend, which `default-features = false` leaves out.
+iced = { version = "=0.14.0", features = ["tiny-skia", "wgpu", "svg"] }
+malva-icons = { path = "../malva-icons" }
+
+[[example]]
+name = "gallery"
+path = "examples/gallery.rs"
+
+# `cargo check --features stub` is how this crate was type-checked in the environment it was written in
+# (no access to crates.io): see README.md. Normal users never enable it.
+[features]
+stub = []

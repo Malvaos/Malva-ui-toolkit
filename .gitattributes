@@ -1,0 +1,26 @@
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.otf binary
+*.ttf binary
+# generated: shown collapsed in diffs, excluded from language statistics
+slint/tokens.slint linguist-generated=true
+slint/icons.slint linguist-generated=true
+cpp/include/malva/tokens.h linguist-generated=true
+cpp/include/malva/icons.h linguist-generated=true
+cpp/tests/theme_roles.inc linguist-generated=true
+rust/malva-tokens/src/lib.rs linguist-generated=true
+rust/malva-icons/src/gen.rs linguist-generated=true
+css/malva.css linguist-generated=true
+dist/* linguist-generated=true
+docs/TOKENS.md linguist-generated=true
+docs/ICONS.md linguist-generated=true
+docs/COMPONENTS.md linguist-generated=true
+gallery/windows.slint linguist-generated=true
+svg/icons-sheet.svg linguist-generated=true
+svg/palette.svg linguist-generated=true
+svg/specimen-*.svg linguist-generated=true
+svg/parts/*.svg linguist-generated=true
+docs/svg/*.svg linguist-generated=true
+# the app icons and wallpapers are vendored artwork, not code
+svg/** linguist-vendored=true

@@ -1,0 +1,180 @@
+// A window holding one of every interactive component of the kit at a known place, with its state mirrored into
+// properties of the window, so tests/ui_test.cpp can drive it with pointer and key events and read the result.
+import {
+    Theme, Tone, Button, ButtonKind, IconButton, Toggle, Checkbox, RadioGroup, Slider, TextField, SearchField, TextArea,
+    Stepper, Dropdown, SegmentedControl, Tabs, SidebarItem, Breadcrumbs, Chip, QuickTile, ListItem, Card,
+    MenuPanel, MenuEntry, ContextMenu, Dialog, Toast, ToastItem, ToastStack, ScrollArea, Skeleton,
+} from "@malva/malva.slint";
+
+export { Theme } from "@malva/malva.slint";
+export { MenuEntry, ToastItem } from "@malva/malva.slint";
+
+// Where something is, in window coordinates.
+export struct Box { x: float, y: float, w: float, h: float }
+
+export component TestBench inherits Window {
+    width: 1000px;
+    height: 900px;
+    background: Theme.bg;
+
+    // ---- buttons
+    in-out property <int> btn-clicks;
+    in-out property <int> off-clicks;
+    in-out property <int> loading-clicks;
+    in-out property <int> icon-clicks;
+    out property <Box> btn-box: { x: btn.absolute-position.x / 1px, y: btn.absolute-position.y / 1px, w: btn.width / 1px, h: btn.height / 1px };
+    out property <Box> off-box: { x: off.absolute-position.x / 1px, y: off.absolute-position.y / 1px, w: off.width / 1px, h: off.height / 1px };
+    out property <Box> loading-box: { x: loading.absolute-position.x / 1px, y: loading.absolute-position.y / 1px, w: loading.width / 1px, h: loading.height / 1px };
+    out property <Box> icon-box: { x: icon.absolute-position.x / 1px, y: icon.absolute-position.y / 1px, w: icon.width / 1px, h: icon.height / 1px };
+    out property <bool> btn-hover: btn.has-hover;
+    out property <bool> btn-pressed: btn.pressed;
+    out property <bool> icon-tip: icon.tooltip-visible;
+    btn := Button { x: 20px; y: 20px; width: 100px; text: "Go"; kind: ButtonKind.primary; clicked => { root.btn-clicks += 1; } }
+    off := Button { x: 140px; y: 20px; width: 100px; text: "Off"; enabled: false; clicked => { root.off-clicks += 1; } }
+    loading := Button { x: 260px; y: 20px; width: 100px; text: "Busy"; loading: true; clicked => { root.loading-clicks += 1; } }
+    icon := IconButton { x: 380px; y: 20px; icon: "star"; tooltip: "Favourite"; clicked => { root.icon-clicks += 1; } }
+
+    // ---- toggle, checkbox, radio
+    in-out property <bool> tg-checked <=> tg.checked;
+    in-out property <int> tg-count;
+    in-out property <bool> cb-checked <=> cb.checked;
+    in-out property <bool> cbi-checked <=> cbi.checked;
+    in-out property <bool> tgoff-checked <=> tgoff.checked;
+    in-out property <int> rg-index <=> rg.current-index;
+    in-out property <int> rg-last: -1;
+    out property <Box> tg-box: { x: tg.absolute-position.x / 1px, y: tg.absolute-position.y / 1px, w: tg.width / 1px, h: tg.height / 1px };
+    out property <Box> tgoff-box: { x: tgoff.absolute-position.x / 1px, y: tgoff.absolute-position.y / 1px, w: tgoff.width / 1px, h: tgoff.height / 1px };
+    out property <Box> cb-box: { x: cb.absolute-position.x / 1px, y: cb.absolute-position.y / 1px, w: cb.width / 1px, h: cb.height / 1px };
+    out property <Box> cbi-box: { x: cbi.absolute-position.x / 1px, y: cbi.absolute-position.y / 1px, w: cbi.width / 1px, h: cbi.height / 1px };
+    out property <Box> rg-box: { x: rg.absolute-position.x / 1px, y: rg.absolute-position.y / 1px, w: rg.width / 1px, h: rg.height / 1px };
+    tg := Toggle { x: 20px; y: 80px; toggled(c) => { root.tg-count += 1; } }
+    tgoff := Toggle { x: 100px; y: 80px; enabled: false; }
+    cb := Checkbox { x: 180px; y: 80px; text: "Agree"; }
+    cbi := Checkbox { x: 300px; y: 80px; indeterminate: true; }
+    rg := RadioGroup { x: 380px; y: 70px; width: 140px; height: 3 * 28px + 2 * 8px; model: ["A", "B", "C"]; selected(i) => { root.rg-last = i; } }
+
+    // ---- sliders
+    in-out property <float> sl-value <=> sl.value;
+    in-out property <int> sl-changes;
+    in-out property <float> step-value <=> sl-step.value;
+    in-out property <float> off-value <=> sl-off.value;
+    out property <Box> sl-box: { x: sl.absolute-position.x / 1px, y: sl.absolute-position.y / 1px, w: sl.width / 1px, h: sl.height / 1px };
+    out property <Box> step-box: { x: sl-step.absolute-position.x / 1px, y: sl-step.absolute-position.y / 1px, w: sl-step.width / 1px, h: sl-step.height / 1px };
+    out property <Box> sloff-box: { x: sl-off.absolute-position.x / 1px, y: sl-off.absolute-position.y / 1px, w: sl-off.width / 1px, h: sl-off.height / 1px };
+    sl := Slider { x: 20px; y: 170px; width: 300px; value: 0; changed(v) => { root.sl-changes += 1; } }
+    sl-step := Slider { x: 20px; y: 210px; width: 300px; value: 0; step: 10; }
+    sl-off := Slider { x: 20px; y: 250px; width: 300px; value: 25; enabled: false; }
+
+    // ---- text
+    in-out property <string> tf-text <=> tf.text;
+    in-out property <int> tf-edits;
+    in-out property <int> tf-accepts;
+    in-out property <string> pw-text <=> pw.text;
+    in-out property <string> sf-text <=> sf.text;
+    in-out property <int> sf-edits;
+    in-out property <string> ta-text <=> ta.text;
+    out property <bool> tf-focus: tf.has-focus;
+    out property <bool> sf-focus: sf.has-focus;
+    out property <Box> tf-box: { x: tf.absolute-position.x / 1px, y: tf.absolute-position.y / 1px, w: tf.width / 1px, h: tf.height / 1px };
+    out property <Box> pw-box: { x: pw.absolute-position.x / 1px, y: pw.absolute-position.y / 1px, w: pw.width / 1px, h: pw.height / 1px };
+    out property <Box> sf-box: { x: sf.absolute-position.x / 1px, y: sf.absolute-position.y / 1px, w: sf.width / 1px, h: sf.height / 1px };
+    out property <Box> ta-box: { x: ta.absolute-position.x / 1px, y: ta.absolute-position.y / 1px, w: ta.width / 1px, h: ta.height / 1px };
+    tf := TextField { x: 400px; y: 170px; width: 240px; placeholder: "Name"; clearable: true; edited(t) => { root.tf-edits += 1; } accepted(t) => { root.tf-accepts += 1; } }
+    pw := TextField { x: 400px; y: 230px; width: 240px; password: true; }
+    sf := SearchField { x: 400px; y: 290px; width: 240px; edited(t) => { root.sf-edits += 1; } }
+    ta := TextArea { x: 680px; y: 170px; width: 260px; height: 100px; }
+
+    // ---- stepper, dropdown, segmented, tabs
+    in-out property <int> st-value <=> st.value;
+    in-out property <int> dd-index <=> dd.current-index;
+    in-out property <int> dd-selected-count;
+    in-out property <int> seg-index <=> seg.current-index;
+    in-out property <int> seg-count;
+    in-out property <int> tabs-index <=> tabs.current-index;
+    out property <Box> st-box: { x: st.absolute-position.x / 1px, y: st.absolute-position.y / 1px, w: st.width / 1px, h: st.height / 1px };
+    out property <Box> dd-box: { x: dd.absolute-position.x / 1px, y: dd.absolute-position.y / 1px, w: dd.width / 1px, h: dd.height / 1px };
+    out property <Box> seg-box: { x: seg.absolute-position.x / 1px, y: seg.absolute-position.y / 1px, w: seg.width / 1px, h: seg.height / 1px };
+    out property <Box> tabs-box: { x: tabs.absolute-position.x / 1px, y: tabs.absolute-position.y / 1px, w: tabs.width / 1px, h: tabs.height / 1px };
+    st := Stepper { x: 20px; y: 320px; minimum: 0; maximum: 5; value: 2; }
+    dd := Dropdown { x: 200px; y: 320px; width: 180px; model: ["Day", "Week", "Month"]; current-index: 0; selected(i) => { root.dd-selected-count += 1; } }
+    seg := SegmentedControl { x: 20px; y: 400px; width: 300px; model: ["Day", "Week", "Month"]; selected(i) => { root.seg-count += 1; } }
+    tabs := Tabs { x: 400px; y: 400px; width: 300px; model: ["General", "Network", "Privacy"]; }
+
+    // ---- small things
+    in-out property <bool> qt-on <=> qt.on;
+    in-out property <int> chip-clicks;
+    in-out property <int> chip-removed;
+    in-out property <int> list-clicks;
+    in-out property <int> side-clicks;
+    in-out property <int> crumb-last: -1;
+    out property <Box> qt-box: { x: qt.absolute-position.x / 1px, y: qt.absolute-position.y / 1px, w: qt.width / 1px, h: qt.height / 1px };
+    out property <Box> chip-box: { x: chip.absolute-position.x / 1px, y: chip.absolute-position.y / 1px, w: chip.width / 1px, h: chip.height / 1px };
+    out property <Box> list-box: { x: list.absolute-position.x / 1px, y: list.absolute-position.y / 1px, w: list.width / 1px, h: list.height / 1px };
+    out property <Box> side-box: { x: side.absolute-position.x / 1px, y: side.absolute-position.y / 1px, w: side.width / 1px, h: side.height / 1px };
+    out property <Box> crumbs-box: { x: crumbs.absolute-position.x / 1px, y: crumbs.absolute-position.y / 1px, w: crumbs.width / 1px, h: crumbs.height / 1px };
+    qt := QuickTile { x: 20px; y: 460px; icon: "wifi"; text: "Wi-Fi"; }
+    chip := Chip { x: 120px; y: 470px; text: "work"; removable: true; clicked => { root.chip-clicks += 1; } removed => { root.chip-removed += 1; } }
+    list := ListItem { x: 220px; y: 460px; width: 240px; title: "Notes.md"; subtitle: "Edited today"; icon: "file-text"; clicked => { root.list-clicks += 1; } }
+    side := SidebarItem { x: 480px; y: 460px; width: 180px; text: "Recent"; icon: "clock"; clicked => { root.side-clicks += 1; } }
+    crumbs := Breadcrumbs { x: 680px; y: 460px; width: 280px; model: ["Home", "Docs", "Reports"]; navigate(i) => { root.crumb-last = i; } }
+
+    // ---- menu
+    in property <[MenuEntry]> entries;
+    in-out property <int> menu-hl <=> menu.highlighted;
+    in-out property <int> menu-last: -1;
+    in-out property <int> menu-dismissed;
+    out property <Box> menu-box: { x: menu.absolute-position.x / 1px, y: menu.absolute-position.y / 1px, w: menu.width / 1px, h: menu.height / 1px };
+    menu := MenuPanel { x: 20px; y: 520px; entries: root.entries; activated(i) => { root.menu-last = i; } dismissed => { root.menu-dismissed += 1; } }
+    public function focus-menu() { menu.take-focus(); }
+
+    // ---- context menu (a popup)
+    in-out property <int> ctx-last: -1;
+    cm := ContextMenu { x: 300px; y: 520px; width: 300px; height: 200px; entries: root.entries; activated(i) => { root.ctx-last = i; } }
+    public function open-context(px: length, py: length) { cm.show-at(px, py); }
+
+    // ---- scroll
+    in-out property <length> scroll-y <=> scroll.scroll-y;
+    out property <Box> scroll-box: { x: scroll.absolute-position.x / 1px, y: scroll.absolute-position.y / 1px, w: scroll.width / 1px, h: scroll.height / 1px };
+    scroll := ScrollArea {
+        x: 640px; y: 520px; width: 300px; height: 150px;
+        VerticalLayout { spacing: 8px; for i in 20: Skeleton { height: 24px; } }
+    }
+
+    // ---- toasts
+    in property <[ToastItem]> toasts;
+    in-out property <int> toast-dismissed-id: -1;
+    in-out property <int> single-dismissed;
+    ToastStack { x: 640px; y: 700px; model: root.toasts; life: 2s; dismissed(id) => { root.toast-dismissed-id = id; } }
+    Toast { x: 20px; y: 760px; title: "Saved"; text: "Done"; life: 1s; dismissed => { root.single-dismissed += 1; } }
+
+    // ---- focus helpers
+    public function focus-control(name: string) {
+        if name == "btn" { btn.take-focus(); }
+        if name == "tg" { tg.take-focus(); }
+        if name == "cb" { cb.take-focus(); }
+        if name == "sl" { sl.take-focus(); }
+        if name == "sl-step" { sl-step.take-focus(); }
+        if name == "dd" { dd.take-focus(); }
+        if name == "seg" { seg.take-focus(); }
+        if name == "icon" { icon.take-focus(); }
+        if name == "tf" { tf.take-focus(); }
+    }
+
+    // ---- dialog, last so it covers the rest
+    in-out property <bool> dlg-open: false;
+    in-out property <int> dlg-primary;
+    in-out property <int> dlg-secondary;
+    in-out property <int> dlg-dismissed;
+    out property <float> dlg-card-h: dlg.card-height / 1px;
+    out property <float> dlg-card-w: dlg.card-width / 1px;
+    dlg := Dialog {
+        open: root.dlg-open;
+        title: "Empty the Trash?";
+        message: "42 items will be deleted permanently.";
+        tone: Tone.danger;
+        primary-text: "Empty Trash";
+        primary => { root.dlg-primary += 1; }
+        secondary => { root.dlg-secondary += 1; }
+        dismissed => { root.dlg-dismissed += 1; }
+    }
+}

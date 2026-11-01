@@ -1,0 +1,49 @@
+import { Theme } from "../theme.slint";
+
+// A symbolic icon: one colour, tinted with the colour it is given.
+export component SymbolIcon inherits Image {
+    in property <string> name;
+    in property <color> tint: Theme.text;
+    colorize: tint;
+    image-fit: contain;
+    source: name == "home" ? @image-url("../icons/home.svg")
+        : name == "desktop" ? @image-url("../icons/desktop.svg")
+        : name == "documents" ? @image-url("../icons/documents.svg")
+        : name == "downloads" ? @image-url("../icons/downloads.svg")
+        : name == "music" ? @image-url("../icons/music.svg")
+        : name == "pictures" ? @image-url("../icons/pictures.svg")
+        : name == "videos" ? @image-url("../icons/videos.svg")
+        : name == "trash" ? @image-url("../icons/trash.svg")
+        : name == "drive" ? @image-url("../icons/drive.svg")
+        : name == "usb" ? @image-url("../icons/usb.svg")
+        : name == "network" ? @image-url("../icons/network.svg")
+        : name == "recent" ? @image-url("../icons/recent.svg")
+        : name == "eject" ? @image-url("../icons/eject.svg")
+        : name == "back" ? @image-url("../icons/back.svg")
+        : name == "forward" ? @image-url("../icons/forward.svg")
+        : name == "search" ? @image-url("../icons/search.svg")
+        : name == "view-grid" ? @image-url("../icons/view-grid.svg")
+        : name == "view-list" ? @image-url("../icons/view-list.svg")
+        : name == "chevron-right" ? @image-url("../icons/chevron-right.svg")
+        : name == "chevron-up" ? @image-url("../icons/chevron-up.svg")
+        : name == "chevron-down" ? @image-url("../icons/chevron-down.svg")
+        : name == "close" ? @image-url("../icons/close.svg")
+        : name == "minimize" ? @image-url("../icons/minimize.svg")
+        : name == "maximize" ? @image-url("../icons/maximize.svg")
+        : name == "clear" ? @image-url("../icons/clear.svg")
+        : @image-url("../icons/documents.svg");
+}
+
+// The coloured icon of a kind of file.
+export component KindIcon inherits Image {
+    in property <string> kind;
+    image-fit: contain;
+    source: kind == "folder" ? @image-url("../icons/folder.svg")
+        : kind == "image" ? @image-url("../icons/image.svg")
+        : kind == "pdf" ? @image-url("../icons/pdf.svg")
+        : kind == "text" ? @image-url("../icons/text.svg")
+        : kind == "archive" ? @image-url("../icons/archive.svg")
+        : kind == "audio" ? @image-url("../icons/audio.svg")
+        : kind == "video" ? @image-url("../icons/video.svg")
+        : @image-url("../icons/file.svg");
+}

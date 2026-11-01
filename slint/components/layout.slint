@@ -1,0 +1,23 @@
+// Layout helpers with the kit's spacing: VStack and HStack (a layout with a 16 px gap), Spacer (a fixed gap) and
+// Fill (takes the rest of the room).
+import { Space } from "../tokens.slint";
+
+export component VStack inherits VerticalLayout {
+    spacing: Space.m;
+    alignment: start;
+}
+export component HStack inherits HorizontalLayout {
+    spacing: Space.m;
+    alignment: start;
+}
+// A gap of `size` in both directions, so it works in either kind of layout.
+export component Spacer inherits Rectangle {
+    in property <length> size: Space.m;
+    width: size;
+    height: size;
+}
+// Stretches to take whatever room the siblings leave.
+export component Fill inherits Rectangle {
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+}

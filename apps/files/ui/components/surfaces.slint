@@ -1,0 +1,76 @@
+import { Theme } from "../theme.slint";
+
+// Rings of the accent's light around its parent, fading outward. Painted as 1 px rings rather than
+// a blur: a blur would also tint the inside of the translucent glass it lights.
+// Put it as a child of the lit rectangle, filling it.
+export component GlowRings inherits Rectangle {
+    in property <length> corner: Theme.radius-big;
+    in property <int> reach: 7;
+    in property <length> drop: 2px;
+    // The glow's strongest alpha, already scaled by how much of it shows.
+    in property <float> strength: 0;
+    background: transparent;
+    for i in root.reach: Rectangle {
+        x: -(i + 1) * 1px;
+        y: -(i + 1) * 1px + root.drop;
+        width: root.width + (i + 1) * 2px;
+        height: root.height + (i + 1) * 2px;
+        border-radius: root.corner + (i + 1) * 1px;
+        border-width: 1px;
+        border-color: Theme.accent.with-alpha(root.strength * (1.0 - i / root.reach) * (1.0 - i / root.reach) * 0.55);
+    }
+}
+
+// The accent card behind a selected item: a glow under it, glass lit from above, a bright edge and
+// a line of light along its top. It grows from a little smaller as `amount` rises, and rises a
+// little past 1 as it settles.
+export component SelectionCard inherits Rectangle {
+    in property <float> amount: 0;
+    in property <length> corner: Theme.radius-big;
+    // The flatter variant for rows and pills that sit close together.
+    in property <bool> pill: false;
+
+    property <float> shown: min(max(amount, 0.0), 1.0);
+    property <length> inset: (1.0 - min(amount, 1.25)) * (pill ? 0px : 8px);
+    background: transparent;
+    visible: amount > 0.005;
+
+    card := Rectangle {
+        x: root.inset;
+        y: root.inset;
+        width: root.width - root.inset * 2;
+        height: root.height - root.inset * 2;
+        border-radius: min(root.corner, min(self.width, self.height) / 2);
+        background: @linear-gradient(180deg, Theme.accent.with-alpha(Theme.sel-top * root.shown), Theme.accent.with-alpha(Theme.sel-bottom * root.shown));
+        border-width: 1px;
+        border-color: Theme.accent.with-alpha(Theme.sel-border * (root.pill ? 0.8 : 1.0) * root.shown);
+
+        GlowRings {
+            width: parent.width;
+            height: parent.height;
+            corner: card.border-radius;
+            reach: root.pill ? 5 : 7;
+            drop: root.pill ? 1px : 2px;
+            strength: Theme.sel-glow * (root.pill ? 0.7 : 1.0) * root.shown;
+        }
+        // The line of light, inside the corners.
+        Rectangle {
+            x: card.border-radius;
+            y: 1px;
+            width: max(0px, parent.width - card.border-radius * 2);
+            height: 1px;
+            background: #FFFFFF.with-alpha(Theme.sheen * (root.pill ? 0.6 : 0.8) * root.shown);
+        }
+    }
+}
+
+// A quiet plate under what the pointer is over.
+export component HoverPlate inherits Rectangle {
+    in property <float> amount: 0;
+    in property <length> corner: Theme.radius-big;
+    visible: amount > 0.005;
+    border-radius: min(corner, min(self.width, self.height) / 2);
+    background: Theme.text.with-alpha(Theme.plate-alpha * min(max(amount, 0.0), 1.0));
+    border-width: 1px;
+    border-color: Theme.text.with-alpha(Theme.plate-border-alpha * min(max(amount, 0.0), 1.0));
+}

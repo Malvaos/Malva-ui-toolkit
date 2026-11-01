@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<defs>
+<linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#aaaab0"/><stop offset="1" stop-color="#5c5c62"/></linearGradient>
+<linearGradient id="gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.5"/><stop offset="0.55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<clipPath id="c"><rect width="128" height="128" rx="29"/></clipPath>
+
+</defs>
+<rect width="128" height="128" rx="29" fill="url(#g)"/>
+<g clip-path="url(#c)">
+<g transform="translate(64 64)" fill="#fff"><circle r="23" fill="none" stroke="#fff" stroke-width="15"/><rect x="-7" y="-41" width="14" height="17" rx="3.5" transform="rotate(0)"/><rect x="-7" y="-41" width="14" height="17" rx="3.5" transform="rotate(45)"/><rect x="-7" y="-41" width="14" height="17" rx="3.5" transform="rotate(90)"/><rect x="-7" y="-41" width="14" height="17" rx="3.5" transform="rotate(135)"/><rect x="-7" y="-41" width="14" height="17" rx="3.5" transform="rotate(180)"/><rect x="-7" y="-41" width="14" height="17" rx="3.5" transform="rotate(225)"/><rect x="-7" y="-41" width="14" height="17" rx="3.5" transform="rotate(270)"/><rect x="-7" y="-41" width="14" height="17" rx="3.5" transform="rotate(315)"/></g>
+<rect width="128" height="76" fill="url(#gl)"/>
+</g>
+<rect x="1" y="1" width="126" height="126" rx="28" fill="none" stroke="#fff" stroke-opacity=".38" stroke-width="2"/>
+<rect x=".5" y=".5" width="127" height="127" rx="28.5" fill="none" stroke="#000" stroke-opacity=".22"/>
+</svg>

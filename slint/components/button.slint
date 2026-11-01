@@ -1,0 +1,227 @@
+// Buttons: Button (primary, secondary, ghost, danger), IconButton and ButtonGroup.
+import { Theme, Size, Radius, Space, Typo, Motion } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+import { FocusRing, ForceState, ControlSize, Sizing } from "base.slint";
+import { Spinner } from "progress.slint";
+import { TipBubble } from "tooltip.slint";
+
+export enum ButtonKind { primary, secondary, ghost, danger }
+
+// A push button. Put it in a layout, or give it a width. `loading` shows a spinner and ignores clicks.
+export component Button inherits Rectangle {
+    in property <string> text;
+    in property <ButtonKind> kind: ButtonKind.secondary;
+    in property <ControlSize> size: ControlSize.medium;
+    in property <string> icon;
+    in property <string> trailing-icon;
+    in property <bool> enabled: true;
+    in property <bool> loading: false;
+    // Shown in a bubble after the pointer rests on the button.
+    in property <string> tooltip;
+    in property <ForceState> force: ForceState.none;
+    out property <bool> has-hover: ta.has-hover || force == ForceState.hover;
+    out property <bool> pressed: (ta.pressed || force == ForceState.pressed) && enabled;
+    out property <bool> keyboard-focus: kbd || force == ForceState.focus;
+    out property <bool> tooltip-visible: tip.showing;
+    callback clicked();
+
+    property <bool> kbd: false;
+    property <bool> hot: has-hover && enabled;
+    property <length> pad: size == ControlSize.small ? 12px : size == ControlSize.large ? 24px : 18px;
+    property <length> font: size == ControlSize.small ? 13px : size == ControlSize.large ? 15px : Typo.body-size;
+    property <length> icon-size: size == ControlSize.large ? 20px : 18px;
+    property <color> label-color: kind == ButtonKind.primary ? Theme.on-accent
+        : kind == ButtonKind.danger ? Theme.on-danger
+        : kind == ButtonKind.ghost ? (enabled ? Theme.accent : Theme.accent.with-alpha(0.4))
+        : (enabled ? Theme.text : Theme.disabled-text);
+
+    height: Sizing.control(size);
+    min-width: self.height;
+    border-radius: Radius.s;
+    background: kind == ButtonKind.primary
+        ? (!enabled ? Theme.accent-disabled : pressed ? Theme.accent-press : hot ? Theme.accent-hover : Theme.accent)
+        : kind == ButtonKind.danger
+        ? (!enabled ? Theme.danger-disabled : pressed ? Theme.danger-press : hot ? Theme.danger-hover : Theme.danger-fill)
+        : kind == ButtonKind.secondary
+        ? (pressed ? Theme.secondary-press : hot ? Theme.secondary-hover : Theme.surface)
+        : (pressed ? Theme.ghost-press : hot ? Theme.ghost-hover : transparent);
+    border-width: kind == ButtonKind.secondary ? 1px : 0px;
+    border-color: enabled ? Theme.border : Theme.line;
+    transform-scale: pressed ? 0.98 : 1.0;
+    animate background { duration: Motion.hover; easing: Motion.curve-out; }
+    animate border-color { duration: Motion.hover; easing: Motion.curve-out; }
+    animate transform-scale { duration: Motion.press; easing: Motion.curve-out; }
+
+    HorizontalLayout {
+        padding-left: root.pad;
+        padding-right: root.pad;
+        spacing: Space.xs;
+        alignment: center;
+        if root.loading: Spinner {
+            width: root.icon-size;
+            height: root.icon-size;
+            y: (parent.height - self.height) / 2;
+            thickness: 2.4px;
+            tone: root.label-color;
+        }
+        if !root.loading && root.icon != "": Icon {
+            name: root.icon;
+            tint: root.label-color;
+            width: root.icon-size;
+            height: root.icon-size;
+            y: (parent.height - self.height) / 2;
+        }
+        if root.text != "": Text {
+            text: root.text;
+            color: root.label-color;
+            font-family: Typo.ui;
+            font-size: root.font;
+            font-weight: Typo.body-strong-weight;
+            vertical-alignment: center;
+            horizontal-alignment: center;
+            animate color { duration: Motion.hover; easing: Motion.curve-out; }
+        }
+        if root.trailing-icon != "": Icon {
+            name: root.trailing-icon;
+            tint: root.label-color;
+            width: root.icon-size;
+            height: root.icon-size;
+            y: (parent.height - self.height) / 2;
+        }
+    }
+    ta := TouchArea {
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                fs.focus();
+            }
+        }
+        mouse-cursor: root.enabled ? MouseCursor.pointer : MouseCursor.default;
+        clicked => {
+            if root.enabled && !root.loading {
+                root.clicked();
+            }
+        }
+    }
+    fs := FocusScope {
+        focus-on-click: false;
+        enabled: root.enabled;
+        focus-gained(reason) => {
+            root.kbd = reason == FocusReason.tab-navigation;
+        }
+        focus-lost => {
+            root.kbd = false;
+        }
+        key-pressed(e) => {
+            if (e.text == " " || e.text == "\n") && root.enabled && !root.loading {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+    FocusRing {
+        active: root.keyboard-focus;
+        radius: root.border-radius;
+        host-width: root.width;
+        host-height: root.height;
+    }
+    tip := TipBubble {
+        text: root.tooltip;
+        hovered: ta.has-hover;
+        host-width: root.width;
+        host-height: root.height;
+    }
+    public function take-focus() {
+        fs.focus();
+    }
+}
+
+// A square button holding one icon. `selected` marks a toggled-on state (toolbar toggles).
+export component IconButton inherits Rectangle {
+    in property <string> icon;
+    in property <ControlSize> size: ControlSize.medium;
+    in property <bool> accent: false;
+    in property <bool> selected: false;
+    in property <bool> enabled: true;
+    // Shown in a bubble after the pointer rests on the button.
+    in property <string> tooltip;
+    in property <ForceState> force: ForceState.none;
+    out property <bool> has-hover: ta.has-hover || force == ForceState.hover;
+    out property <bool> pressed: (ta.pressed || force == ForceState.pressed) && enabled;
+    out property <bool> tooltip-visible: tip.showing;
+    callback clicked();
+
+    property <bool> kbd: false;
+    property <bool> hot: has-hover && enabled;
+    property <color> glyph: !enabled ? Theme.disabled-text : accent ? Theme.on-accent : selected ? Theme.accent : Theme.text;
+
+    width: Sizing.control(size);
+    height: Sizing.control(size);
+    border-radius: Radius.s;
+    background: accent
+        ? (!enabled ? Theme.accent-disabled : pressed ? Theme.accent-press : hot ? Theme.accent-hover : Theme.accent)
+        : (pressed ? Theme.icon-press : hot ? Theme.icon-hover : selected ? Theme.accent-wash : transparent);
+    transform-scale: pressed ? 0.96 : 1.0;
+    animate background { duration: Motion.hover; easing: Motion.curve-out; }
+    animate transform-scale { duration: Motion.press; easing: Motion.curve-out; }
+
+    Icon {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        name: root.icon;
+        tint: root.glyph;
+        width: root.size == ControlSize.small ? Size.icon-s : root.size == ControlSize.large ? Size.icon-l : Size.icon-m;
+        height: self.width;
+    }
+    ta := TouchArea {
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                fs.focus();
+            }
+        }
+        mouse-cursor: root.enabled ? MouseCursor.pointer : MouseCursor.default;
+        clicked => {
+            if root.enabled {
+                root.clicked();
+            }
+        }
+    }
+    fs := FocusScope {
+        focus-on-click: false;
+        enabled: root.enabled;
+        focus-gained(reason) => {
+            root.kbd = reason == FocusReason.tab-navigation;
+        }
+        focus-lost => {
+            root.kbd = false;
+        }
+        key-pressed(e) => {
+            if (e.text == " " || e.text == "\n") && root.enabled {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+    FocusRing {
+        active: root.kbd || root.force == ForceState.focus;
+        radius: root.border-radius;
+        host-width: root.width;
+        host-height: root.height;
+    }
+    tip := TipBubble {
+        text: root.tooltip;
+        hovered: ta.has-hover;
+        host-width: root.width;
+        host-height: root.height;
+    }
+    public function take-focus() {
+        fs.focus();
+    }
+}
+
+// Buttons side by side with the standard gap; the last one is usually the primary action.
+export component ButtonGroup inherits HorizontalLayout {
+    spacing: Space.xs;
+    alignment: end;
+}

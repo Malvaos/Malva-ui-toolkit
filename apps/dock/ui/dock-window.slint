@@ -1,0 +1,97 @@
+import { Theme } from "theme.slint";
+import { DockApp, MinimizedWindow, MenuEntry } from "types.slint";
+import { DockPanel } from "components/dock-panel.slint";
+
+// The window. It holds the dock and passes everything through, so a backend deals with one flat
+// set of properties and callbacks. Everything the backend can set or hear is listed here.
+//
+// The window is the dock's whole area: the glass sits on the screen's edge, in the middle of it,
+// and the rest is clear: room for the icons to grow, the label and the menu. A backend sizes it
+// to fit (for a bottom dock: the screen's width, and about `icon-size * 2.2 + 300px` tall, more if
+// its menus are long) and passes pointer events through everywhere but the glass, the grown
+// icons, the label and the menu.
+export component DockWindow inherits Window {
+    title: "Dock";
+    no-frame: true;
+    default-font-family: Theme.font-family;
+    // What shows through where the dock is not: clear, on a compositor that blends the window.
+    in property <brush> desk: transparent;
+    background: desk;
+    preferred-width: 1100px;
+    preferred-height: 440px;
+
+    // ---- the look. `dark` follows the system's mode; `accent` is the system's accent.
+    in-out property <bool> dark <=> Theme.dark;
+    in-out property <color> accent <=> Theme.accent;
+
+    // ---- what it shows
+    in property <[DockApp]> apps <=> panel.apps;
+    in property <[MinimizedWindow]> minimized-windows <=> panel.minimized;
+    in property <bool> show-launcher <=> panel.show-launcher;
+    in property <bool> trash-full <=> panel.trash-full;
+    // "bottom", "left" or "right".
+    in property <string> edge <=> panel.edge;
+    in property <length> icon-size <=> panel.icon-size;
+    // 1 for none; the icon under the pointer grows to this many times its size.
+    in property <float> magnification <=> panel.magnification;
+    // Slid away off the screen's edge (auto-hide); false brings it back.
+    in property <bool> hidden <=> panel.hidden;
+    in property <bool> animate-entrance <=> panel.animate-entrance;
+    // The glass shows this blurred copy of the wallpaper behind it, when there is one.
+    in property <image> backdrop <=> panel.backdrop;
+    in property <bool> has-backdrop <=> panel.has-backdrop;
+    in property <length> backdrop-x <=> panel.backdrop-x;
+    in property <length> backdrop-y <=> panel.backdrop-y;
+    in property <length> backdrop-width <=> panel.backdrop-width;
+    in property <length> backdrop-height <=> panel.backdrop-height;
+    // The context menu, after `*-context`.
+    in property <[MenuEntry]> menu-entries <=> panel.menu-entries;
+    in property <bool> menu-open <=> panel.menu-open;
+
+    // For design previews and recordings: the pointer drawn as if it were over an app (a position in
+    // apps, fractions between icons), the bin's lid as if something were over it, and the menu of an app
+    // drawn in place. Leave them alone in a real dock.
+    in property <float> preview-pointer <=> panel.preview-pointer;
+    in property <bool> preview-lid <=> panel.preview-lid;
+    in property <int> preview-menu-app <=> panel.preview-menu-app;
+
+    // ---- what it says
+    out property <bool> pointer-inside: panel.pointer-inside;
+    out property <length> footprint: panel.footprint;
+    out property <length> dock-length: panel.dock-length;
+
+    callback app-clicked <=> panel.app-clicked;
+    callback app-context <=> panel.app-context;
+    callback launcher-clicked <=> panel.launcher-clicked;
+    callback launcher-context <=> panel.launcher-context;
+    callback trash-clicked <=> panel.trash-clicked;
+    callback trash-context <=> panel.trash-context;
+    callback window-clicked <=> panel.window-clicked;
+    callback window-context <=> panel.window-context;
+    callback menu-chosen <=> panel.menu-chosen;
+    callback reveal-requested <=> panel.reveal-requested;
+    callback menu-dismissed <=> panel.menu-dismissed;
+    callback reordered <=> panel.reordered;
+    callback app-dragged-off <=> panel.app-dragged-off;
+
+    public pure function app-x(i: int) -> length {
+        return panel.app-x(i);
+    }
+    public pure function window-x(j: int) -> length {
+        return panel.window-x(j);
+    }
+    public pure function launcher-x() -> length {
+        return panel.launcher-x();
+    }
+    public pure function trash-x() -> length {
+        return panel.trash-x();
+    }
+    public pure function icon-y() -> length {
+        return panel.icon-y();
+    }
+
+    panel := DockPanel {
+        width: parent.width;
+        height: parent.height;
+    }
+}

@@ -1,0 +1,611 @@
+// Text entry and choosing: TextField, SearchField, TextArea, Stepper and Dropdown.
+import { Theme, Size, Radius, Space, Typo, Motion, Elevation } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+import { FocusRing, ForceState } from "base.slint";
+
+// A one-line text field, 42 px, with an optional label above and helper or error text below. A non-empty
+// `error` turns the outline red and replaces the helper.
+export component TextField inherits Rectangle {
+    in-out property <string> text <=> ti.text;
+    in property <string> placeholder;
+    in property <string> label;
+    in property <string> helper;
+    in property <string> error;
+    in property <string> icon;
+    in property <bool> enabled: true;
+    in property <bool> read-only: false;
+    in property <bool> password: false;
+    in property <bool> clearable: false;
+    in property <ForceState> force: ForceState.none;
+    out property <bool> has-focus: ti.has-focus || force == ForceState.focus;
+    callback edited(string);
+    callback accepted(string);
+
+    property <bool> reveal: false;
+    property <bool> hot: (area.has-hover || force == ForceState.hover) && enabled;
+    property <bool> invalid: error != "";
+    height: stack.preferred-height;
+    min-width: 120px;
+
+    stack := VerticalLayout {
+        spacing: Space.xxs + 2px;
+        if root.label != "": Text {
+            text: root.label;
+            font-family: Typo.ui;
+            font-size: Typo.label-size;
+            font-weight: Typo.label-weight;
+            color: root.enabled ? Theme.text-2 : Theme.disabled-text;
+        }
+        field := Rectangle {
+            height: Size.field-height;
+            border-radius: Radius.s;
+            background: Theme.field;
+            border-width: 1px;
+            border-color: !root.enabled ? Theme.line : root.invalid ? Theme.danger : root.hot && !root.has-focus ? Theme.text-2.with-alpha(0.55) : Theme.field-border;
+            opacity: root.enabled ? 1.0 : 0.7;
+            animate border-color { duration: Motion.hover; easing: Motion.curve-out; }
+            // the 2 px ring of focus or error, over the 1 px outline
+            Rectangle {
+                border-radius: parent.border-radius;
+                border-width: 2px;
+                border-color: root.invalid ? Theme.danger : Theme.accent;
+                opacity: (root.has-focus || root.invalid) ? 1 : 0;
+                animate opacity { duration: Motion.hover; easing: Motion.curve-out; }
+            }
+            area := TouchArea {
+                mouse-cursor: root.enabled ? MouseCursor.text : MouseCursor.default;
+                clicked => {
+                    if root.enabled && !root.read-only {
+                        ti.focus();
+                    }
+                }
+            }
+            HorizontalLayout {
+                padding-left: Space.s + 2px;
+                padding-right: Space.xs;
+                spacing: Space.xs;
+                if root.icon != "": Icon {
+                    name: root.icon;
+                    tint: root.has-focus ? Theme.accent : Theme.muted;
+                    width: Size.icon-m;
+                    height: Size.icon-m;
+                    y: (parent.height - self.height) / 2;
+                }
+                Rectangle {
+                    ti := TextInput {
+                        width: parent.width;
+                        height: parent.height;
+                        enabled: root.enabled;
+                        read-only: root.read-only;
+                        single-line: true;
+                        input-type: root.password && !root.reveal ? InputType.password : InputType.text;
+                        font-family: Typo.ui;
+                        font-size: Typo.body-size;
+                        color: root.enabled ? Theme.text : Theme.disabled-text;
+                        selection-background-color: Theme.accent.with-alpha(0.30);
+                        selection-foreground-color: Theme.text;
+                        vertical-alignment: center;
+                        edited => {
+                            root.edited(self.text);
+                        }
+                        accepted => {
+                            root.accepted(self.text);
+                        }
+                    }
+                    if ti.text == "" && ti.preedit-text == "": Text {
+                        width: parent.width;
+                        height: parent.height;
+                        text: root.placeholder;
+                        font-family: Typo.ui;
+                        font-size: Typo.body-size;
+                        color: Theme.muted;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+                }
+                if root.clearable && ti.text != "" && root.enabled && !root.read-only: Rectangle {
+                    width: 28px;
+                    y: (parent.height - self.height) / 2;
+                    height: 28px;
+                    border-radius: Radius.xs + 2px;
+                    background: clear-area.has-hover ? Theme.icon-hover : transparent;
+                    Icon {
+                        x: (parent.width - self.width) / 2;
+                        y: (parent.height - self.height) / 2;
+                        width: Size.icon-s;
+                        height: Size.icon-s;
+                        name: "close";
+                        tint: Theme.text-2;
+                    }
+                    clear-area := TouchArea {
+                        mouse-cursor: MouseCursor.pointer;
+                        clicked => {
+                            ti.text = "";
+                            root.edited("");
+                            ti.focus();
+                        }
+                    }
+                }
+                if root.password && root.enabled: Rectangle {
+                    width: 28px;
+                    y: (parent.height - self.height) / 2;
+                    height: 28px;
+                    border-radius: Radius.xs + 2px;
+                    background: eye-area.has-hover ? Theme.icon-hover : transparent;
+                    Icon {
+                        x: (parent.width - self.width) / 2;
+                        y: (parent.height - self.height) / 2;
+                        width: Size.icon-s;
+                        height: Size.icon-s;
+                        name: root.reveal ? "eye-off" : "eye";
+                        tint: Theme.text-2;
+                    }
+                    eye-area := TouchArea {
+                        mouse-cursor: MouseCursor.pointer;
+                        clicked => {
+                            root.reveal = !root.reveal;
+                        }
+                    }
+                }
+            }
+        }
+        if root.invalid || root.helper != "": Text {
+            text: root.invalid ? root.error : root.helper;
+            font-family: Typo.ui;
+            font-size: Typo.caption-size;
+            color: root.invalid ? Theme.danger-text : Theme.muted;
+            wrap: word-wrap;
+        }
+    }
+    public function take-focus() {
+        ti.focus();
+    }
+    public function select-all() {
+        ti.select-all();
+    }
+}
+
+// A search field: pill-shaped, with a magnifier, and a clear button once there is something to clear.
+// Escape clears it.
+export component SearchField inherits Rectangle {
+    in-out property <string> text <=> ti.text;
+    in property <string> placeholder: "Search";
+    in property <bool> enabled: true;
+    in property <ForceState> force: ForceState.none;
+    out property <bool> has-focus: ti.has-focus || force == ForceState.focus;
+    callback edited(string);
+    callback accepted(string);
+
+    height: Size.field-height;
+    min-width: 160px;
+    border-radius: self.height / 2;
+    background: Theme.search-fill;
+    opacity: enabled ? 1.0 : 0.6;
+    Rectangle {
+        border-radius: parent.border-radius;
+        border-width: 2px;
+        border-color: Theme.accent;
+        opacity: root.has-focus ? 1 : 0;
+        animate opacity { duration: Motion.hover; easing: Motion.curve-out; }
+    }
+    TouchArea {
+        mouse-cursor: MouseCursor.text;
+        clicked => {
+            if root.enabled {
+                ti.focus();
+            }
+        }
+    }
+    HorizontalLayout {
+        padding-left: Space.s + 2px;
+        padding-right: Space.s;
+        spacing: Space.xs;
+        Icon {
+            name: "search";
+            tint: root.has-focus ? Theme.accent : Theme.text-2;
+            width: Size.icon-m;
+            height: Size.icon-m;
+            y: (parent.height - self.height) / 2;
+        }
+        Rectangle {
+            ti := TextInput {
+                width: parent.width;
+                height: parent.height;
+                enabled: root.enabled;
+                single-line: true;
+                font-family: Typo.ui;
+                font-size: Typo.body-size;
+                color: Theme.text;
+                selection-background-color: Theme.accent.with-alpha(0.30);
+                selection-foreground-color: Theme.text;
+                vertical-alignment: center;
+                edited => {
+                    root.edited(self.text);
+                }
+                accepted => {
+                    root.accepted(self.text);
+                }
+                key-pressed(e) => {
+                    if e.text == Key.Escape && self.text != "" {
+                        self.text = "";
+                        root.edited("");
+                        return accept;
+                    }
+                    return reject;
+                }
+            }
+            if ti.text == "" && ti.preedit-text == "": Text {
+                width: parent.width;
+                height: parent.height;
+                text: root.placeholder;
+                font-family: Typo.ui;
+                font-size: Typo.body-size;
+                color: Theme.muted;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+        if ti.text != "": Rectangle {
+            width: 24px;
+            height: 24px;
+            y: (parent.height - self.height) / 2;
+            border-radius: 12px;
+            background: clear-area.has-hover ? Theme.icon-hover : transparent;
+            Icon {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                width: 14px;
+                height: 14px;
+                name: "close";
+                tint: Theme.text-2;
+            }
+            clear-area := TouchArea {
+                mouse-cursor: MouseCursor.pointer;
+                clicked => {
+                    ti.text = "";
+                    root.edited("");
+                    ti.focus();
+                }
+            }
+        }
+    }
+    public function take-focus() {
+        ti.focus();
+    }
+}
+
+// A multi-line field that scrolls to follow the cursor. Give it a height.
+export component TextArea inherits Rectangle {
+    in-out property <string> text <=> ti.text;
+    in property <string> placeholder;
+    in property <bool> enabled: true;
+    in property <bool> read-only: false;
+    in property <string> error;
+    in property <ForceState> force: ForceState.none;
+    out property <bool> has-focus: ti.has-focus || force == ForceState.focus;
+    callback edited(string);
+
+    min-height: 80px;
+    min-width: 160px;
+    border-radius: Radius.s;
+    background: Theme.field;
+    border-width: 1px;
+    border-color: root.error != "" ? Theme.danger : Theme.field-border;
+    opacity: enabled ? 1.0 : 0.7;
+    clip: true;
+    Rectangle {
+        border-radius: parent.border-radius;
+        border-width: 2px;
+        border-color: root.error != "" ? Theme.danger : Theme.accent;
+        opacity: (root.has-focus || root.error != "") ? 1 : 0;
+        animate opacity { duration: Motion.hover; easing: Motion.curve-out; }
+    }
+    flick := Flickable {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: parent.height;
+        content-height: max(ti.preferred-height + 2 * Space.s, self.height);
+        ti := TextInput {
+            x: Space.s + 2px;
+            y: Space.s;
+            width: flick.width - 2 * (Space.s + 2px);
+            single-line: false;
+            wrap: word-wrap;
+            enabled: root.enabled;
+            read-only: root.read-only;
+            font-family: Typo.ui;
+            font-size: Typo.body-size;
+            color: Theme.text;
+            selection-background-color: Theme.accent.with-alpha(0.30);
+            selection-foreground-color: Theme.text;
+            edited => {
+                root.edited(self.text);
+            }
+            cursor-position-changed(p) => {
+                if p.y + ti.y < 0px {
+                    flick.content-y = -(p.y - Space.xs);
+                }
+                if p.y + ti.y + 22px > flick.height {
+                    flick.content-y = -(p.y + 22px + Space.xs - flick.height + ti.y);
+                }
+            }
+        }
+        if ti.text == "" && ti.preedit-text == "": Text {
+            x: Space.s + 2px;
+            y: Space.s;
+            text: root.placeholder;
+            font-family: Typo.ui;
+            font-size: Typo.body-size;
+            color: Theme.muted;
+        }
+    }
+    public function take-focus() {
+        ti.focus();
+    }
+}
+
+// A number with a minus and a plus: [ - ] 12 [ + ].
+export component Stepper inherits Rectangle {
+    in-out property <int> value: 0;
+    in property <int> minimum: 0;
+    in property <int> maximum: 100;
+    in property <int> step: 1;
+    in property <bool> enabled: true;
+    callback changed(int);
+
+    height: Size.control-m;
+    width: 132px;
+    border-radius: Radius.s;
+    background: Theme.surface;
+    border-width: 1px;
+    border-color: Theme.border;
+    opacity: enabled ? 1.0 : 0.5;
+    clip: true;
+
+    function set(v: int) {
+        let c = min(max(v, root.minimum), root.maximum);
+        if c != root.value {
+            root.value = c;
+            root.changed(c);
+        }
+    }
+    HorizontalLayout {
+        Rectangle {
+            width: 40px;
+            background: dec.pressed ? Theme.icon-press : dec.has-hover && root.value > root.minimum ? Theme.icon-hover : transparent;
+            Icon {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                width: Size.icon-m;
+                height: Size.icon-m;
+                name: "minus";
+                tint: root.value > root.minimum ? Theme.text : Theme.disabled-text;
+            }
+            dec := TouchArea {
+                enabled: root.enabled && root.value > root.minimum;
+                clicked => {
+                    root.set(root.value - root.step);
+                }
+            }
+        }
+        Text {
+            text: root.value;
+            font-family: Typo.ui;
+            font-size: Typo.body-size;
+            font-weight: Typo.body-strong-weight;
+            color: Theme.text;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        Rectangle {
+            width: 40px;
+            background: inc.pressed ? Theme.icon-press : inc.has-hover && root.value < root.maximum ? Theme.icon-hover : transparent;
+            Icon {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                width: Size.icon-m;
+                height: Size.icon-m;
+                name: "plus";
+                tint: root.value < root.maximum ? Theme.text : Theme.disabled-text;
+            }
+            inc := TouchArea {
+                enabled: root.enabled && root.value < root.maximum;
+                clicked => {
+                    root.set(root.value + root.step);
+                }
+            }
+        }
+    }
+}
+
+// The list a dropdown opens: one row per option, the current one ticked. Used by Dropdown, and usable alone.
+export component OptionList inherits Rectangle {
+    in property <[string]> model;
+    in property <int> current-index: -1;
+    in property <int> highlighted: -1;
+    callback picked(int);
+
+    border-radius: Radius.m;
+    background: Theme.raised;
+    border-width: 1px;
+    border-color: Theme.border;
+    drop-shadow-color: Theme.shadow.with-alpha(Theme.shadow-alpha2);
+    drop-shadow-blur: Elevation.blur2;
+    drop-shadow-offset-y: Elevation.y2;
+    preferred-height: list.preferred-height;
+    list := VerticalLayout {
+        padding: 6px;
+        spacing: 2px;
+        for item[i] in root.model: Rectangle {
+            height: 36px;
+            border-radius: Radius.s - 2px;
+            background: row.pressed ? Theme.ghost-press : (row.has-hover || root.highlighted == i) ? Theme.accent-wash : transparent;
+            animate background { duration: Motion.press; }
+            HorizontalLayout {
+                padding-left: Space.s;
+                padding-right: Space.s;
+                spacing: Space.xs;
+                Text {
+                    text: item;
+                    font-family: Typo.ui;
+                    font-size: Typo.body-size;
+                    font-weight: root.current-index == i ? Typo.body-strong-weight : Typo.body-weight;
+                    color: root.current-index == i ? Theme.accent : Theme.text;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                if root.current-index == i: Icon {
+                    name: "check";
+                    tint: Theme.accent;
+                    width: Size.icon-s + 2px;
+                    height: Size.icon-s + 2px;
+                    y: (parent.height - self.height) / 2;
+                }
+            }
+            row := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.picked(i);
+                }
+            }
+        }
+    }
+}
+
+// A choice from a list: a field that opens an OptionList. Up and Down move through the options without
+// opening it; Space or Enter opens it.
+export component Dropdown inherits Rectangle {
+    in property <[string]> model;
+    in-out property <int> current-index: -1;
+    in property <string> placeholder: "Select";
+    in property <string> label;
+    in property <bool> enabled: true;
+    in property <ForceState> force: ForceState.none;
+    callback selected(int);
+
+    property <bool> kbd: false;
+    property <bool> hot: (btn.has-hover || force == ForceState.hover) && enabled;
+    property <bool> is-open: false;
+    height: stack.preferred-height;
+    min-width: 140px;
+
+    stack := VerticalLayout {
+        spacing: Space.xxs + 2px;
+        if root.label != "": Text {
+            text: root.label;
+            font-family: Typo.ui;
+            font-size: Typo.label-size;
+            font-weight: Typo.label-weight;
+            color: Theme.text-2;
+        }
+        field := Rectangle {
+            height: Size.field-height;
+            border-radius: Radius.s;
+            background: Theme.field;
+            border-width: 1px;
+            border-color: !root.enabled ? Theme.line : (root.is-open || root.kbd) ? Theme.accent : root.hot ? Theme.text-2.with-alpha(0.55) : Theme.field-border;
+            opacity: root.enabled ? 1.0 : 0.7;
+            animate border-color { duration: Motion.hover; easing: Motion.curve-out; }
+            HorizontalLayout {
+                padding-left: Space.s + 2px;
+                padding-right: Space.s;
+                spacing: Space.xs;
+                Text {
+                    text: root.current-index >= 0 && root.current-index < root.model.length ? root.model[root.current-index] : root.placeholder;
+                    font-family: Typo.ui;
+                    font-size: Typo.body-size;
+                    color: root.current-index >= 0 ? Theme.text : Theme.muted;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                Icon {
+                    name: "chevron-down";
+                    tint: Theme.text-2;
+                    width: Size.icon-m;
+                    height: Size.icon-m;
+                    y: (parent.height - self.height) / 2;
+                    transform-rotation: root.is-open ? 180deg : 0deg;
+                    animate transform-rotation { duration: Motion.open; easing: Motion.curve-spring; }
+                }
+            }
+            btn := TouchArea {
+                pointer-event(e) => {
+                    if e.kind == PointerEventKind.down {
+                        fs.focus();
+                    }
+                }
+                mouse-cursor: root.enabled ? MouseCursor.pointer : MouseCursor.default;
+                clicked => {
+                    if root.enabled {
+                        root.open();
+                    }
+                }
+            }
+            FocusRing {
+                active: root.kbd || root.force == ForceState.focus;
+                radius: field.border-radius;
+                host-width: field.width;
+                host-height: field.height;
+            }
+        }
+    }
+    fs := FocusScope {
+        focus-on-click: false;
+        enabled: root.enabled;
+        focus-gained(reason) => {
+            root.kbd = reason == FocusReason.tab-navigation;
+        }
+        focus-lost => {
+            root.kbd = false;
+        }
+        key-pressed(e) => {
+            if !root.enabled {
+                return reject;
+            }
+            if e.text == " " || e.text == "\n" {
+                root.open();
+                return accept;
+            }
+            if e.text == Key.DownArrow && root.current-index < root.model.length - 1 {
+                root.current-index += 1;
+                root.selected(root.current-index);
+                return accept;
+            }
+            if e.text == Key.UpArrow && root.current-index > 0 {
+                root.current-index -= 1;
+                root.selected(root.current-index);
+                return accept;
+            }
+            return reject;
+        }
+    }
+    pop := PopupWindow {
+        x: 0px;
+        y: root.height + 4px;
+        width: root.width;
+        height: list.preferred-height;
+        close-policy: close-on-click-outside;
+        list := OptionList {
+            width: parent.width;
+            height: parent.height;
+            model: root.model;
+            current-index: root.current-index;
+            picked(i) => {
+                root.current-index = i;
+                root.selected(i);
+                root.is-open = false;
+                pop.close();
+            }
+        }
+    }
+    public function open() {
+        if root.enabled {
+            root.is-open = true;
+            pop.show();
+        }
+    }
+    public function take-focus() {
+        fs.focus();
+    }
+}

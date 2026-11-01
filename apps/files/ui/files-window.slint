@@ -1,0 +1,91 @@
+import { Theme } from "theme.slint";
+import { FileEntry, Place } from "types.slint";
+import { FilesApp } from "components/files-app.slint";
+
+// The window. It holds the app and passes everything through, so a backend deals with one flat
+// set of properties and callbacks. Everything the backend can set or hear is listed here.
+export component FilesWindow inherits Window {
+    title: "Files";
+    min-width: 640px;
+    min-height: 420px;
+    preferred-width: 980px;
+    preferred-height: 640px;
+    // Set before the window is shown. A frameless window draws its own rounded corners and edge,
+    // its own buttons and a header that drags it; it wants a compositor that blends transparency.
+    in property <bool> frameless: false;
+    no-frame: frameless;
+    default-font-family: Theme.font-family;
+    background: frameless ? transparent : Theme.bg;
+
+    // The look. `dark` follows the system's mode; `accent` is the system's accent.
+    in-out property <bool> dark <=> Theme.dark;
+    in-out property <color> accent <=> Theme.accent;
+
+    in property <string> folder-name <=> app.folder-name;
+    in property <[Place]> places <=> app.places;
+    in property <int> selected-place <=> app.selected-place;
+    in property <[string]> crumbs <=> app.crumbs;
+    in property <[FileEntry]> entries <=> app.entries;
+    in property <int> view-mode <=> app.view-mode;
+    in property <length> icon-size <=> app.icon-size;
+    in property <bool> can-back <=> app.can-back;
+    in property <bool> can-forward <=> app.can-forward;
+    in property <string> empty-text <=> app.empty-text;
+    in property <string> status <=> app.status;
+    in property <string> sort-column <=> app.sort-column;
+    in property <bool> sort-ascending <=> app.sort-ascending;
+    in property <length> sidebar-width <=> app.sidebar-width;
+    in property <bool> animate-entrance <=> app.animate-entrance;
+    in-out property <bool> editing <=> app.editing;
+    in-out property <string> editor-text <=> app.editor-text;
+    out property <int> columns: app.columns;
+
+    callback place-clicked <=> app.place-clicked;
+    callback place-context <=> app.place-context;
+    callback eject-clicked <=> app.eject-clicked;
+    callback back <=> app.back;
+    callback forward <=> app.forward;
+    callback crumb-clicked <=> app.crumb-clicked;
+    callback path-accepted <=> app.path-accepted;
+    callback search-edited <=> app.search-edited;
+    callback view-mode-selected <=> app.view-mode-selected;
+    callback sort-requested <=> app.sort-requested;
+    callback item-pressed <=> app.item-pressed;
+    callback item-activated <=> app.item-activated;
+    callback item-context <=> app.item-context;
+    callback background-pressed <=> app.background-pressed;
+    callback background-context <=> app.background-context;
+    callback window-control <=> app.window-control;
+    callback window-drag <=> app.window-drag;
+    // A key the app maps to a command: "up", "down", "left", "right", "home", "end", "open",
+    // "parent", "back", "forward", "select-all", "toggle-hidden", "clear-selection", "delete".
+    callback key-command <=> app.key-command;
+
+    // Call before replacing `entries` when a folder opens, for the items to arrive one by one.
+    public function folder-opening() {
+        app.folder-opening();
+    }
+    // Scrolls to an item, as the arrow keys move the selection.
+    public function reveal(index: int) {
+        app.reveal(index);
+    }
+    public function open-editor() {
+        app.open-editor();
+    }
+    public function focus-items() {
+        app.focus-items();
+    }
+
+    app := FilesApp {
+        x: 0;
+        y: 0;
+        width: parent.width;
+        height: parent.height;
+        rounded: root.frameless;
+        show-window-controls: root.frameless;
+    }
+
+    init => {
+        app.focus-items();
+    }
+}
