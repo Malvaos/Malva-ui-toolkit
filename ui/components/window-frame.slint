@@ -1,0 +1,61 @@
+import { Theme } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+
+/// A glass toolbar strip along the top of a window or a pane. Children are laid out left to right.
+export component Toolbar inherits Rectangle {
+    in property <length> content-padding: 12px;
+    height: 52px;
+    background: Theme.glass;
+    Rectangle { y: parent.height - 1px; height: 1px; background: Theme.line; }
+    HorizontalLayout { padding-left: root.content-padding; padding-right: root.content-padding; spacing: 8px; @children }
+}
+
+component Dot inherits Rectangle {
+    in property <color> tint;
+    in property <string> glyph;
+    in property <bool> group-hover;
+    callback clicked();
+    width: 12px; height: 12px; border-radius: 6px; background: tint;
+    Icon { visible: root.group-hover; name: root.glyph; tint: #00000099; size: 9px; x: 1.5px; y: 1.5px; }
+    TouchArea { clicked => { root.clicked(); } }
+}
+
+/// A window: rounded glass body with a title bar, three window dots and room for content.
+export component WindowFrame inherits Rectangle {
+    in property <string> title;
+    in property <bool> active: true;
+    callback close();
+    callback minimize();
+    callback maximize();
+    background: Theme.surface;
+    border-radius: Theme.radius-window;
+    border-width: 1px;
+    border-color: Theme.line-strong;
+    drop-shadow-blur: 56px; drop-shadow-offset-y: 28px; drop-shadow-color: Theme.shadow-tint.with-alpha(Theme.shadow-3);
+    VerticalLayout {
+        Rectangle {
+            height: 44px;
+            HorizontalLayout {
+                padding-left: 16px; spacing: 8px; alignment: start;
+                VerticalLayout {
+                    alignment: center;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Dot { tint: root.active ? #E25563 : Theme.track; glyph: "close"; group-hover: dots.has-hover; clicked => { root.close(); } }
+                        Dot { tint: root.active ? #E5A93C : Theme.track; glyph: "minus"; group-hover: dots.has-hover; clicked => { root.minimize(); } }
+                        Dot { tint: root.active ? #55A83A : Theme.track; glyph: "maximize"; group-hover: dots.has-hover; clicked => { root.maximize(); } }
+                    }
+                }
+            }
+            dots := TouchArea { x: 0px; width: 76px; enabled: false; }
+            Text { text: root.title; color: root.active ? Theme.muted : Theme.muted.with-alpha(0.6); font-family: Theme.font-family; font-size: Theme.text-body-sm; font-weight: Theme.weight-ui; horizontal-alignment: center; vertical-alignment: center; }
+            Rectangle { y: parent.height - 1px; height: 1px; background: Theme.line; }
+        }
+        Rectangle {
+            clip: true;
+            min-height: 0px;
+            vertical-stretch: 1;
+            @children
+        }
+    }
+}

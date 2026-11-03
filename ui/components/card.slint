@@ -1,0 +1,24 @@
+import { Theme } from "../tokens.slint";
+
+/// A surface for grouped content. `elevation` 0 (flat) .. 4 (modal); `interactive` adds hover/press.
+export component Card inherits Rectangle {
+    in property <int> elevation: 1;
+    in property <length> content-padding: Theme.space-md;
+    in property <bool> interactive: false;
+    in property <bool> selected: false;
+    in property <color> fill: Theme.surface;
+    callback clicked();
+    out property <bool> hovered: area.has-hover;
+
+    background: interactive && area.has-hover ? fill.mix(Theme.raised, 0.4) : fill;
+    border-radius: Theme.radius-card;
+    border-width: selected ? Theme.ring-width : 1px;
+    border-color: selected ? Theme.accent : Theme.line;
+    drop-shadow-blur: elevation <= 0 ? 0px : elevation == 1 ? 3px : elevation == 2 ? 20px : elevation == 3 ? 56px : 72px;
+    drop-shadow-offset-y: elevation <= 0 ? 0px : elevation == 1 ? 1px : elevation == 2 ? 8px : elevation == 3 ? 28px : 40px;
+    drop-shadow-color: Theme.shadow-tint.with-alpha(elevation <= 0 ? 0.0 : elevation == 1 ? Theme.shadow-1 : elevation == 2 ? Theme.shadow-2 : elevation == 3 ? Theme.shadow-3 : Theme.shadow-4);
+    animate background { duration: Theme.dur-feedback; }
+
+    area := TouchArea { enabled: root.interactive; mouse-cursor: root.interactive ? MouseCursor.pointer : MouseCursor.default; clicked => { root.clicked(); } }
+    VerticalLayout { padding: root.content-padding; @children }
+}

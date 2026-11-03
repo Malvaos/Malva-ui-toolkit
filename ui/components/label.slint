@@ -1,0 +1,25 @@
+import { Theme } from "../tokens.slint";
+
+export enum TextRole { display, headline, title, subtitle, body, body-sm, caption, mono }
+
+/// Text in one of Malva's roles. Hierarchy comes from size and weight steps: 400 body, the dial's
+/// ~500 for UI labels, 650 for titles only.
+export component Label inherits Text {
+    in property <TextRole> role: TextRole.body;
+    in property <bool> muted: false;
+    in property <bool> strong: false;
+
+    font-family: role == TextRole.mono ? Theme.font-family-mono : Theme.font-family;
+    font-size: role == TextRole.display ? Theme.text-display
+        : role == TextRole.headline ? Theme.text-headline
+        : role == TextRole.title ? Theme.text-title
+        : role == TextRole.subtitle ? Theme.text-subtitle
+        : role == TextRole.body-sm ? Theme.text-body-sm
+        : role == TextRole.caption ? Theme.text-caption
+        : Theme.text-body;
+    font-weight: (role == TextRole.display || role == TextRole.headline || role == TextRole.title) ? Theme.weight-title
+        : (role == TextRole.subtitle || role == TextRole.caption || strong) ? Theme.weight-ui
+        : Theme.weight-body;
+    color: muted || role == TextRole.caption ? Theme.muted : Theme.ink;
+    wrap: word-wrap;
+}

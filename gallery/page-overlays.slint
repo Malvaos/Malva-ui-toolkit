@@ -1,0 +1,58 @@
+import { Menu, MenuItem, MenuSeparator, MenuHeading, Dialog, Toast, Banner, Tooltip, Tone, Theme, Label, TextRole, HStack, VStack, Button, ButtonVariant } from "../ui/malva.slint";
+import { PageFrame, Section, Cell } from "common.slint";
+
+export component PageOverlays inherits PageFrame {
+    title: "Overlays";
+    lead: "Menus, dialogs, toasts, banners and tooltips. Destructive choices are rose and never the default.";
+    HStack {
+        spacing: 32px; alignment: start;
+        VStack {
+            spacing: 22px; alignment: start;
+            Section {
+                title: "Menu";
+                Menu {
+                    width: 230px;
+                    MenuHeading { text: "FILE"; }
+                    MenuItem { icon: "plus"; text: "New Window"; shortcut: "Ctrl N"; }
+                    MenuItem { icon: "folder"; text: "Open..."; shortcut: "Ctrl O"; }
+                    MenuItem { text: "Show hidden files"; checked: true; }
+                    MenuItem { icon: "share"; text: "Share"; submenu: true; }
+                    MenuItem { icon: "lock"; text: "Locked item"; enabled: false; }
+                    MenuSeparator { }
+                    MenuItem { icon: "trash"; text: "Move to Bin"; destructive: true; shortcut: "Del"; }
+                }
+            }
+            Section {
+                title: "Tooltip, toast";
+                VStack { spacing: 14px; alignment: start;
+                    Tooltip { width: 170px; text: "Open in new window"; }
+                    Toast { width: 290px; text: "Backup finished"; action: "View"; }
+                    Toast { width: 290px; text: "Could not eject the drive"; icon: "alert-circle"; tone: Tone.danger; action: "Retry"; }
+                }
+            }
+        }
+        VStack {
+            spacing: 22px; alignment: start;
+            Section {
+                title: "Dialog";
+                Dialog { width: 340px; title: "Install updates?"; message: "LionOS 15.2 adds security fixes and a faster file search. The restart takes about a minute."; icon: "download"; confirm-text: "Install and restart"; cancel-text: "Later"; }
+            }
+            Section {
+                title: "Destructive dialog";
+                Dialog { width: 340px; title: "Erase \"Backup Vault\"?"; message: "Everything on this drive will be deleted. This cannot be undone."; icon: "trash"; destructive: true; confirm-text: "Erase"; cancel-text: "Keep"; }
+            }
+        }
+        VStack {
+            spacing: 22px; alignment: start;
+            Section {
+                title: "Banner";
+                VStack { spacing: 12px;
+                    Banner { width: 300px; title: "2 high-impact startup apps"; text: "They slow down sign-in. Review them in Startup."; }
+                    Banner { width: 300px; title: "Backup complete"; text: "1.2 GB copied to Backup Vault."; icon: "check-circle"; tone: Tone.success; }
+                    Banner { width: 300px; title: "Disk almost full"; text: "Only 4 GB left on System."; icon: "alert-circle"; tone: Tone.danger; }
+                    Banner { width: 300px; title: "A new version is available"; icon: "info"; tone: Tone.accent; closable: false; }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,102 @@
+import { WindowFrame, Sidebar, SidebarItem, SidebarHeading, DocumentTabs, ColumnHeader, PropertyRow, CommandPalette, PaletteItem, Toast, Toolbar, IconButton, TextField, Segmented, Button, ButtonVariant, Icon, Theme, Label, TextRole, HStack, VStack, Card, Divider, Kbd } from "../ui/malva.slint";
+import { PageFrame, Section } from "common.slint";
+
+component FileRow inherits Rectangle {
+    in property <string> icon;
+    in property <string> name;
+    in property <string> size;
+    in property <string> modified;
+    in property <string> kind;
+    in property <bool> selected;
+    in property <color> tint: Theme.accent;
+    height: 34px;
+    border-radius: Theme.radius-sm;
+    background: selected ? Theme.accent-soft : area.has-hover ? Theme.accent-wash : transparent;
+    HorizontalLayout {
+        padding-left: 10px; spacing: 0px;
+        HorizontalLayout { width: 200px; spacing: 10px; VerticalLayout { alignment: center; Icon { name: root.icon; tint: root.tint; size: 18px; } } Text { text: root.name; color: Theme.ink; font-family: Theme.font-family; font-size: Theme.text-body; font-weight: Theme.weight-ui; vertical-alignment: center; overflow: elide; } }
+        Text { width: 80px; text: root.size; color: Theme.muted; font-family: Theme.font-family; font-size: Theme.text-body-sm; vertical-alignment: center; }
+        Text { width: 110px; text: root.modified; color: Theme.muted; font-family: Theme.font-family; font-size: Theme.text-body-sm; vertical-alignment: center; }
+        Text { text: root.kind; color: Theme.muted; font-family: Theme.font-family; font-size: Theme.text-body-sm; vertical-alignment: center; }
+    }
+    area := TouchArea { mouse-cursor: MouseCursor.pointer; }
+}
+
+export component PageFiles inherits PageFrame {
+    title: "Files patterns";
+    lead: "A file manager assembled from the kit: document tabs, sortable columns, an inspector, a command palette and an undo toast.";
+    in property <[PaletteItem]> commands: [
+        { icon: "sort", title: "Sort by name", hint: "sort", shortcut: "Ctrl+1" },
+        { icon: "sort", title: "Sort by size", hint: "sort", shortcut: "Ctrl+2" },
+        { icon: "sort", title: "Sort by date modified", hint: "sort", shortcut: "Ctrl+3" },
+        { icon: "sort", title: "Reverse order", hint: "sort", shortcut: "Ctrl+4" },
+        { icon: "folder", title: "Folders first", hint: "sort", shortcut: "" },
+    ];
+    VStack {
+        spacing: 16px;
+        Rectangle {
+            height: 452px;
+            WindowFrame {
+                x: 0px; width: 968px; height: 444px; title: "Documents";
+                VerticalLayout {
+                    DocumentTabs { tabs: ["Documents", "Pictures", "Projects"]; current: 0; }
+                    HorizontalLayout {
+                        Sidebar {
+                            content-width: 190px;
+                            SidebarHeading { text: "FAVORITES"; }
+                            SidebarItem { icon: "home"; text: "Home"; }
+                            SidebarItem { icon: "folder"; text: "Documents"; active: true; }
+                            SidebarItem { icon: "download"; text: "Downloads"; }
+                            SidebarItem { icon: "music"; text: "Music"; }
+                            SidebarHeading { text: "LOCATIONS"; }
+                            SidebarItem { icon: "trash"; text: "Trash"; }
+                        }
+                        VerticalLayout {
+                            horizontal-stretch: 1;
+                            Toolbar {
+                                IconButton { icon: "arrow-left"; } IconButton { icon: "arrow-right"; enabled: false; }
+                                Rectangle { horizontal-stretch: 1; }
+                                Segmented { width: 90px; options: ["Grid", "List"]; current-index: 1; }
+                                TextField { width: 180px; leading-icon: "search"; placeholder: "Search"; }
+                            }
+                            VerticalLayout {
+                                padding: 8px; spacing: 0px; alignment: start;
+                                HorizontalLayout { padding-left: 0px; ColumnHeader { width: 210px; text: "Name"; sorted: true; } ColumnHeader { width: 80px; text: "Size"; } ColumnHeader { width: 110px; text: "Modified"; } ColumnHeader { text: "Kind"; } }
+                                FileRow { icon: "folder"; name: "Reports"; size: "2 items"; modified: "23 Oct 2026"; kind: "Folder"; tint: Theme.series-4; }
+                                FileRow { icon: "file"; name: "budget.ods"; size: "88 KB"; modified: "22 Oct 2026"; kind: "Spreadsheet"; tint: Theme.series-3; }
+                                FileRow { icon: "file"; name: "letter.txt"; size: "3 KB"; modified: "16 Oct 2026"; kind: "Document"; }
+                                FileRow { icon: "music"; name: "meeting-notes.mp3"; size: "5.2 MB"; modified: "22 Oct 2026"; kind: "Audio"; tint: Theme.series-6; }
+                                FileRow { icon: "file"; name: "thesis.docx"; size: "1.9 MB"; modified: "25 Sep 2026"; kind: "Document"; selected: true; tint: Theme.series-2; }
+                            }
+                        }
+                        Rectangle {
+                            width: 230px;
+                            Rectangle { x: 0px; width: 1px; background: Theme.line; }
+                            VerticalLayout {
+                                padding: 16px; spacing: 8px; alignment: start;
+                                HorizontalLayout { alignment: center; Rectangle { width: 64px; height: 64px; border-radius: 16px; background: Theme.series-2.with-alpha(0.16); Icon { name: "file"; tint: Theme.series-2; size: 34px; x: 15px; y: 15px; } } }
+                                Label { text: "thesis.docx"; role: TextRole.subtitle; horizontal-alignment: center; }
+                                Label { text: "Document - 1.9 MB"; role: TextRole.body-sm; muted: true; horizontal-alignment: center; }
+                                PropertyRow { label: "Kind"; value: "Document"; }
+                                PropertyRow { label: "Size"; value: "1.9 MB"; }
+                                PropertyRow { label: "Modified"; value: "25 Sep 2026"; }
+                                PropertyRow { label: "Where"; value: "/home/Documents"; }
+                                HorizontalLayout { spacing: 8px; Button { text: "Open"; horizontal-stretch: 1; } Button { text: "Rename"; variant: ButtonVariant.secondary; horizontal-stretch: 1; } }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        HStack {
+            spacing: 24px; alignment: start;
+            CommandPalette { query: "sort"; items: root.commands; current: 0; }
+            VStack {
+                spacing: 14px; alignment: start;
+                Toast { width: 300px; text: "Tagged 1 red"; action: "Undo"; icon: "tag"; }
+                Label { text: "Keyboard shortcuts show as keycaps"; role: TextRole.body-sm; muted: true; }
+                HStack { spacing: 6px; alignment: start; Kbd { text: "Ctrl"; } Kbd { text: "Shift"; } Kbd { text: "N"; } }
+            }
+        }
+    }
+}

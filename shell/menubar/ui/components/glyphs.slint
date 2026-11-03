@@ -1,0 +1,78 @@
+import { Theme, Motion } from "../theme.slint";
+import { Symbol } from "icon.slint";
+
+// The battery as drawn in the bar: an outline, a fill that follows the charge, a nub, and a bolt when
+// plugged in. Red at 15% and under (unless charging).
+export component BatteryGlyph inherits Rectangle {
+    in property <int> percent: 80;
+    in property <bool> charging: false;
+    in property <color> tint: Theme.text;
+    in property <bool> show-percent: false;
+
+    property <float> level: min(max(percent, 0), 100) / 100.0;
+    animate level { duration: 400ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+    property <color> fill: charging ? Theme.ok : percent <= 15 ? Theme.danger : tint;
+
+    width: 24px + (show-percent ? pct.preferred-width + 5px : 0px);
+    height: 14px;
+
+    Rectangle {
+        x: 0px;
+        y: 1px;
+        width: 21px;
+        height: 12px;
+        border-radius: 3.5px;
+        border-width: 1.2px;
+        border-color: root.tint.with-alpha(0.62);
+        Rectangle {
+            x: 2px;
+            y: 2px;
+            width: max(0px, (parent.width - 4px) * root.level);
+            height: parent.height - 4px;
+            border-radius: 1.6px;
+            background: root.fill;
+        }
+        if root.charging: Symbol {
+            x: (parent.width - 9px) / 2;
+            y: (parent.height - 9px) / 2;
+            width: 9px;
+            height: 9px;
+            name: "lightning";
+            tint: Theme.dark ? #101012 : #FFFFFF;
+        }
+    }
+    Rectangle {
+        x: 21.6px;
+        y: 4.5px;
+        width: 2px;
+        height: 5px;
+        border-top-right-radius: 1.5px;
+        border-bottom-right-radius: 1.5px;
+        background: root.tint.with-alpha(0.5);
+    }
+    pct := Text {
+        x: 27px;
+        y: 0px;
+        height: parent.height;
+        visible: root.show-percent;
+        text: root.percent + "%";
+        color: root.tint;
+        font-size: 12px;
+        vertical-alignment: center;
+    }
+}
+
+// The Wi-Fi mark: arcs for the strength (0 to 3), crossed out when off, hollow when not connected.
+export component WifiGlyph inherits Symbol {
+    in property <bool> enabled: true;
+    in property <bool> connected: true;
+    in property <int> strength: 3;
+    name: !enabled ? "wifi-off" : !connected ? "wifi-1" : strength >= 3 ? "wifi-3" : strength == 2 ? "wifi-2" : "wifi-1";
+}
+
+// The speaker: the waves follow the volume; crossed when muted.
+export component VolumeGlyph inherits Symbol {
+    in property <float> level: 0.5;
+    in property <bool> muted: false;
+    name: muted || level <= 0.001 ? "volume-mute" : level < 0.34 ? "volume-1" : level < 0.67 ? "volume-1" : "volume-2";
+}

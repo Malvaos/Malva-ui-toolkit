@@ -1,0 +1,58 @@
+import { Toggle, Checkbox, RadioButton, RadioGroup, Slider, Theme, Label, TextRole, HStack, VStack } from "../ui/malva.slint";
+import { PageFrame, Section, Cell } from "common.slint";
+
+export component PageSelection inherits PageFrame {
+    title: "Selection";
+    lead: "Switches, checks, radios and sliders. Every one has the same five states.";
+    VStack {
+        spacing: 24px;
+        Section {
+            title: "Toggle";
+            HStack {
+                spacing: 28px; alignment: start;
+                Cell { caption: "off"; Toggle { } }
+                Cell { caption: "on"; Toggle { checked: true; } }
+                Cell { caption: "hover"; Toggle { preview-state: "hover"; } }
+                Cell { caption: "pressed"; Toggle { checked: true; preview-state: "pressed"; } }
+                Cell { caption: "focus"; Toggle { checked: true; preview-state: "focus"; } }
+                Cell { caption: "disabled"; Toggle { checked: true; enabled: false; } }
+            }
+        }
+        Section {
+            title: "Checkbox";
+            HStack {
+                spacing: 28px; alignment: start;
+                Cell { caption: "unchecked"; Checkbox { text: "Option"; } }
+                Cell { caption: "checked"; Checkbox { text: "Option"; checked: true; } }
+                Cell { caption: "mixed"; Checkbox { text: "Option"; indeterminate: true; } }
+                Cell { caption: "hover"; Checkbox { text: "Option"; preview-state: "hover"; } }
+                Cell { caption: "focus"; Checkbox { text: "Option"; checked: true; preview-state: "focus"; } }
+                Cell { caption: "disabled"; Checkbox { text: "Option"; checked: true; enabled: false; } }
+            }
+        }
+        Section {
+            title: "Radio";
+            HStack {
+                spacing: 40px; alignment: start;
+                Cell { caption: "group"; RadioGroup { options: ["Plum", "Orchid", "Leaf"]; current-index: 1; } }
+                Cell { caption: "unselected"; RadioButton { text: "Option"; } }
+                Cell { caption: "selected"; RadioButton { text: "Option"; selected: true; } }
+                Cell { caption: "hover"; RadioButton { text: "Option"; preview-state: "hover"; } }
+                Cell { caption: "focus"; RadioButton { text: "Option"; selected: true; preview-state: "focus"; } }
+                Cell { caption: "disabled"; RadioButton { text: "Option"; enabled: false; } }
+            }
+        }
+        Section {
+            title: "Slider";
+            HStack {
+                spacing: 28px; alignment: start;
+                Cell { caption: "0"; Slider { width: 170px; value: 0; } }
+                Cell { caption: "50"; Slider { width: 170px; value: 0.5; } }
+                Cell { caption: "100"; Slider { width: 170px; value: 1; } }
+                Cell { caption: "pressed"; Slider { width: 170px; value: 0.35; preview-state: "pressed"; } }
+                Cell { caption: "focus"; Slider { width: 170px; value: 0.65; preview-state: "focus"; } }
+                Cell { caption: "disabled"; Slider { width: 170px; value: 0.4; enabled: false; } }
+            }
+        }
+    }
+}

@@ -1,0 +1,17 @@
+import { Theme } from "../tokens.slint";
+
+export enum Tone { neutral, accent, success, warning, danger }
+
+/// Colours for a status tone. Never use colour alone: pair it with an icon or text.
+export global ToneStyle {
+    pure public function fg(t: Tone) -> color {
+        if (t == Tone.accent) { return Theme.accent; }
+        if (t == Tone.success) { return Theme.success; }
+        if (t == Tone.warning) { return Theme.warning; }
+        if (t == Tone.danger) { return Theme.danger; }
+        return Theme.muted;
+    }
+    pure public function wash(t: Tone) -> color {
+        return t == Tone.neutral ? Theme.ink.with-alpha(0.08) : fg(t).with-alpha(Theme.dark ? 0.16 : 0.13);
+    }
+}

@@ -1,0 +1,34 @@
+import { Theme } from "../tokens.slint";
+
+/// A 1 px hairline.
+export component Divider inherits Rectangle {
+    in property <bool> vertical: false;
+    in property <bool> strong: false;
+    background: strong ? Theme.line-strong : Theme.line;
+    min-width: vertical ? 1px : 0px;
+    max-width: vertical ? 1px : 100000px;
+    min-height: vertical ? 0px : 1px;
+    max-height: vertical ? 100000px : 1px;
+}
+
+/// Empty space: a fixed `size`, or `flexible` to push siblings apart.
+export component Spacer inherits Rectangle {
+    in property <length> size: 0px;
+    in property <bool> flexible: false;
+    min-width: size;
+    min-height: size;
+    preferred-width: size;
+    preferred-height: size;
+    horizontal-stretch: flexible ? 1 : 0;
+    vertical-stretch: flexible ? 1 : 0;
+}
+
+/// A vertical stack with the Malva default gap (12).
+export component VStack inherits VerticalLayout {
+    spacing: Theme.space-sm;
+}
+
+/// A horizontal stack with the Malva default gap (12).
+export component HStack inherits HorizontalLayout {
+    spacing: Theme.space-sm;
+}

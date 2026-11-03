@@ -1,0 +1,76 @@
+import { Theme } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+
+/// A pill-shaped segmented control: one of N options, the highlight glides between them.
+export component Segmented inherits Rectangle {
+    in property <[string]> options;
+    in-out property <int> current-index: 0;
+    in property <bool> enabled: true;
+    callback selected(int);
+    height: 36px;
+    min-width: 40px * options.length;
+    border-radius: Theme.radius-control;
+    background: Theme.inset;
+    border-width: 1px;
+    border-color: Theme.line;
+    opacity: enabled ? 1.0 : Theme.alpha-disabled;
+    accessible-role: tab;
+
+    thumb := Rectangle {
+        x: 3px + root.current-index * ((root.width - 6px) / max(1, root.options.length));
+        y: 3px;
+        width: (root.width - 6px) / max(1, root.options.length);
+        height: root.height - 6px;
+        border-radius: Theme.radius-control - 3px;
+        background: Theme.raised;
+        border-width: 1px;
+        border-color: Theme.line;
+        drop-shadow-blur: 4px; drop-shadow-offset-y: 1px; drop-shadow-color: Theme.shadow-tint.with-alpha(Theme.shadow-1);
+        animate x { duration: Theme.dur-overlay; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+    }
+    for option[i] in options: Rectangle {
+        x: 3px + i * ((root.width - 6px) / max(1, root.options.length));
+        y: 3px;
+        width: (root.width - 6px) / max(1, root.options.length);
+        height: root.height - 6px;
+        Text {
+            text: option;
+            color: root.current-index == i ? Theme.ink : Theme.muted;
+            font-family: Theme.font-family; font-size: Theme.text-body-sm; font-weight: Theme.weight-ui;
+            horizontal-alignment: center; vertical-alignment: center;
+            animate color { duration: Theme.dur-feedback; }
+        }
+        TouchArea { enabled: root.enabled; mouse-cursor: MouseCursor.pointer; clicked => { root.current-index = i; root.selected(i); } }
+    }
+}
+
+/// A row of text tabs with an accent underline that glides to the active one.
+export component TabBar inherits Rectangle {
+    in property <[string]> options;
+    in-out property <int> current-index: 0;
+    callback selected(int);
+    height: 40px;
+    min-width: 90px * options.length;
+    Rectangle { y: parent.height - 1px; height: 1px; background: Theme.line; }
+    Rectangle {
+        x: root.current-index * (root.width / max(1, root.options.length)) + 14px;
+        y: parent.height - 2px;
+        width: root.width / max(1, root.options.length) - 28px; height: 2px;
+        border-radius: 1px;
+        background: Theme.accent;
+        animate x { duration: Theme.dur-overlay; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+    }
+    for option[i] in options: Rectangle {
+        x: i * (root.width / max(1, root.options.length));
+        width: root.width / max(1, root.options.length);
+        background: tab-area.has-hover && root.current-index != i ? Theme.accent-wash : transparent;
+        border-radius: Theme.radius-sm;
+        Text {
+            text: option;
+            color: root.current-index == i ? Theme.ink : Theme.muted;
+            font-family: Theme.font-family; font-size: Theme.text-body; font-weight: Theme.weight-ui;
+            horizontal-alignment: center; vertical-alignment: center;
+        }
+        tab-area := TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.current-index = i; root.selected(i); } }
+    }
+}

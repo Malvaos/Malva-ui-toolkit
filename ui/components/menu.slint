@@ -1,0 +1,49 @@
+import { Theme } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+
+/// One row of a Menu. `destructive` rows turn rose; `checked` shows a check; `shortcut` is right-aligned.
+export component MenuItem inherits Rectangle {
+    in property <string> text;
+    in property <string> icon;
+    in property <string> shortcut;
+    in property <bool> checked: false;
+    in property <bool> destructive: false;
+    in property <bool> enabled: true;
+    in property <bool> submenu: false;
+    callback clicked();
+    height: 32px;
+    border-radius: Theme.radius-sm;
+    background: enabled && area.has-hover ? (destructive ? Theme.danger.with-alpha(0.18) : Theme.accent) : transparent;
+    opacity: enabled ? 1.0 : Theme.alpha-disabled;
+    private property <color> fg: enabled && area.has-hover ? (destructive ? Theme.danger : Theme.on-accent) : (destructive ? Theme.danger : Theme.ink);
+    HorizontalLayout {
+        padding-left: 8px; padding-right: 10px; spacing: 8px;
+        VerticalLayout { alignment: center; width: 18px; if root.checked: Icon { name: "check"; tint: root.fg; size: 16px; } if !root.checked && root.icon != "": Icon { name: root.icon; tint: root.fg; size: 16px; } }
+        Text { text: root.text; color: root.fg; font-family: Theme.font-family; font-size: Theme.text-body; font-weight: Theme.weight-body; vertical-alignment: center; horizontal-stretch: 1; }
+        if root.shortcut != "": Text { text: root.shortcut; color: root.enabled && area.has-hover ? root.fg : Theme.muted; font-family: Theme.font-family; font-size: Theme.text-body-sm; vertical-alignment: center; }
+        if root.submenu: VerticalLayout { alignment: center; Icon { name: "chevron-right"; tint: root.fg; size: 14px; } }
+    }
+    area := TouchArea { enabled: root.enabled; mouse-cursor: MouseCursor.pointer; clicked => { root.clicked(); } }
+}
+
+export component MenuSeparator inherits Rectangle {
+    height: 9px;
+    Rectangle { y: 4px; height: 1px; x: 6px; width: parent.width - 12px; background: Theme.line; }
+}
+
+export component MenuHeading inherits Rectangle {
+    in property <string> text;
+    height: 26px;
+    Text { x: 10px; text: root.text; color: Theme.muted; font-family: Theme.font-family; font-size: Theme.text-caption; font-weight: Theme.weight-ui; vertical-alignment: bottom; }
+}
+
+/// The card that holds menu rows (use under a popup or at the pointer).
+export component Menu inherits Rectangle {
+    min-width: 220px;
+    background: Theme.raised;
+    border-radius: Theme.radius-card - 2px;
+    border-width: 1px;
+    border-color: Theme.line-strong;
+    drop-shadow-blur: 20px; drop-shadow-offset-y: 8px; drop-shadow-color: Theme.shadow-tint.with-alpha(Theme.shadow-2 + 0.08);
+    VerticalLayout { padding: 6px; spacing: 1px; @children }
+}

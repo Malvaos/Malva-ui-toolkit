@@ -1,0 +1,503 @@
+// The elements sheet: every part of the menu bar on one page, in light and dark. Nothing here ships.
+import { Theme, Motion, Screen } from "../ui/theme.slint";
+import { MenuEntry, Notice } from "../ui/types.slint";
+import { AppIcon, Symbol } from "../ui/components/icon.slint";
+import { GlassPlate } from "../ui/components/surfaces.slint";
+import { MenuBar } from "../ui/components/bar.slint";
+import { MenuPanel } from "../ui/components/menu.slint";
+import { BatteryGlyph, WifiGlyph, VolumeGlyph } from "../ui/components/glyphs.slint";
+import { Switch, Slider, FillSlider, PillButton, Segmented, Spinner, IconButton, Ring } from "../ui/components/controls.slint";
+import { ListRow, SectionLabel, FootLink, Rule } from "../ui/components/lists.slint";
+import { CalendarGrid } from "../ui/components/calendar.slint";
+import { WifiPopover, BluetoothPopover, BatteryPopover, VolumePopover, CalendarPopover } from "../ui/components/popovers.slint";
+import { QuickTileView, ActionButton, MediaCard } from "../ui/components/control-center.slint";
+import { NoticeCard } from "../ui/components/notifications.slint";
+import { Osd } from "../ui/components/osd.slint";
+import { Sample } from "sample.slint";
+
+component Cap inherits Text {
+    color: Theme.text-3;
+    font-size: 10.5px;
+}
+
+// A titled glass plate.
+component Block inherits Rectangle {
+    in property <string> title;
+    GlassPlate {
+        width: parent.width;
+        height: parent.height;
+        corner: 18px;
+    }
+    Text {
+        x: 20px;
+        y: 14px;
+        text: root.title;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.6px;
+        color: Theme.text-2;
+    }
+    @children
+}
+
+component Bezier inherits Rectangle {
+    in property <float> x1;
+    in property <float> y1;
+    in property <float> x2;
+    in property <float> y2;
+    in property <string> name;
+    width: 150px;
+    height: 150px;
+    Rectangle {
+        x: 10px;
+        y: 8px;
+        width: 100px;
+        height: 100px;
+        border-radius: 6px;
+        background: Theme.field;
+        Path {
+            width: parent.width;
+            height: parent.height;
+            viewbox-width: 100;
+            viewbox-height: 100;
+            stroke: Theme.accent;
+            stroke-width: 2.4px;
+            fill: transparent;
+            commands: "M 0 100 C " + root.x1 * 100 + " " + (100 - root.y1 * 100) + " " + root.x2 * 100 + " " + (100 - root.y2 * 100) + " 100 0";
+        }
+    }
+    Cap {
+        x: 10px;
+        y: 114px;
+        text: root.name;
+        color: Theme.text;
+        font-weight: 600;
+    }
+    Cap {
+        x: 10px;
+        y: 129px;
+        text: "(" + root.x1 + ", " + root.y1 + ", " + root.x2 + ", " + root.y2 + ")";
+    }
+}
+
+component Duration inherits Rectangle {
+    in property <string> name;
+    in property <int> ms;
+    height: 20px;
+    Cap {
+        x: 0px;
+        width: 130px;
+        height: parent.height;
+        text: root.name;
+        color: Theme.text;
+        vertical-alignment: center;
+    }
+    Rectangle {
+        x: 134px;
+        y: 5px;
+        width: root.ms * 0.16px;
+        height: 10px;
+        border-radius: 5px;
+        background: Theme.accent.with-alpha(0.8);
+    }
+    Cap {
+        x: 138px + root.ms * 0.16px;
+        height: parent.height;
+        text: root.ms + " ms";
+        vertical-alignment: center;
+    }
+}
+
+component Swatch inherits Rectangle {
+    in property <string> name;
+    in property <color> fill;
+    width: 96px;
+    height: 70px;
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: 88px;
+        height: 40px;
+        border-radius: 10px;
+        background: root.fill;
+        border-width: 1px;
+        border-color: Theme.text.with-alpha(0.12);
+    }
+    Cap {
+        x: 0px;
+        y: 44px;
+        text: root.name;
+        color: Theme.text;
+        font-weight: 600;
+    }
+}
+
+component Sheet inherits Rectangle {
+    in property <bool> dark: false;
+    in property <[string]> symbol-names: ["airplane", "bell", "bell-off", "bluetooth", "calendar", "check", "chevron-down", "chevron-left", "chevron-right", "chevron-up", "clipboard", "clock", "close", "copy", "dark-mode", "download", "drop", "eye", "folder", "fullscreen", "gear", "globe", "headphones", "help", "info", "keyboard", "keyboard-small", "lightning", "lock", "logo", "logout", "mic", "minimize", "minus", "moon", "more", "mouse", "next", "night-light", "pause", "phone", "play", "plug", "plus", "power", "previous", "record", "redo", "refresh", "restart", "screenshot", "search", "shield", "sidebar", "signal", "sliders", "speaker", "sun", "thermometer", "trash", "undo", "user", "volume-0", "volume-1", "volume-2", "volume-mute", "wifi", "wifi-1", "wifi-2", "wifi-3", "wifi-off", "wind", "window"];
+    init => {
+        Theme.dark = root.dark;
+        Screen.backdrop = root.dark ? @image-url("assets/wallblur-dark.png") : @image-url("assets/wallblur-light.png");
+        Screen.has-backdrop = true;
+        Screen.width = 1860px;
+        Screen.height = 2600px;
+    }
+    width: 1860px;
+    height: 2600px;
+    Image {
+        source: root.dark ? @image-url("assets/wallblur-dark.png") : @image-url("assets/wallblur-light.png");
+        image-fit: fill;
+        width: parent.width;
+        height: parent.height;
+    }
+    Text {
+        x: 40px;
+        y: 28px;
+        text: "Menu bar";
+        font-size: 30px;
+        font-weight: 700;
+        color: Theme.text;
+    }
+    Text {
+        x: 40px;
+        y: 68px;
+        text: root.dark ? "Every element, dark" : "Every element, light";
+        font-size: 14px;
+        color: Theme.text-2;
+    }
+
+    // ---- the bar, in three states
+    Block {
+        x: 40px;
+        y: 100px;
+        width: 1180px;
+        height: 244px;
+        title: "THE BAR";
+        Cap { x: 20px; y: 40px; text: "at rest"; }
+        MenuBar {
+            x: 20px;
+            y: 56px;
+            width: 1140px;
+            menus: Sample.menus;
+            tray: Sample.tray;
+            layout-text: "EN";
+            clock-text: "Wed 28 Oct   5:01 AM";
+            unread: 3;
+            battery: 82;
+            charging: true;
+        }
+        Cap { x: 20px; y: 100px; text: "a menu open (File), the pointer on Wi-Fi"; }
+        MenuBar {
+            x: 20px;
+            y: 116px;
+            width: 1140px;
+            menus: Sample.menus;
+            tray: Sample.tray;
+            layout-text: "EN";
+            clock-text: "Wed 28 Oct   5:01 AM";
+            battery: 54;
+            show-battery-percent: true;
+            open-name: "menu-1";
+            preview-hover: "wifi";
+        }
+        Cap { x: 20px; y: 160px; text: "Wi-Fi off, Bluetooth off, muted, Do Not Disturb, low battery, a notice waiting behind it, no tray"; }
+        MenuBar {
+            x: 20px;
+            y: 176px;
+            width: 1140px;
+            menus: ["Terminal", "Shell", "Edit", "View", "Window", "Help"];
+            clock-text: "Wed 28 Oct   5:01 AM";
+            wifi-enabled: false;
+            bluetooth-enabled: false;
+            muted: true;
+            dnd: true;
+            battery: 12;
+            unread: 4;
+            open-name: "clock";
+        }
+    }
+
+    // ---- glyphs
+    Block {
+        x: 1240px;
+        y: 100px;
+        width: 580px;
+        height: 244px;
+        title: "STATUS GLYPHS";
+        for b[i] in [100, 80, 55, 30, 15, 5]: BatteryGlyph {
+            x: 20px + i * 56px;
+            y: 52px;
+            percent: b;
+        }
+        BatteryGlyph { x: 360px; y: 52px; percent: 55; charging: true; }
+        BatteryGlyph { x: 400px; y: 52px; percent: 80; show-percent: true; }
+        Cap { x: 20px; y: 76px; text: "battery: 100  80  55  30  15 (red)  5  ·  charging  ·  with its figure"; }
+        WifiGlyph { x: 20px; y: 108px; width: 20px; height: 20px; enabled: false; }
+        WifiGlyph { x: 64px; y: 108px; width: 20px; height: 20px; connected: false; }
+        WifiGlyph { x: 108px; y: 108px; width: 20px; height: 20px; strength: 1; }
+        WifiGlyph { x: 152px; y: 108px; width: 20px; height: 20px; strength: 2; }
+        WifiGlyph { x: 196px; y: 108px; width: 20px; height: 20px; strength: 3; }
+        Cap { x: 20px; y: 134px; text: "Wi-Fi: off  ·  not connected  ·  1  2  3"; }
+        VolumeGlyph { x: 20px; y: 166px; width: 20px; height: 20px; muted: true; }
+        VolumeGlyph { x: 64px; y: 166px; width: 20px; height: 20px; level: 0.0; }
+        VolumeGlyph { x: 108px; y: 166px; width: 20px; height: 20px; level: 0.2; }
+        VolumeGlyph { x: 152px; y: 166px; width: 20px; height: 20px; level: 0.5; }
+        VolumeGlyph { x: 196px; y: 166px; width: 20px; height: 20px; level: 0.9; }
+        Cap { x: 20px; y: 192px; text: "volume: muted  ·  0  ·  low  ·  mid  ·  high"; }
+        Symbol { x: 330px; y: 108px; width: 20px; height: 20px; name: "bell"; }
+        Symbol { x: 374px; y: 108px; width: 20px; height: 20px; name: "moon"; }
+        Rectangle { x: 418px; y: 106px; width: 24px; height: 24px; Symbol { x: 0px; y: 2px; width: 20px; height: 20px; name: "bell"; } Rectangle { x: 14px; y: 1px; width: 9px; height: 9px; border-radius: 4.5px; background: Theme.badge; } }
+        Symbol { x: 462px; y: 108px; width: 20px; height: 20px; name: "record"; tint: Theme.accent; }
+        Cap { x: 330px; y: 134px; text: "bell  ·  Do Not Disturb  ·  unread  ·  tray item"; }
+    }
+
+    // ---- controls
+    Block {
+        x: 40px;
+        y: 364px;
+        width: 360px;
+        height: 500px;
+        title: "CONTROLS";
+        Switch { x: 20px; y: 46px; checked: true; }
+        Switch { x: 74px; y: 46px; checked: false; }
+        Switch { x: 128px; y: 46px; checked: true; enabled: false; }
+        Cap { x: 190px; y: 52px; text: "on · off · disabled"; }
+        Slider { x: 20px; y: 90px; width: 310px; value: 0.62; }
+        FillSlider { x: 20px; y: 126px; width: 320px; value: 0.7; icon: "sun"; }
+        FillSlider { x: 20px; y: 172px; width: 320px; value: 0.0; icon: "volume-mute"; }
+        PillButton { x: 20px; y: 226px; width: 90px; text: "Cancel"; }
+        PillButton { x: 120px; y: 226px; width: 90px; text: "Connect"; kind: "accent"; }
+        PillButton { x: 220px; y: 226px; width: 120px; text: "Shut Down"; kind: "danger"; icon: "power"; }
+        Segmented { x: 20px; y: 270px; width: 320px; labels: ["Saver", "Balanced", "Performance"]; current: 1; }
+        Spinner { x: 20px; y: 322px; }
+        IconButton { x: 50px; y: 316px; icon: "close"; }
+        IconButton { x: 84px; y: 316px; icon: "chevron-left"; }
+        IconButton { x: 118px; y: 316px; icon: "chevron-right"; }
+        Rectangle { x: 164px; y: 306px; width: 52px; height: 52px; Ring { width: parent.width; height: parent.height; value: 0.72; tone: Theme.ok; thickness: 6px; } }
+        Rectangle { x: 226px; y: 306px; width: 52px; height: 52px; Ring { width: parent.width; height: parent.height; value: 0.14; tone: Theme.danger; thickness: 6px; } }
+        Cap { x: 20px; y: 366px; text: "spinner · buttons · ring (battery, countdown)"; }
+    }
+
+    // ---- a menu with every kind of row
+    Block {
+        x: 420px;
+        y: 364px;
+        width: 360px;
+        height: 500px;
+        title: "MENU ROWS";
+        MenuPanel {
+            x: 20px;
+            y: 44px;
+            open: true;
+            preview-cursor: 5;
+            entries: [
+                {text: "A HEADER", kind: "header", shortcut: "", icon: "", checked: false, enabled: true, destructive: false, submenu: false, parent: -1},
+                {text: "Item with an icon", kind: "item", shortcut: "", icon: "folder", checked: false, enabled: true, destructive: false, submenu: false, parent: -1},
+                {text: "Item with a shortcut", kind: "item", shortcut: "Ctrl+Shift+N", icon: "", checked: false, enabled: true, destructive: false, submenu: false, parent: -1},
+                {text: "Ticked", kind: "item", shortcut: "", icon: "", checked: true, enabled: true, destructive: false, submenu: false, parent: -1},
+                {text: "", kind: "separator", shortcut: "", icon: "", checked: false, enabled: true, destructive: false, submenu: false, parent: -1},
+                {text: "Under the pointer", kind: "item", shortcut: "Ctrl+O", icon: "window", checked: false, enabled: true, destructive: false, submenu: false, parent: -1},
+                {text: "Opens a flyout", kind: "item", shortcut: "", icon: "clock", checked: false, enabled: true, destructive: false, submenu: true, parent: -1},
+                {text: "Disabled", kind: "item", shortcut: "Ctrl+W", icon: "", checked: false, enabled: false, destructive: false, submenu: false, parent: -1},
+                {text: "Destructive", kind: "item", shortcut: "Del", icon: "trash", checked: false, enabled: true, destructive: true, submenu: false, parent: -1}
+            ];
+        }
+    }
+
+    // ---- lists and the calendar
+    Block {
+        x: 800px;
+        y: 364px;
+        width: 360px;
+        height: 500px;
+        title: "LIST ROWS";
+        ListRow { x: 12px; y: 40px; width: 336px; icon: "wifi-3"; title: "Connected, the thing in use"; subtitle: "Connected"; active: true; trailing: "check"; }
+        ListRow { x: 12px; y: 88px; width: 336px; icon: "wifi-2"; title: "Under the pointer, secured"; subtitle: "Secured"; trailing: "lock"; force-hover: true; }
+        ListRow { x: 12px; y: 136px; width: 336px; icon: "wifi-1"; title: "Waiting"; subtitle: "Connecting…"; trailing: "spinner"; }
+        ListRow { x: 12px; y: 184px; width: 336px; icon: "headphones"; title: "With a figure"; subtitle: "Connected"; trailing: "text"; trailing-text: "82%"; }
+        ListRow { x: 12px; y: 232px; width: 336px; icon: "speaker"; title: "Disabled"; subtitle: "Not available"; enabled: false; }
+        ListRow { x: 12px; y: 280px; width: 336px; title: "A row with no chip"; chip: false; trailing: "check"; }
+        FootLink { x: 12px; y: 330px; width: 336px; text: "A link at the foot…"; }
+    }
+    Block {
+        x: 1180px;
+        y: 364px;
+        width: 330px;
+        height: 500px;
+        title: "CALENDAR";
+        CalendarGrid { x: 12px; y: 40px; width: 306px; compact: true; weekdays: Sample.weekdays-short; cells: Sample.cells; }
+        Cap { x: 20px; y: 214px; width: 290px; wrap: word-wrap; text: "the notification centre's month. Today filled, the picked day ringed, other months dim, events as dots (in the large grid)"; }
+        CalendarGrid { x: 12px; y: 248px; width: 306px; weekdays: Sample.weekdays-short; cells: Sample.cells; }
+    }
+    Block {
+        x: 1530px;
+        y: 364px;
+        width: 290px;
+        height: 500px;
+        title: "WIDGETS";
+        MediaCard { x: 12px; y: 40px; width: 266px; media: Sample.media; }
+        Cap { x: 20px; y: 124px; text: "what is playing"; }
+        for t[i] in [{ id: "a", icon: "wifi-3", title: "On", subtitle: "Connected", on: true, enabled: true, detail: true }, { id: "b", icon: "moon", title: "Off", subtitle: "", on: false, enabled: true, detail: false }]: QuickTileView {
+            x: 12px;
+            y: 150px + i * 68px;
+            width: 266px;
+            tile: t;
+        }
+        Cap { x: 20px; y: 286px; text: "Control Center tiles: on (with detail) · off"; }
+        ActionButton { x: 12px; y: 308px; width: 126px; icon: "screenshot"; text: "Screenshot"; }
+        ActionButton { x: 152px; y: 308px; width: 126px; icon: "lock"; text: "Lock"; }
+        Cap { x: 20px; y: 372px; text: "action buttons"; }
+    }
+
+    // ---- notification cards and the display
+    Block {
+        x: 40px;
+        y: 884px;
+        width: 760px;
+        height: 480px;
+        title: "NOTIFICATION CARDS";
+        NoticeCard { x: 20px; y: 46px; width: 340px; notice: { id: 1, app: "Mail", app-icon: "mail", title: "Plain, unread", body: "A card with a title and a line or two of what it says.", time: "5 m", group: "m", group-index: 0, group-count: 1, unread: true, urgent: false, actions: [] }; }
+        NoticeCard { x: 20px; y: 150px; width: 340px; notice: { id: 2, app: "Calendar", app-icon: "calendar", title: "Urgent, with buttons", body: "Design review in ten minutes.", time: "now", group: "c", group-index: 0, group-count: 1, unread: true, urgent: true, actions: ["Join", "Snooze"] }; }
+        NoticeCard { x: 20px; y: 270px; width: 340px; force-hover: true; notice: { id: 3, app: "Store", app-icon: "store", title: "Under the pointer", body: "The close button replaces the time.", time: "1 h", group: "s", group-index: 0, group-count: 1, unread: false, urgent: false, actions: [] }; }
+        NoticeCard { x: 20px; y: 366px; width: 340px; notice: { id: 4, app: "Music", app-icon: "music", title: "Read", body: "No dot once it has been seen.", time: "Yesterday", group: "u", group-index: 0, group-count: 1, unread: false, urgent: false, actions: [] }; }
+        NoticeCard { x: 390px; y: 46px; width: 350px; toast: true; notice: { id: 5, app: "Messages", app-icon: "notes", title: "A toast", body: "The same card, opaque and shadowed, arriving from the right edge.", time: "now", group: "t", group-index: 0, group-count: 1, unread: true, urgent: false, actions: ["Reply", "Mute"] }; }
+        Cap { x: 390px; y: 180px; width: 350px; wrap: word-wrap; text: "A toast slides in over 380 ms, waits 5.2 s (the pointer on it holds it) and slides out over 260 ms. Pull any card sideways past 90 px, or press ×, and it slides away and the row closes up. A group shows two cards; the rest fold behind “Show n more”."; }
+        Rectangle {
+            x: 390px;
+            y: 250px;
+            width: 350px;
+            height: 220px;
+            border-radius: 16px;
+            clip: true;
+            background: @linear-gradient(160deg, Theme.dark ? #35568F : #5CA8F5, Theme.dark ? #1E3262 : #3A78D6);
+            Text { x: 16px; y: 12px; text: "Hyderabad"; font-size: 13px; font-weight: 700; color: #FFFFFF; }
+            Text { x: 15px; y: 28px; text: "27°"; font-size: 42px; font-weight: 300; color: #FFFFFF; }
+            Text { x: 16px; y: 80px; text: "Partly Cloudy"; font-size: 12.5px; font-weight: 600; color: #FFFFFFE6; }
+            AppIcon { x: 270px; y: 8px; width: 64px; height: 64px; name: "weather-partly"; }
+            for h[i] in [{ l: "Now", ic: "weather-partly", t: "27°" }, { l: "6 AM", ic: "weather-clear", t: "28°" }, { l: "7 AM", ic: "weather-cloudy", t: "29°" }, { l: "8 AM", ic: "weather-rain", t: "26°" }, { l: "9 AM", ic: "weather-night", t: "24°" }]: Rectangle {
+                x: 10px + i * 66px;
+                y: 112px;
+                width: 66px;
+                height: 80px;
+                Text { y: 8px; width: parent.width; text: h.l; horizontal-alignment: center; font-size: 10.5px; color: #FFFFFFB3; }
+                AppIcon { x: 20px; y: 26px; width: 26px; height: 26px; name: h.ic; }
+                Text { y: 58px; width: parent.width; text: h.t; horizontal-alignment: center; font-size: 12px; font-weight: 600; color: #FFFFFF; }
+            }
+        }
+    }
+    Block {
+        x: 820px;
+        y: 884px;
+        width: 520px;
+        height: 480px;
+        title: "VOLUME DISPLAY";
+        Osd { x: 20px; y: 46px; preview-shown: true; kind: "volume"; value: 0.62; label: "Volume 62%"; }
+        Osd { x: 212px; y: 46px; preview-shown: true; kind: "brightness"; value: 0.3; label: "Brightness 30%"; }
+        Osd { x: 404px; y: 46px; width: 96px; height: 96px; preview-shown: false; kind: "mute"; value: 0.0; label: "Muted"; }
+        Osd { x: 20px; y: 240px; preview-shown: true; kind: "mute"; value: 0.0; label: "Muted"; }
+        Osd { x: 212px; y: 240px; preview-shown: true; kind: "text"; label: "EN"; }
+        Cap { x: 404px; y: 260px; width: 100px; wrap: word-wrap; text: "shows 1.5 s after the last change, then fades 320 ms"; }
+    }
+    Block {
+        x: 1360px;
+        y: 884px;
+        width: 460px;
+        height: 480px;
+        title: "COLOURS";
+        for c[i] in [{ n: "text", v: Theme.text }, { n: "text-2", v: Theme.text-2 }, { n: "text-3", v: Theme.text-3 }, { n: "accent", v: Theme.accent }, { n: "ok", v: Theme.ok }, { n: "warn", v: Theme.warn }, { n: "danger", v: Theme.danger }, { n: "badge", v: Theme.badge }, { n: "field", v: Theme.field }, { n: "track", v: Theme.track }, { n: "tile", v: Theme.tile }, { n: "pop-bg", v: Theme.pop-bg }]: Swatch {
+            x: 20px + mod(i, 4) * 106px;
+            y: 44px + floor(i / 4) * 78px;
+            name: c.n;
+            fill: c.v;
+        }
+        Cap { x: 20px; y: 290px; text: "event colours"; }
+        for k in 5: Rectangle { x: 20px + k * 52px; y: 310px; width: 44px; height: 24px; border-radius: 8px; background: Theme.tone(k); }
+        Cap { x: 20px; y: 350px; text: "radii"; }
+        Rectangle { x: 20px; y: 368px; width: 44px; height: 44px; border-radius: 8px; border-width: 1.5px; border-color: Theme.text-2; }
+        Rectangle { x: 74px; y: 368px; width: 44px; height: 44px; border-radius: 10px; border-width: 1.5px; border-color: Theme.text-2; }
+        Rectangle { x: 128px; y: 368px; width: 44px; height: 44px; border-radius: 12px; border-width: 1.5px; border-color: Theme.text-2; }
+        Rectangle { x: 182px; y: 368px; width: 44px; height: 44px; border-radius: 16px; border-width: 1.5px; border-color: Theme.text-2; }
+        Rectangle { x: 236px; y: 368px; width: 44px; height: 44px; border-radius: 22px; border-width: 1.5px; border-color: Theme.text-2; }
+        Cap { x: 20px; y: 420px; text: "8 small · 10 medium · 12 big · 16 panel · pills"; }
+    }
+
+    // ---- the popovers, assembled
+    Block {
+        x: 40px;
+        y: 1384px;
+        width: 1780px;
+        height: 600px;
+        title: "POPOVERS";
+        WifiPopover { x: 20px; y: 46px; open: true; networks: Sample.networks; }
+        BluetoothPopover { x: 370px; y: 46px; open: true; devices: Sample.devices; }
+        BatteryPopover { x: 720px; y: 46px; open: true; percent: 82; charging: true; status: "Charging"; detail: "38 min until full"; source: "Power adapter"; facts: Sample.battery-facts; }
+        VolumePopover { x: 1048px; y: 46px; open: true; volume: 0.62; outputs: Sample.outputs; }
+        CalendarPopover { x: 1388px; y: 46px; open: true; title: "October 2026"; weekdays: Sample.weekdays; cells: Sample.cells; day-title: "Wednesday, 28 October"; events: Sample.events; }
+    }
+
+    // ---- motion
+    Block {
+        x: 40px;
+        y: 2004px;
+        width: 880px;
+        height: 250px;
+        title: "MOTION";
+        Bezier { x: 20px; y: 44px; name: "standard"; x1: 0.2; y1: 0.0; x2: 0.0; y2: 1.0; }
+        Bezier { x: 190px; y: 44px; name: "soft"; x1: 0.4; y1: 0.0; x2: 0.2; y2: 1.0; }
+        Bezier { x: 360px; y: 44px; name: "overshoot"; x1: 0.34; y1: 1.35; x2: 0.64; y2: 1.0; }
+        Bezier { x: 530px; y: 44px; name: "exit"; x1: 0.4; y1: 0.0; x2: 1.0; y2: 1.0; }
+        Cap { x: 20px; y: 214px; width: 840px; text: "standard: most movement · soft: fades · overshoot: things that arrive (rises about 4% past, settles) · exit: things that leave"; }
+        Cap { x: 700px; y: 52px; width: 160px; wrap: word-wrap; text: "The same four curves as the Files app and the dock."; }
+    }
+    Block {
+        x: 940px;
+        y: 2004px;
+        width: 880px;
+        height: 250px;
+        title: "DURATIONS";
+        Duration { x: 20px; y: 40px; width: 400px; name: "pop in / out"; ms: 220; }
+        Duration { x: 20px; y: 62px; width: 400px; name: "menu row stagger"; ms: 14; }
+        Duration { x: 20px; y: 84px; width: 400px; name: "flyout delay"; ms: 180; }
+        Duration { x: 20px; y: 106px; width: 400px; name: "glide along the bar"; ms: 200; }
+        Duration { x: 20px; y: 128px; width: 400px; name: "switch"; ms: 200; }
+        Duration { x: 20px; y: 150px; width: 400px; name: "panel in / out"; ms: 340; }
+        Duration { x: 20px; y: 172px; width: 400px; name: "toast in"; ms: 380; }
+        Duration { x: 20px; y: 194px; width: 400px; name: "toast out"; ms: 260; }
+        Duration { x: 440px; y: 40px; width: 400px; name: "card dismiss"; ms: 240; }
+        Duration { x: 440px; y: 62px; width: 400px; name: "display in"; ms: 200; }
+        Duration { x: 440px; y: 84px; width: 400px; name: "display out"; ms: 320; }
+        Duration { x: 440px; y: 106px; width: 400px; name: "dialog in"; ms: 260; }
+        Duration { x: 440px; y: 128px; width: 400px; name: "hover in"; ms: 120; }
+        Duration { x: 440px; y: 150px; width: 400px; name: "hover out"; ms: 200; }
+        Duration { x: 440px; y: 172px; width: 400px; name: "press"; ms: 90; }
+        Duration { x: 440px; y: 194px; width: 400px; name: "unread badge"; ms: 260; }
+    }
+
+    // ---- symbols
+    Block {
+        x: 40px;
+        y: 2274px;
+        width: 1780px;
+        height: 304px;
+        title: "SYMBOLS  (one colour, 24 units, 1.8 stroke, tinted by the theme)";
+        for n[i] in root.symbol-names: Rectangle {
+            x: 14px + mod(i, 24) * 73px;
+            y: 38px + floor(i / 24) * 66px;
+            width: 72px;
+            height: 62px;
+            Symbol { x: 24px; y: 8px; width: 24px; height: 24px; name: n; }
+            Cap { x: 0px; y: 38px; width: parent.width; text: n; horizontal-alignment: center; font-size: 8.5px; overflow: elide; }
+        }
+    }
+}
+
+export component ElementsLight inherits Window {
+    width: 1860px;
+    height: 2600px;
+    Sheet { dark: false; }
+}
+export component ElementsDark inherits Window {
+    width: 1860px;
+    height: 2600px;
+    Sheet { dark: true; }
+}

@@ -1,0 +1,87 @@
+import { Theme } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+
+/// A single-line text field. Validation shows after the person leaves the field, never while typing.
+export component TextField inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder;
+    in property <string> label;
+    in property <string> hint;
+    in property <string> error;
+    in property <string> leading-icon;
+    in property <bool> password: false;
+    in property <bool> enabled: true;
+    in property <bool> read-only: false;
+    /// Documentation/testing aid: "hover", "pressed" or "focus" draws that state without a pointer.
+    in property <string> preview-state;
+    callback edited(string);
+    callback accepted(string);
+    out property <bool> has-focus: input.has-focus;
+    private property <bool> touched: false;
+    private property <bool> reveal: false;
+    private property <bool> show-error: error != "" && (touched || preview-state == "error");
+    changed has-focus => { if (!input.has-focus) { root.touched = true; } }
+
+    preferred-height: col.preferred-height;
+    opacity: enabled ? 1.0 : Theme.alpha-disabled;
+    accessible-role: text-input;
+    accessible-label: label != "" ? label : placeholder;
+
+    col := VerticalLayout {
+        spacing: 6px;
+        if root.label != "": Text { text: root.label; color: Theme.ink; font-family: Theme.font-family; font-size: Theme.text-body-sm; font-weight: Theme.weight-ui; }
+        field := Rectangle {
+            height: Theme.touch-target;
+            border-radius: Theme.radius-control;
+            background: Theme.inset;
+            border-width: (input.has-focus || root.preview-state == "focus" || root.show-error) ? Theme.ring-width : 1px;
+            border-color: root.show-error ? Theme.danger : (input.has-focus || root.preview-state == "focus") ? Theme.ring : (area.has-hover || root.preview-state == "hover") ? Theme.line-strong : Theme.line;
+            animate border-color { duration: Theme.dur-feedback; }
+            area := TouchArea { mouse-cursor: MouseCursor.text; clicked => { input.focus(); } }
+            HorizontalLayout {
+                padding-left: 14px; padding-right: 10px; spacing: 8px;
+                if root.leading-icon != "": VerticalLayout { alignment: center; Icon { name: root.leading-icon; tint: Theme.muted; size: 18px; } }
+                Rectangle {
+                    horizontal-stretch: 1;
+                    input := TextInput {
+                        x: 0px; width: parent.width;
+                        y: (parent.height - self.height) / 2;
+                        text <=> root.text;
+                        enabled: root.enabled;
+                        read-only: root.read-only;
+                        input-type: (root.password && !root.reveal) ? InputType.password : InputType.text;
+                        font-family: Theme.font-family;
+                        font-size: Theme.text-body;
+                        font-weight: Theme.weight-body;
+                        color: Theme.ink;
+                        selection-background-color: Theme.accent-soft;
+                        selection-foreground-color: Theme.ink;
+                        single-line: true;
+                        edited => { root.edited(self.text); }
+                        accepted => { root.accepted(self.text); }
+                    }
+                    if root.text == "": Text {
+                        x: 0px; y: (parent.height - self.height) / 2;
+                        text: root.placeholder; color: Theme.muted.with-alpha(0.75);
+                        font-family: Theme.font-family; font-size: Theme.text-body;
+                    }
+                }
+                if root.password: VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        width: 28px; height: 28px; border-radius: 8px;
+                        background: eye.has-hover ? Theme.accent-wash : transparent;
+                        Icon { name: root.reveal ? "eye-off" : "eye"; tint: Theme.muted; size: 18px; x: 5px; y: 5px; }
+                        eye := TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.reveal = !root.reveal; } }
+                    }
+                }
+                if root.show-error: VerticalLayout { alignment: center; Icon { name: "alert-circle"; tint: Theme.danger; size: 18px; } }
+            }
+        }
+        if root.show-error || root.hint != "": Text {
+            text: root.show-error ? root.error : root.hint;
+            color: root.show-error ? Theme.danger : Theme.muted;
+            font-family: Theme.font-family; font-size: Theme.text-body-sm; wrap: word-wrap;
+        }
+    }
+}

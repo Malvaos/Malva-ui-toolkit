@@ -1,0 +1,64 @@
+import { Segmented, TabBar, Sidebar, SidebarItem, SidebarHeading, ListRow, Stepper, Chip, Avatar, Card, Theme, Label, TextRole, HStack, VStack, Divider, Badge, Tone } from "../ui/malva.slint";
+import { PageFrame, Section, Cell } from "common.slint";
+
+export component PageNavigation inherits PageFrame {
+    title: "Navigation";
+    lead: "Segmented controls, tab bars, sidebars, list rows, steppers, chips and avatars.";
+    VStack {
+        spacing: 20px;
+        HStack {
+            spacing: 36px; alignment: start;
+            Section { title: "Segmented"; Segmented { width: 300px; options: ["Light", "Dark", "Auto"]; current-index: 1; } }
+            Section { title: "TabBar"; TabBar { width: 380px; options: ["CPU", "Memory", "Disk", "Network"]; current-index: 0; } }
+        }
+        Section {
+            title: "Stepper";
+            Stepper { width: 760px; steps: ["Language", "Keyboard", "Disk", "Account", "Install"]; current: 2; }
+        }
+        HStack {
+            spacing: 24px; alignment: start;
+            Section {
+                title: "Sidebar";
+                Rectangle {
+                    width: 260px; height: 300px; border-radius: Theme.radius-card; clip: true; background: Theme.surface; border-width: 1px; border-color: Theme.line;
+                    Sidebar {
+                        content-width: 260px;
+                        SidebarHeading { text: "LIBRARY"; }
+                        SidebarItem { icon: "home"; text: "Home"; active: true; }
+                        SidebarItem { icon: "folder"; text: "Documents"; count: 12; }
+                        SidebarItem { icon: "image"; text: "Pictures"; }
+                        SidebarItem { icon: "music"; text: "Music"; }
+                        SidebarHeading { text: "DEVICES"; }
+                        SidebarItem { icon: "hard-drive"; text: "System"; }
+                        SidebarItem { icon: "eject"; text: "Backup drive"; count: 2; }
+                    }
+                }
+            }
+            Section {
+                title: "ListRow";
+                Card {
+                    width: 420px; elevation: 1; content-padding: 8px;
+                    ListRow { icon: "wifi"; title: "Wi-Fi"; subtitle: "Mangrove 5G"; trailing: "Connected"; chevron: true; }
+                    ListRow { icon: "bluetooth"; title: "Bluetooth"; subtitle: "2 devices"; chevron: true; selected: true; icon-tint: Theme.series-2; }
+                    ListRow { icon: "volume"; title: "Sound"; trailing: "70 %"; chevron: true; icon-tint: Theme.series-3; }
+                    ListRow { icon: "moon"; title: "Do Not Disturb"; trailing: "Off"; icon-tint: Theme.series-4; }
+                    ListRow { icon: "lock"; title: "Locked"; enabled: false; }
+                }
+            }
+            VStack {
+                spacing: 20px; alignment: start;
+                Section {
+                    title: "Chip";
+                    VStack { spacing: 8px;
+                        HStack { spacing: 8px; alignment: start; Chip { text: "All"; selected: true; } Chip { text: "Photos"; icon: "image"; } Chip { text: "Music"; icon: "music"; } }
+                        HStack { spacing: 8px; alignment: start; Chip { text: "2026"; removable: true; selected: true; } Chip { text: "Shared"; removable: true; } }
+                    }
+                }
+                Section {
+                    title: "Avatar";
+                    HStack { spacing: 12px; alignment: start; Avatar { initials: "LD"; } Avatar { initials: "AC"; size: 48px; online: true; } Avatar { initials: "M"; size: 32px; } }
+                }
+            }
+        }
+    }
+}

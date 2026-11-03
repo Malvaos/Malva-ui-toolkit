@@ -1,0 +1,85 @@
+import { WindowFrame, StepHeader, ChoiceRow, SettingRow, Select, Segmented, Toggle, ResultView, Banner, Tone, Button, ButtonVariant, RingGauge, ProgressBar, Theme, Label, TextRole, HStack, VStack, Card, Divider, Stepper } from "../ui/malva.slint";
+import { PageFrame, Section } from "common.slint";
+
+component Stat inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    preferred-height: 38px;
+    VerticalLayout { spacing: 2px; Text { text: root.label; color: Theme.muted; font-family: Theme.font-family; font-size: Theme.text-caption; } Text { text: root.value; color: Theme.ink; font-family: Theme.font-family; font-size: Theme.text-body; font-weight: Theme.weight-ui; } }
+}
+
+export component PageBackup inherits PageFrame {
+    title: "Backup patterns";
+    lead: "A four-step wizard, choice rows, settings rows with their controls, progress and a result - all from the kit.";
+    in-out property <int> where: 0;
+    VStack {
+        spacing: 16px;
+        HStack {
+            spacing: 24px;
+            Rectangle {
+                height: 510px;
+                WindowFrame {
+                    x: 0px; width: parent.width; height: 500px; title: "What to back up";
+                    VerticalLayout {
+                        padding: 24px; spacing: 12px; alignment: start;
+                        StepHeader { step: "STEP 2 OF 4"; title: "Where should it go?"; text: "One compact file. Outside disks are found automatically."; }
+                        ChoiceRow { icon: "folder"; title: "Backups folder in Home"; subtitle: "/home/lion/Backups"; selected: root.where == 0; clicked => { root.where = 0; } }
+                        ChoiceRow { icon: "hard-drive"; title: "TOSHIBA"; subtitle: "210.4 GB free - exFAT - separate disk"; selected: root.where == 1; clicked => { root.where = 1; } }
+                        ChoiceRow { icon: "drive"; title: "/srv/backup"; subtitle: "1.2 TB free - ext4 - separate disk"; selected: root.where == 2; clicked => { root.where = 2; } }
+                        Banner { title: "Same disk as your files"; text: "If the disk fails, both are lost."; closable: false; }
+                        HorizontalLayout { spacing: 10px; alignment: end; Button { text: "Back"; variant: ButtonVariant.secondary; } Button { text: "Review"; } }
+                    }
+                }
+            }
+            Rectangle {
+                height: 510px;
+                WindowFrame {
+                    x: 0px; width: parent.width; height: 500px; title: "Backing up";
+                    VerticalLayout {
+                        padding: 24px; spacing: 18px; alignment: center;
+                        HorizontalLayout {
+                            spacing: 28px; alignment: center;
+                            RingGauge { width: 120px; height: 120px; value: 0.62; label: "62%"; thickness: 10px; }
+                            VerticalLayout { spacing: 10px; alignment: center; Label { text: "Backing up your home folder"; role: TextRole.subtitle; } HorizontalLayout { spacing: 30px; Stat { label: "Files"; value: "12,400"; } Stat { label: "Read"; value: "8.4 GB"; } } HorizontalLayout { spacing: 30px; Stat { label: "Archive"; value: "4.9 GB"; } Stat { label: "Time left"; value: "About 2 min"; } } }
+                        }
+                        ProgressBar { value: 0.62; }
+                        Label { text: "IMG_20260512_143022.jpg"; role: TextRole.mono; muted: true; horizontal-alignment: center; }
+                        Label { text: "You can keep using your computer."; role: TextRole.body-sm; muted: true; horizontal-alignment: center; }
+                        HorizontalLayout { alignment: end; Button { text: "Stop backup"; variant: ButtonVariant.secondary; } }
+                    }
+                }
+            }
+        }
+        HStack {
+            spacing: 24px;
+            Rectangle {
+                height: 330px;
+                WindowFrame {
+                    x: 0px; width: parent.width; height: 320px; title: "Automatic backups";
+                    VerticalLayout {
+                        padding: 20px; spacing: 8px; alignment: start;
+                        Label { text: "TIMER"; role: TextRole.caption; }
+                        Card { elevation: 0; content-padding: 4px;
+                            SettingRow { icon: "clock"; title: "Back up automatically"; subtitle: "No password needed"; Toggle { checked: true; } }
+                            Divider { }
+                            SettingRow { icon: "calendar"; title: "How often"; Segmented { width: 200px; options: ["Daily", "Weekly", "Monthly"]; current-index: 0; } }
+                            Divider { }
+                            SettingRow { icon: "archive"; title: "Keep the newest"; Select { width: 150px; options: ["5 backups", "10 backups", "20 backups"]; current-index: 1; } }
+                        }
+                        Label { text: "Older backups are removed after each successful backup."; role: TextRole.body-sm; muted: true; }
+                    }
+                }
+            }
+            Rectangle {
+                height: 330px;
+                WindowFrame {
+                    x: 0px; width: parent.width; height: 320px; title: "Done";
+                    VerticalLayout {
+                        padding: 24px; alignment: center;
+                        ResultView { title: "Backup complete"; text: "12,480 files - 4.9 GB. Next automatic backup tomorrow at 12:00."; Button { text: "Verify backup"; variant: ButtonVariant.secondary; } Button { text: "Done"; } }
+                    }
+                }
+            }
+        }
+    }
+}

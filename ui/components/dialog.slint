@@ -1,0 +1,54 @@
+import { Theme } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+import { Button, ButtonVariant } from "button.slint";
+import { Tone, ToneStyle } from "tone.slint";
+
+/// A full-window dimmer that sits behind a Dialog. Clicking it asks to dismiss.
+export component Scrim inherits Rectangle {
+    callback dismissed();
+    background: Theme.scrim;
+    TouchArea { clicked => { root.dismissed(); } }
+}
+
+/// An alert/confirm dialog. For a destructive choice set `destructive` (the main button turns rose
+/// and the safe button is the default). Buttons: `confirm-text` and an optional `cancel-text`.
+export component Dialog inherits Rectangle {
+    in property <string> title;
+    in property <string> message;
+    in property <string> icon: "info";
+    in property <Tone> tone: Tone.accent;
+    in property <string> confirm-text: "OK";
+    in property <string> cancel-text;
+    in property <bool> destructive: false;
+    callback confirmed();
+    callback cancelled();
+    width: 400px;
+    preferred-height: col.preferred-height;
+    background: Theme.raised;
+    border-radius: Theme.radius-window;
+    border-width: 1px;
+    border-color: Theme.line-strong;
+    drop-shadow-blur: 72px; drop-shadow-offset-y: 40px; drop-shadow-color: Theme.shadow-tint.with-alpha(Theme.shadow-4);
+    accessible-role: groupbox;
+    accessible-label: title;
+    col := VerticalLayout {
+        padding: 24px; spacing: 16px;
+        HorizontalLayout {
+            spacing: 14px;
+            Rectangle {
+                width: 40px; height: 40px; border-radius: 12px; background: ToneStyle.wash(root.destructive ? Tone.danger : root.tone);
+                Icon { name: root.icon; tint: ToneStyle.fg(root.destructive ? Tone.danger : root.tone); size: 22px; x: 9px; y: 9px; }
+            }
+            VerticalLayout {
+                spacing: 4px; horizontal-stretch: 1;
+                Text { text: root.title; color: Theme.ink; font-family: Theme.font-family; font-size: Theme.text-subtitle; font-weight: Theme.weight-title; wrap: word-wrap; }
+                Text { text: root.message; color: Theme.muted; font-family: Theme.font-family; font-size: Theme.text-body; wrap: word-wrap; }
+            }
+        }
+        HorizontalLayout {
+            spacing: 10px; alignment: end;
+            if root.cancel-text != "": Button { text: root.cancel-text; variant: ButtonVariant.secondary; clicked => { root.cancelled(); } }
+            Button { text: root.confirm-text; variant: root.destructive ? ButtonVariant.danger : ButtonVariant.primary; clicked => { root.confirmed(); } }
+        }
+    }
+}

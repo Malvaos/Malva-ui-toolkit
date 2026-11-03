@@ -1,0 +1,75 @@
+import { Theme } from "../tokens.slint";
+import { FocusRing } from "focus-ring.slint";
+
+/// One radio button. Use `RadioGroup` for a set.
+export component RadioButton inherits Rectangle {
+    in property <bool> selected: false;
+    in property <bool> enabled: true;
+    in property <string> text;
+    /// Documentation/testing aid: "hover", "pressed" or "focus" draws that state without a pointer.
+    in property <string> preview-state;
+    callback clicked();
+    out property <bool> hovered: ta.has-hover || preview-state == "hover";
+    private property <bool> kb: false;
+
+    height: 28px;
+    preferred-width: row.preferred-width;
+    opacity: enabled ? 1.0 : Theme.alpha-disabled;
+    accessible-role: radio-button;
+    accessible-label: text;
+    accessible-checked: selected;
+
+    row := HorizontalLayout {
+        spacing: 10px;
+        alignment: start;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 20px; height: 20px;
+                border-radius: 10px;
+                border-width: root.selected ? 2px : 1.5px;
+                border-color: root.selected ? Theme.accent : (root.hovered ? Theme.accent : Theme.line-strong);
+                background: root.hovered && !root.selected ? Theme.accent-wash : transparent;
+                animate border-color { duration: Theme.dur-feedback; }
+                Rectangle {
+                    width: root.selected ? (ta.pressed ? 8px : 10px) : 0px;
+                    height: self.width;
+                    x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+                    border-radius: self.width / 2;
+                    background: Theme.accent;
+                    animate width { duration: Theme.dur-overlay; easing: cubic-bezier(0.34, 1.35, 0.64, 1); }
+                }
+                FocusRing { active: (fs.has-focus && root.kb) || root.preview-state == "focus"; corner: 10px; width: parent.width; height: parent.height; }
+            }
+        }
+        if root.text != "": Text {
+            text: root.text; color: Theme.ink; font-family: Theme.font-family; font-size: Theme.text-body; font-weight: Theme.weight-body; vertical-alignment: center;
+        }
+    }
+    fs := FocusScope {
+        enabled: root.enabled;
+        key-pressed(e) => { if (e.text == " ") { root.kb = true; root.clicked(); return accept; } return reject; }
+        focus-gained(reason) => { root.kb = reason == FocusReason.tab-navigation; }
+        ta := TouchArea {
+            enabled: root.enabled;
+            mouse-cursor: root.enabled ? MouseCursor.pointer : MouseCursor.default;
+            pointer-event(e) => { if (e.kind == PointerEventKind.down) { root.kb = false; } }
+            clicked => { fs.focus(); root.clicked(); }
+        }
+    }
+}
+
+/// A vertical set of radio buttons where exactly one is selected.
+export component RadioGroup inherits VerticalLayout {
+    in property <[string]> options;
+    in-out property <int> current-index: 0;
+    in property <bool> enabled: true;
+    callback selected(int);
+    spacing: 4px;
+    for option[i] in options: RadioButton {
+        text: option;
+        enabled: root.enabled;
+        selected: root.current-index == i;
+        clicked => { root.current-index = i; root.selected(i); }
+    }
+}

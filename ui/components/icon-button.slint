@@ -1,0 +1,52 @@
+import { Theme } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+import { FocusRing } from "focus-ring.slint";
+import { ControlSize } from "button.slint";
+
+export enum IconButtonStyle { ghost, tonal, filled }
+
+/// A square button with only an icon. `selected` shows it as the active one of a group.
+export component IconButton inherits Rectangle {
+    in property <string> icon: "plus";
+    in property <IconButtonStyle> look: IconButtonStyle.ghost;
+    in property <ControlSize> size: ControlSize.md;
+    in property <bool> selected: false;
+    in property <bool> enabled: true;
+    /// Spoken/tooltip name; also used by accessibility tooling.
+    in property <string> label;
+    /// Documentation/testing aid: "hover", "pressed" or "focus" draws that state without a pointer.
+    in property <string> preview-state;
+    callback clicked();
+    out property <bool> pressed: ta.pressed || preview-state == "pressed";
+    out property <bool> hovered: ta.has-hover || preview-state == "hover";
+
+    private property <bool> kb: false;
+    private property <bool> on: selected || look == IconButtonStyle.filled;
+    private property <color> glyph: look == IconButtonStyle.filled ? Theme.on-accent : (selected || look == IconButtonStyle.tonal) ? Theme.accent : Theme.ink;
+
+    width: size == ControlSize.sm ? Theme.control-height-sm : size == ControlSize.lg ? Theme.control-height-lg : Theme.control-height;
+    height: self.width;
+    border-radius: Theme.radius-control;
+    background: look == IconButtonStyle.filled ? (pressed ? Theme.accent-pressed : hovered ? Theme.accent-hover : Theme.accent)
+        : (pressed ? Theme.accent-soft : (hovered || selected || look == IconButtonStyle.tonal) ? Theme.accent-wash : Theme.ink.with-alpha(0.0));
+    opacity: enabled ? 1.0 : Theme.alpha-disabled;
+    transform-scale: (pressed && enabled) ? Theme.press-scale : 1.0;
+    accessible-role: button;
+    accessible-label: label;
+    animate background { duration: Theme.dur-feedback; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+    animate transform-scale { duration: Theme.dur-feedback; easing: cubic-bezier(0.34, 1.35, 0.64, 1); }
+
+    Icon { name: root.icon; tint: root.glyph; size: root.size == ControlSize.sm ? 16px : root.size == ControlSize.lg ? 22px : 20px; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; }
+    fs := FocusScope {
+        enabled: root.enabled;
+        key-pressed(e) => { if (e.text == " " || e.text == Key.Return) { root.kb = true; root.clicked(); return accept; } return reject; }
+        focus-gained(reason) => { root.kb = reason == FocusReason.tab-navigation; }
+        ta := TouchArea {
+            enabled: root.enabled;
+            mouse-cursor: root.enabled ? MouseCursor.pointer : MouseCursor.default;
+            pointer-event(e) => { if (e.kind == PointerEventKind.down) { root.kb = false; } }
+            clicked => { fs.focus(); root.clicked(); }
+        }
+    }
+    FocusRing { active: (fs.has-focus && root.kb) || root.preview-state == "focus"; corner: root.border-radius; width: parent.width; height: parent.height; }
+}

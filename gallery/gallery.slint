@@ -1,0 +1,89 @@
+import { Theme, Label, TextRole, Icon, Divider, IconButton, Toggle, Slider, ScrollView } from "../ui/malva.slint";
+import { PageButtons } from "page-buttons.slint";
+import { PageSelection } from "page-selection.slint";
+import { PageInputs } from "page-inputs.slint";
+import { PageTokens } from "page-tokens.slint";
+import { PageNavigation } from "page-navigation.slint";
+import { PageOverlays } from "page-overlays.slint";
+import { PageWidgets } from "page-widgets.slint";
+import { PageShell } from "page-shell.slint";
+import { PageFiles } from "page-files.slint";
+import { PageBackup } from "page-backup.slint";
+
+component NavItem inherits Rectangle {
+    in property <string> icon;
+    in property <string> text;
+    in property <bool> active;
+    callback clicked();
+    height: 38px;
+    border-radius: Theme.radius-control;
+    background: active ? Theme.accent : ta.has-hover ? Theme.accent-wash : transparent;
+    animate background { duration: Theme.dur-feedback; }
+    HorizontalLayout {
+        padding-left: 12px; spacing: 10px; alignment: start;
+        VerticalLayout { alignment: center; Icon { name: root.icon; tint: root.active ? Theme.on-accent : Theme.muted; size: 18px; } }
+        Text { text: root.text; color: root.active ? Theme.on-accent : Theme.ink; font-family: Theme.font-family; font-size: Theme.text-body; font-weight: Theme.weight-ui; vertical-alignment: center; }
+    }
+    ta := TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.clicked(); } }
+}
+
+/// The Malva UI gallery: every component, every state, dark and light.
+/// Run it with `slint-viewer gallery/gallery.slint`.
+export component Gallery inherits Window {
+    in-out property <bool> dark <=> Theme.dark;
+    in-out property <float> balance <=> Theme.balance;
+    in-out property <int> page: 0;
+    in property <length> dock-pointer: -1px;
+    title: "Malva UI for Slint - Gallery";
+    width: 1280px;
+    height: 1000px;
+    background: Theme.bg;
+    default-font-family: Theme.font-family;
+
+    HorizontalLayout {
+        Rectangle {
+            width: 248px;
+            background: Theme.surface;
+            Rectangle { x: parent.width - 1px; width: 1px; background: Theme.line; }
+            VerticalLayout {
+                padding: 16px; spacing: 4px; alignment: start;
+                HorizontalLayout {
+                    padding-bottom: 14px; spacing: 10px;
+                    Rectangle { width: 30px; height: 30px; border-radius: 9px; background: Theme.accent; Icon { name: "leaf"; tint: Theme.on-accent; size: 18px; x: 6px; y: 6px; } }
+                    Label { text: "Malva UI"; role: TextRole.title; vertical-alignment: center; }
+                }
+                NavItem { icon: "sliders"; text: "Tokens"; active: root.page == 0; clicked => { root.page = 0; } }
+                NavItem { icon: "zap"; text: "Buttons"; active: root.page == 1; clicked => { root.page = 1; } }
+                NavItem { icon: "check-circle"; text: "Selection"; active: root.page == 2; clicked => { root.page = 2; } }
+                NavItem { icon: "edit"; text: "Inputs"; active: root.page == 3; clicked => { root.page = 3; } }
+                NavItem { icon: "menu"; text: "Navigation"; active: root.page == 4; clicked => { root.page = 4; } }
+                NavItem { icon: "windows"; text: "Overlays"; active: root.page == 5; clicked => { root.page = 5; } }
+                NavItem { icon: "activity"; text: "Widgets"; active: root.page == 6; clicked => { root.page = 6; } }
+                NavItem { icon: "grid"; text: "Windows and dock"; active: root.page == 7; clicked => { root.page = 7; } }
+                NavItem { icon: "folder"; text: "Files patterns"; active: root.page == 8; clicked => { root.page = 8; } }
+                NavItem { icon: "archive"; text: "Backup patterns"; active: root.page == 9; clicked => { root.page = 9; } }
+            }
+            VerticalLayout {
+                padding: 16px; spacing: 10px; alignment: end;
+                Divider { }
+                HorizontalLayout { spacing: 10px; Label { text: "Dark"; vertical-alignment: center; horizontal-stretch: 1; } Toggle { checked: Theme.dark; toggled(c) => { Theme.dark = c; } } }
+                Label { text: "Balance  " + Math.round(Theme.balance); role: TextRole.body-sm; muted: true; }
+                Slider { minimum: 0; maximum: 100; step: 5; value: Theme.balance; changed(v) => { Theme.balance = v; } }
+                Label { text: "0 soft  -  100 crisp"; role: TextRole.caption; }
+            }
+        }
+        ScrollView {
+            horizontal-stretch: 1;
+            if root.page == 0: PageTokens { }
+            if root.page == 1: PageButtons { }
+            if root.page == 2: PageSelection { }
+            if root.page == 3: PageInputs { }
+            if root.page == 4: PageNavigation { }
+            if root.page == 5: PageOverlays { }
+            if root.page == 6: PageWidgets { }
+            if root.page == 7: PageShell { dock-pointer: root.dock-pointer; }
+            if root.page == 8: PageFiles { }
+            if root.page == 9: PageBackup { }
+        }
+    }
+}

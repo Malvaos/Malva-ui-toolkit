@@ -1,158 +1,83 @@
-# Malva UI kit
+# Malva UI for Slint
 
-The design system of Malva OS as code: **tokens** (one JSON file) that generate the **Slint**, **C++**, **Rust**, **CSS**
-and **SVG** sides, a **Slint component library** with 69 exported parts, an **iced** theme, 130 symbols and 20 app icons
-as **SVG**, and the **Files app, dock and menu bar** rebuilt on top of it.
+The Malva OS design system as a pure-Slint toolkit: one `Theme` global, 58 components, an 87-icon pack, a gallery that shows every state in dark and light, and your menu bar re-skinned onto the same tokens. No Rust, C++ or scripts are needed to use it - it is `.slint` files (Slint **1.18.1**).
 
-![The kit, light](docs/screenshots/overview-light.png)
-![The kit, dark](docs/screenshots/overview-dark.png)
+```
+slint-viewer gallery/gallery.slint              # every component, every state, dark + light
+slint-viewer shell/menubar/preview/preview.slint --component PreviewControlDark
+```
+(On Windows: `slint-viewer.exe gallery\gallery.slint`.)
 
-## Screenshots
+## Use it in your app
 
-**Captured from the running Slint UI** (`docs/screenshots`, rendered by `slint-viewer` 1.18.1):
+```slint
+import { Theme, Button, ButtonVariant, TextField, Card, Toggle } from "@malva";
 
-| | Light | Dark |
-|---|---|---|
-| Components, every state | [buttons](docs/screenshots/buttons-light.png), [controls](docs/screenshots/controls-light.png), [inputs](docs/screenshots/inputs-light.png), [navigation](docs/screenshots/navigation-light.png), [feedback](docs/screenshots/feedback-light.png), [surfaces](docs/screenshots/surfaces-light.png), [window chrome](docs/screenshots/windowchrome-light.png), [typography](docs/screenshots/typography-light.png) | the same eight, `-dark.png` |
-| Files | ![Files, light](docs/screenshots/apps/files-light.jpg) | ![Files, dark](docs/screenshots/apps/files-dark.jpg) |
-| Dock | ![Dock, light](docs/screenshots/apps/dock-light.jpg) | ![Dock, dark](docs/screenshots/apps/dock-dark.jpg) |
-| Menu bar, Control Center | ![Control Center, light](docs/screenshots/apps/menubar-control.jpg) | ![Control Center, dark](docs/screenshots/apps/menubar-control-dark.jpg) |
-| Notification centre | ![Notifications, light](docs/screenshots/apps/menubar-notifications.jpg) | ![Notifications, dark](docs/screenshots/apps/menubar-notifications-dark.jpg) |
+export component MyApp inherits Window {
+    background: Theme.bg;
+    default-font-family: Theme.font-family;   // "Inter"
+    Card { Button { text: "Save"; clicked => { /* ... */ } } }
+}
+```
+Point `@malva` at the barrel file:
 
-All 36 app scenes are in `docs/screenshots/apps/`.
+| Where | How |
+|---|---|
+| `slint-viewer` / `slint-compiler` | `-L malva=path/to/malva-slint/ui/malva.slint` |
+| Rust `build.rs` | `CompilerConfiguration::new().with_library_paths(HashMap::from([("malva".into(), "path/to/malva-slint/ui/malva.slint".into())]))` |
+| C++ / CMake | pass `-L malva=...` to the compiler, or import by relative path: `import { Button } from "malva-slint/ui/malva.slint";` |
 
-**Vector previews** (`docs/svg`, SVG): the same screens drawn from the tokens, the kit's icons and its wallpapers by
-`tools/make_svg_screens.py`. They are drawings, not captures (Slint cannot export a window to SVG), so they match the
-design but not every pixel of the running UI. They scale without loss, and open in a browser, Inkscape or Figma.
+Or import by relative path and skip libraries entirely. Install **Inter** and **JetBrains Mono** for the intended type (Slint falls back to any installed font).
 
-| | Light | Dark |
-|---|---|---|
-| Desktop | ![Desktop, light](docs/svg/desktop-light.svg) | ![Desktop, dark](docs/svg/desktop-dark.svg) |
-| Files | [files-light.svg](docs/svg/files-light.svg) | [files-dark.svg](docs/svg/files-dark.svg) |
-| Dock | [dock-light.svg](docs/svg/dock-light.svg) | [dock-dark.svg](docs/svg/dock-dark.svg) |
-| Menu bar and Control Center | [menubar-light.svg](docs/svg/menubar-light.svg) | [menubar-dark.svg](docs/svg/menubar-dark.svg) |
-| Every component on one sheet | [specimen-light.svg](svg/specimen-light.svg) | [specimen-dark.svg](svg/specimen-dark.svg) |
+## Theming
+Everything reads `Theme` (`ui/tokens.slint`). Flip it at runtime and the whole UI follows:
 
-The SVGs set text in Inter; on a machine without it the system UI font is used.
-
-## The look in one paragraph
-
-Black and white, with the logo's colour. Every surface, text colour and border is a neutral (light: `#F5F5F7` canvas,
-`#FFFFFF` cards, `#1D1D1F` text, `#86868B` secondary text, `#E5E5EA` hairlines; dark: `#161617` canvas, `#1E1E1F`
-windows, `#F5F5F7` text, `#8E8E93` secondary text, `#2C2C2E` borders). The one strong colour is the logo's
-Plum `#8C3274` (the lighter orchid-pink `#DC73C2` in dark), and it appears only where something can be acted on or is
-selected: primary buttons, the on state of a switch, selection, focus, links. See [docs/DESIGN.md](docs/DESIGN.md).
+```slint
+Theme.dark = false;           // light polarity (plum accent #7E376A); dark is orchid #D47ABC
+Theme.balance = 70;           // 0 Soft ... 100 Crisp; 50 is the tuned default (radii, weights, shadows, contrast move together)
+Theme.reduce-motion = true;   // every duration becomes 0 ms
+Theme.high-contrast = true;   // opaque surfaces, solid borders, pure ink
+Theme.reduce-transparency = true;
+```
+The values are Malva's balanced defaults from `docs/BALANCE.md` (surfaces `#1D101C/#2A1929` dark, `#F6F0F6/#FBF8FB` light; controls 12 px, windows 20 px; UI weight 500 at balance 50; feedback 120 ms, overlays 240 ms with the 1.35 spring; hover wash 8 %, pressed 14 %, press scale 0.96, disabled 40 %; touch target 44 px; 2 px accent focus ring with a 2 px halo). `docs/TOKENS.md` lists every token.
 
 ## What is in the box
 
-| Folder | What | Language |
-|---|---|---|
-| `tokens/malva-tokens.json` | **The single source of truth**: palette, 56 colour roles in light and dark, radii, spacing, sizes, type, motion, elevation | JSON |
-| `slint/` | The component library (`@malva/malva.slint`), tokens, icons, Inter and JetBrains Mono. 69 exports: Button, Toggle, Slider, TextField, Dropdown, Tabs, Card, Toast, Dialog, ContextMenu, TitleBar, ... ([reference](docs/COMPONENTS.md)) | Slint |
-| `cpp/` | Header-only `malva::` colour maths, tokens, theme, motion and icons (usable without Slint), CMake target `Malva::UI`, the interaction test of every component, a gallery app | C++20 |
-| `rust/` | `malva-color`, `malva-tokens`, `malva-icons`, `malva-motion` (std only, `cargo test` works offline) and `malva-iced`, the theme for [iced](https://iced.rs) 0.14 | Rust |
-| `css/malva.css` | Every token as a custom property; dark by `prefers-color-scheme` or `data-theme="dark"` | CSS |
-| `svg/` | `icons/` (130 symbols, `currentColor`), `app/` (20 app pictures), `logo/` (the brand kit's 14 files), `wallpaper/`, `parts/` (squircle, focus ring, spinner, skeleton, elevation), `specimen-light.svg`, `specimen-dark.svg`, `palette.svg`, `icons-sheet.svg` | SVG |
-| `apps/` | **Files**, **dock** and **menu bar**, each a Slint UI with a small replaceable C++ backend, ported onto the kit's tokens | Slint + C++ |
-| `dist/` | `malva.dtcg.json` (W3C design tokens, for Figma and Style Dictionary), `malva.gpl` (palette for GIMP / Inkscape / Krita), `resolved.json` (every role as hex, the golden file the tests compare against) | JSON |
-| `gallery/` | The design sheets (every component in every state) and their light and dark windows | Slint |
-| `tools/` | The generators. Python 3, standard library only (the preview wallpapers in `apps/*/tools` also use numpy and Pillow) | Python |
-| `docs/` | `DESIGN.md`, `USAGE.md`, `COMPONENTS.md`, `TOKENS.md`, `ICONS.md`, `screenshots/` (captures), `svg/` (vector previews) | Markdown, PNG, JPG, SVG |
-
-## Quick start
-
-**Slint** (any language that hosts Slint):
-
-```slint
-import { Theme, Button, ButtonKind, TextField, Toggle } from "@malva/malva.slint";
-
-export component App inherits Window {
-    default-font-family: "Inter";
-    background: Theme.bg;
-    // Theme.dark = true;  switches every colour of every component
-    Button { text: "Save"; kind: ButtonKind.primary; clicked => { /* ... */ } }
-}
-```
-
-```sh
-slint-viewer -L malva=slint your-app.slint        # preview
-```
-
-**C++ / CMake**:
-
-```cmake
-find_package(Slint 1.18 REQUIRED)
-add_subdirectory(malva-ui-kit/cpp malva)                    # Malva::UI, and malva_add_slint()
-add_executable(app main.cpp)
-malva_add_slint(app ui/app.slint)                           # slint_target_sources with @malva wired up
-target_link_libraries(app PRIVATE Malva::UI Slint::Slint)
-```
-
-```cpp
-#include <malva/theme.h>
-malva::Theme theme(malva::Mode::Dark);
-auto accent = theme.colors().accent;                        // the same bytes the Slint side uses
-```
-
-**Rust**: `malva_tokens::colors(Mode::Dark).accent`, `malva_icons::svg_with_color("bell", "#8C3274")`,
-`malva_iced::theme(mode)` ([malva-iced/README.md](rust/malva-iced/README.md)). **CSS**: `<link rel="stylesheet" href="css/malva.css">`,
-then `background: var(--malva-bg)`.
-
-More in [docs/USAGE.md](docs/USAGE.md).
-
-## Changing the design
-
-Edit `tokens/malva-tokens.json`, then:
-
-```sh
-python3 tools/gen_tokens.py        # Slint, C++, Rust, CSS, DTCG, GPL, resolved.json, palette.svg, docs/TOKENS.md, test fixtures
-python3 tools/gen_icons.py         # icon lookups for Slint, C++, Rust; icon sheet; docs/ICONS.md
-python3 tools/make_svg_parts.py    # svg/parts and the two specimen sheets
-python3 tools/gen_components_doc.py
-python3 tools/make_svg_screens.py  # the vector previews in docs/svg
-```
-
-Each takes `--check` (exit 1 if something on disk differs from what the sources say), which is how you keep generated
-files honest in CI (`.github/workflows/ci.yml` does). Generated files start with `GENERATED by ... Do not edit by hand.`
-
-## Build and test
-
-Needs: CMake 3.21+, a C++20 compiler, the [Slint 1.18 C++ SDK](https://github.com/slint-ui/slint/releases) (for the Slint
-parts), Rust 1.75+ (for `rust/`), Python 3.
-
-```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/path/to/Slint-cpp-1.18.1-Linux-x86_64 -DMALVA_BUILD_APPS=ON
-cmake --build build -j
-(cd build && ctest --output-on-failure)       # 10 tests; the Slint ones need no display (Slint's testing backend)
-(cd rust && cargo test --offline)             # 26 tests
-```
-
-Without Slint, `cmake -S . -B build` still builds and tests the header-only C++ (colour, tokens, motion).
-A complete outside project is `cpp/examples/consumer/` (a CMake file, one `.slint`, one `main.cpp`).
-
-## What is tested, and what is not
-
-Everything below was run in the environment this kit was written in (Linux, Slint 1.18.1, GCC, Rust stable).
-
-| | |
+| Group | Components |
 |---|---|
-| Colour maths, tokens and motion in C++ and Rust agree byte for byte with each other and with `dist/resolved.json` and `dist/motion-golden.json`, both modes | **tested** (`color_test`, `tokens_test`, `motion_test`, the Rust golden tests) |
-| WCAG contrast of the text pairings, both modes | **tested**, with two stated exceptions: `text-2` (`#86868B` on white is 3.6:1) and `muted` are held to 3.0 and 2.5, because they are your specified greys; use them for supporting text only |
-| Every interactive Slint component: pointer, keyboard, focus, scrolling, timers (`ui_test`, 12 sections, over 100 checks; writing it found and fixed several real bugs) | **tested** on Slint's testing backend |
-| Files, dock and menu bar: model tests and end-to-end tests through the UI | **tested** (`files_*`, `dock_*`, `menubar_*`) |
-| Rust crates: 26 tests | **tested** |
-| Screenshots (`docs/screenshots`) | rendered by `slint-viewer` 1.18.1 with the femtovg renderer under Xvfb, from these exact files |
-| `malva-iced` style functions return the right token for every status, light and dark (34 tests) | **tested against a stub** of iced whose style structs are extracted verbatim from iced 0.14.0 |
-| `malva-iced` builds and runs against the real iced from crates.io; `examples/gallery.rs` | **not tested** (crates.io was not reachable) |
-| The Slint library from Rust (`slint-build` with a library path) | **not tested** (the C++ and `slint-viewer` routes are) |
-| Windows and macOS builds, Skia and software renderers, real compositors (blur behind the dock and bar), screen readers | **not tested** |
-| The three apps against real system services (files, network, audio, notifications) | **not tested**: their backends are stand-ins to replace |
+| Foundations | `Theme`, `Icon` + `Icons` (87 icons), `Label` (8 text roles), `FocusRing`, `Tone`/`ToneStyle` |
+| Controls | `Button` (primary / secondary / ghost / danger, 3 sizes, icon), `IconButton` (ghost / tonal / filled), `Toggle`, `Checkbox` (incl. mixed), `RadioButton`/`RadioGroup`, `Slider`, `TextField` (label, hint, error-after-blur, search, password), `Select` |
+| Containers | `Card` (elevation 0-4), `Divider`, `Spacer`, `VStack`/`HStack`, `ScrollView`, `Picture` |
+| Feedback | `ProgressBar`, `Spinner`, `Badge`, `Tooltip`, `Toast`, `Banner`, `Chip`, `Avatar`, `Stepper`, `ResultView` |
+| Navigation | `Segmented`, `TabBar`, `DocumentTabs`, `Sidebar`/`SidebarItem`/`SidebarHeading`, `ListRow`, `ChoiceRow`, `SettingRow`, `ColumnHeader`, `PropertyRow`, `Kbd` |
+| Overlays | `Menu`/`MenuItem`/`MenuSeparator`/`MenuHeading`, `Dialog` + `Scrim`, `CommandPalette` |
+| Windows | `WindowFrame`, `Toolbar` |
+| Data widgets | `AreaChart`, `RingGauge`, `StackedBar`, `StatTile`, `WidgetCard`, `MetricRow` |
+| Shell | `Dock` (cosine magnification, badges, running marks, labels), **`MenubarWindow`** and its model structs (menus, tray, Wi-Fi, Bluetooth, battery, sound, calendar, control center, notifications, OSD, power) |
 
-Slint draws no backdrop blur: the dock and the bar show a translucent plate, and a compositor (or the apps' blurred
-backdrop image, as in the screenshots) supplies the blur.
+Every interactive control has the same five states (default, hover, pressed, focus, disabled), keyboard operation (Space/Enter; arrows on sliders), accessible roles/labels, and a `preview-state` property that draws a state without a pointer (used by the gallery and for visual tests). `docs/COMPONENTS.md` documents every property and callback.
 
-## Licences
+## The menu bar
+`shell/menubar/` is your Cutefish menu bar, unchanged except its `ui/theme.slint`, which now maps each of its tokens onto `Theme` (so it follows dark/light/balance/reduce-motion with everything else). The 23 preview scenes and the elements sheet work as before; their wallpapers are the Malva Dusk/Dawn images. Backend wiring is described in `shell/menubar/ORIGINAL-README.md`. The bar's `Screen` and `Motion` globals are exported from the barrel as `ShellScreen` and `ShellMotion`; its `Theme` is simply Malva's `Theme`.
 
-The kit's own licence is not chosen yet (no `LICENSE` file is included; the Cargo manifests say `publish = false`).
-Fonts keep their own: Inter and JetBrains Mono are under the SIL Open Font License (`slint/fonts/*-LICENSE.txt`,
-`*-OFL.txt`).
+## Layout
+```
+ui/malva.slint        the one import     ui/tokens.slint   Theme       ui/icons.slint   Icon + Icons (generated)
+ui/components/*.slint one file per family
+gallery/              the gallery app (10 pages)        tests/all-components.slint   compile + smoke test
+shell/menubar/        menu bar module + preview scenes   docs/   generated reference     screenshots/   renders
+tools/                optional generators (icons, chart paths, docs) - their output is committed; you never need to run them
+```
+
+## Design rules baked in
+Accent is dusty orchid/plum, never neon; surfaces tint toward plum, never grey. Destructive actions are rose and never the default button. Colour is always paired with text or an icon. Fields validate after you leave them, not while typing. Focus rings show for keyboard focus only.
+
+## Known limits (read these)
+- **No backdrop blur in Slint.** `Theme.glass` is a translucent plate; the compositor supplies the blur behind it. The menu bar's preview fakes it with a pre-blurred backdrop image, as the original did.
+- **One drop shadow per element**, so Malva's two-layer elevation is approximated by a single tuned shadow plus the 1 px hairline.
+- **Charts take at most 64 points.** Slint cannot loop inside a `Path`, so `ChartPath` builds the path string with a generated, unrolled function.
+- **`Dock` magnification** uses the resting-position cosine and displaces neighbours with its integral; it is exact for equal-size icons, approximate otherwise.
+- The shell's own `Symbol`/app-icon art is yours and is not re-drawn in Malva style.
+
+## Verification
+All files compile with the Slint 1.18.1 compiler (Python interpreter) **and** the 1.18.1 native `slint-compiler` from the C++ SDK. The screenshots in `screenshots/` were rendered by the 1.18.1 interpreter (femtovg renderer on Mesa software GL) from these exact files. Not verified here: running the Windows `slint-viewer.exe` (same version, not run), and Rust `build.rs` / CMake integration (no Rust toolchain or CMake in the build environment) - the `-L` form above was verified with the native compiler.

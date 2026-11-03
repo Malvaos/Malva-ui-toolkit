@@ -1,0 +1,53 @@
+import { StatTile, WidgetCard, MetricRow, AreaChart, RingGauge, StackedBar, Segment, Theme, Label, TextRole, HStack, VStack, Tone, Badge, Segmented } from "../ui/malva.slint";
+import { PageFrame, Section } from "common.slint";
+
+export component PageWidgets inherits PageFrame {
+    title: "Widgets";
+    lead: "Data widgets for the desktop: tiles with sparklines, gauges, stacked bars and metric rows.";
+    in property <[float]> cpu: [0.35, 0.4, 0.33, 0.45, 0.5, 0.42, 0.38, 0.55, 0.48, 0.4, 0.36, 0.44, 0.52, 0.6, 0.5, 0.46, 0.41, 0.35, 0.3, 0.34, 0.31];
+    in property <[float]> mem: [0.5, 0.5, 0.51, 0.52, 0.52, 0.53, 0.53, 0.52, 0.54, 0.55, 0.55, 0.54, 0.56, 0.56, 0.57, 0.57, 0.56, 0.58, 0.58, 0.59, 0.6];
+    in property <[float]> net: [0.1, 0.2, 0.12, 0.4, 0.7, 0.3, 0.2, 0.5, 0.9, 0.6, 0.3, 0.2, 0.25, 0.45, 0.8, 0.5, 0.3, 0.2, 0.35, 0.55, 0.4];
+    in property <[float]> gpu: [0.2, 0.22, 0.25, 0.3, 0.28, 0.26, 0.35, 0.4, 0.38, 0.3, 0.28, 0.27, 0.3, 0.33, 0.29, 0.26, 0.3, 0.28, 0.27, 0.29, 0.28];
+    VStack {
+        spacing: 18px;
+        HStack {
+            spacing: 18px;
+            StatTile { title: "CPU"; icon: "cpu"; value: "31"; unit: "%"; caption: "3.08 GHz - 44 C"; history: root.cpu; tint: Theme.series-1; }
+            StatTile { title: "Memory"; icon: "database"; value: "8.0"; unit: "GB"; caption: "50 % of 16 GB"; history: root.mem; tint: Theme.series-2; }
+            StatTile { title: "Network"; icon: "wifi"; value: "143"; unit: "Mb/s"; caption: "Wi-Fi - Home 5G"; history: root.net; tint: Theme.series-5; }
+            StatTile { title: "GPU"; icon: "activity"; value: "28"; unit: "%"; caption: "51 C - 1.0 GHz"; history: root.gpu; tint: Theme.series-6; }
+        }
+        HStack {
+            spacing: 18px;
+            WidgetCard {
+                title: "Storage"; icon: "hard-drive"; tint: Theme.series-3; badge: "NVMe"; badge-tone: Tone.success;
+                VStack { spacing: 10px;
+                    Label { text: "412 GB of 512 GB"; role: TextRole.title; }
+                    StackedBar { segments: [{ value: 0.45, color: Theme.series-1 }, { value: 0.2, color: Theme.series-2 }, { value: 0.15, color: Theme.series-4 }, { value: 0.2, color: Theme.track }]; }
+                    Label { text: "Apps - Documents - Media - Free"; role: TextRole.caption; }
+                }
+            }
+            WidgetCard {
+                title: "Gauges"; icon: "zap";
+                HStack { spacing: 18px; alignment: center;
+                    RingGauge { value: 0.31; label: "31%"; caption: "CPU"; tint: Theme.series-1; }
+                    RingGauge { value: 0.6; label: "60%"; caption: "Memory"; tint: Theme.series-2; }
+                    RingGauge { value: 0.86; label: "86%"; caption: "Battery"; tint: Theme.series-3; }
+                }
+            }
+            WidgetCard {
+                title: "Top processes"; icon: "list"; badge: "CPU"; badge-tone: Tone.accent;
+                VStack { spacing: 0px;
+                    MetricRow { icon: "globe"; name: "Web Browser"; value: "12.7 %"; fraction: 0.8; }
+                    MetricRow { icon: "settings"; name: "lion-shell"; value: "8.6 %"; fraction: 0.55; tint: Theme.series-2; }
+                    MetricRow { icon: "terminal"; name: "Terminal"; value: "3.5 %"; fraction: 0.25; tint: Theme.series-3; }
+                    MetricRow { icon: "folder"; name: "Files"; value: "1.7 %"; fraction: 0.14; tint: Theme.series-5; }
+                }
+            }
+        }
+        WidgetCard {
+            title: "System"; icon: "activity"; badge: "All normal"; badge-tone: Tone.success;
+            AreaChart { height: 90px; values: root.cpu; reference: root.mem; tint: Theme.series-1; }
+        }
+    }
+}

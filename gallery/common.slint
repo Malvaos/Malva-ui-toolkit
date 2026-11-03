@@ -1,0 +1,43 @@
+import { Theme, Label, TextRole, Card } from "../ui/malva.slint";
+
+/// A titled block of a gallery page.
+export component Section inherits Rectangle {
+    in property <string> title;
+    in property <string> note;
+    preferred-height: col.preferred-height;
+    col := VerticalLayout {
+        spacing: 12px;
+        alignment: start;
+        Label { text: root.title; role: TextRole.subtitle; }
+        if root.note != "": Label { text: root.note; role: TextRole.body-sm; muted: true; }
+        @children
+    }
+}
+
+/// One cell of a state sheet: the control, and under it the name of its state.
+export component Cell inherits Rectangle {
+    in property <string> caption;
+    preferred-width: col.preferred-width;
+    preferred-height: col.preferred-height;
+    col := VerticalLayout {
+        spacing: 8px;
+        alignment: start;
+        @children
+        Label { text: root.caption; role: TextRole.caption; horizontal-alignment: center; }
+    }
+}
+
+/// The page frame: padding and a headline.
+export component PageFrame inherits Rectangle {
+    in property <string> title;
+    in property <string> lead;
+    VerticalLayout {
+        padding: 32px; spacing: 24px; alignment: start;
+        VerticalLayout {
+            spacing: 6px;
+            Label { text: root.title; role: TextRole.headline; }
+            if root.lead != "": Label { text: root.lead; muted: true; }
+        }
+        @children
+    }
+}

@@ -1,0 +1,80 @@
+import { Theme, Motion } from "../theme.slint";
+import { CalCell } from "../types.slint";
+
+// A month: a row of weekday letters and 42 days. Today is a filled circle, the picked day a ring,
+// days with events carry up to three dots. `compact` is the notification centre's smaller grid.
+export component CalendarGrid inherits Rectangle {
+    in property <[CalCell]> cells;
+    in property <[string]> weekdays;
+    in property <bool> compact: false;
+    callback picked(int);
+
+    property <length> cw: self.width / 7;
+    property <length> ch: compact ? 24px : 36px;
+    property <length> head: compact ? 20px : 24px;
+    height: head + 6 * ch;
+
+    for w[i] in root.weekdays: Text {
+        x: i * root.cw;
+        y: 0px;
+        width: root.cw;
+        height: root.head;
+        text: w;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        color: Theme.text-3;
+        font-size: root.compact ? 10px : 11px;
+        font-weight: 600;
+    }
+    for c[i] in root.cells: Rectangle {
+        x: mod(i, 7) * root.cw;
+        y: root.head + floor(i / 7) * root.ch;
+        width: root.cw;
+        height: root.ch;
+        property <float> hover: ta.has-hover ? 1 : 0;
+        animate hover { duration: Motion.hover-out; }
+        property <length> d: root.compact ? 22px : 32px;
+
+        Rectangle {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2 - (root.compact ? 0px : 1px);
+            width: parent.d;
+            height: parent.d;
+            border-radius: parent.d / 2;
+            background: c.today ? Theme.accent : Theme.text.with-alpha(parent.hover * Theme.plate-alpha * 1.4);
+            border-width: c.selected && !c.today ? 1.5px : 0px;
+            border-color: Theme.accent;
+        }
+        Text {
+            x: 0px;
+            y: -(root.compact ? 0px : 1px);
+            width: parent.width;
+            height: parent.height;
+            text: c.day;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            font-size: root.compact ? 11px : 13px;
+            font-weight: c.today ? 700 : 400;
+            color: c.today ? Theme.on-accent : c.in-month ? Theme.text : Theme.text-3;
+        }
+        if !root.compact && c.events > 0: Rectangle {
+            x: (parent.width - self.width) / 2;
+            y: parent.height - 5px;
+            width: min(c.events, 3) * 5px - 2px;
+            height: 3px;
+            for k in min(c.events, 3): Rectangle {
+                x: k * 5px;
+                width: 3px;
+                height: 3px;
+                border-radius: 1.5px;
+                background: c.today ? Theme.on-accent : Theme.accent;
+            }
+        }
+        ta := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                root.picked(i);
+            }
+        }
+    }
+}

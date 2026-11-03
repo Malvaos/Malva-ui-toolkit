@@ -1,0 +1,63 @@
+import { Theme } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+import { FocusRing } from "focus-ring.slint";
+
+/// A checkbox with an optional label. `indeterminate` shows a dash (a "some selected" parent).
+export component Checkbox inherits Rectangle {
+    in-out property <bool> checked: false;
+    in property <bool> indeterminate: false;
+    in property <bool> enabled: true;
+    in property <string> text;
+    /// Documentation/testing aid: "hover", "pressed" or "focus" draws that state without a pointer.
+    in property <string> preview-state;
+    callback toggled(bool);
+    out property <bool> hovered: ta.has-hover || preview-state == "hover";
+    private property <bool> kb: false;
+    private property <bool> filled: checked || indeterminate;
+
+    height: 28px;
+    preferred-width: row.preferred-width;
+    opacity: enabled ? 1.0 : Theme.alpha-disabled;
+    accessible-role: checkbox;
+    accessible-label: text;
+    accessible-checked: checked;
+
+    row := HorizontalLayout {
+        spacing: 10px;
+        alignment: start;
+        VerticalLayout {
+            alignment: center;
+            box := Rectangle {
+                width: 20px; height: 20px;
+                border-radius: 6px;
+                background: root.filled ? ((ta.pressed || root.preview-state == "pressed") ? Theme.accent-pressed : Theme.accent) : (root.hovered ? Theme.accent-wash : transparent);
+                border-width: root.filled ? 0px : 1.5px;
+                border-color: root.hovered ? Theme.accent : Theme.line-strong;
+                animate background { duration: Theme.dur-feedback; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+                Icon {
+                    name: root.indeterminate ? "minus" : "check";
+                    tint: Theme.on-accent;
+                    size: 15px;
+                    x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+                    opacity: root.filled ? 1.0 : 0.0;
+                    animate opacity { duration: Theme.dur-feedback; }
+                }
+                FocusRing { active: (fs.has-focus && root.kb) || root.preview-state == "focus"; corner: 6px; width: parent.width; height: parent.height; }
+            }
+        }
+        if root.text != "": Text {
+            text: root.text; color: Theme.ink; font-family: Theme.font-family; font-size: Theme.text-body; font-weight: Theme.weight-body; vertical-alignment: center;
+        }
+    }
+    fs := FocusScope {
+        enabled: root.enabled;
+        key-pressed(e) => { if (e.text == " ") { root.kb = true; root.checked = !root.checked; root.toggled(root.checked); return accept; } return reject; }
+        focus-gained(reason) => { root.kb = reason == FocusReason.tab-navigation; }
+        ta := TouchArea {
+            enabled: root.enabled;
+            mouse-cursor: root.enabled ? MouseCursor.pointer : MouseCursor.default;
+            pointer-event(e) => { if (e.kind == PointerEventKind.down) { root.kb = false; } }
+            clicked => { fs.focus(); root.checked = !root.checked; root.toggled(root.checked); }
+        }
+    }
+}

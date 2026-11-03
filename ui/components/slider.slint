@@ -1,0 +1,77 @@
+import { Theme } from "../tokens.slint";
+import { FocusRing } from "focus-ring.slint";
+
+/// A value slider. `value` runs from `minimum` to `maximum`; arrow keys move by `step`.
+export component Slider inherits Rectangle {
+    in-out property <float> value: 0.5;
+    in property <float> minimum: 0;
+    in property <float> maximum: 1;
+    in property <float> step: 0.05;
+    in property <bool> enabled: true;
+    in property <string> label;
+    /// Documentation/testing aid: "hover", "pressed" or "focus" draws that state without a pointer.
+    in property <string> preview-state;
+    callback changed(float);
+    private property <bool> kb: false;
+    private property <float> fraction: maximum > minimum ? max(0.0, min(1.0, (value - minimum) / (maximum - minimum))) : 0.0;
+    private property <length> travel: max(0px, self.width - 20px);
+
+    height: 28px;
+    min-width: 80px;
+    opacity: enabled ? 1.0 : Theme.alpha-disabled;
+    accessible-role: slider;
+    accessible-label: label;
+    accessible-value: value;
+    accessible-value-minimum: minimum;
+    accessible-value-maximum: maximum;
+
+    Rectangle {
+        x: 10px; width: parent.width - 20px; y: (parent.height - self.height) / 2; height: 4px;
+        border-radius: 2px;
+        background: Theme.track;
+        Rectangle {
+            x: 0px; y: 0px;
+            width: root.fraction * parent.width; height: parent.height;
+            border-radius: 2px;
+            background: Theme.accent;
+        }
+    }
+    thumb := Rectangle {
+        x: root.fraction * root.travel;
+        y: (root.height - self.height) / 2;
+        width: (ta.pressed || root.preview-state == "pressed") ? 24px : 20px; height: self.width;
+        border-radius: self.width / 2;
+        background: Theme.surface;
+        border-width: 3px;
+        border-color: Theme.accent;
+        drop-shadow-blur: 4px; drop-shadow-offset-y: 1px; drop-shadow-color: #000000.with-alpha(0.25);
+        animate width { duration: Theme.dur-feedback; easing: cubic-bezier(0.34, 1.35, 0.64, 1); }
+        FocusRing { active: (fs.has-focus && root.kb) || root.preview-state == "focus"; corner: parent.width / 2; width: parent.width; height: parent.height; }
+    }
+    fs := FocusScope {
+        enabled: root.enabled;
+        key-pressed(e) => {
+            if (e.text == Key.LeftArrow || e.text == Key.DownArrow) { root.kb = true; root.value = max(root.minimum, root.value - root.step); root.changed(root.value); return accept; }
+            if (e.text == Key.RightArrow || e.text == Key.UpArrow) { root.kb = true; root.value = min(root.maximum, root.value + root.step); root.changed(root.value); return accept; }
+            return reject;
+        }
+        focus-gained(reason) => { root.kb = reason == FocusReason.tab-navigation; }
+        ta := TouchArea {
+            enabled: root.enabled;
+            mouse-cursor: root.enabled ? MouseCursor.pointer : MouseCursor.default;
+            pointer-event(e) => {
+                if (e.kind == PointerEventKind.down) {
+                    root.kb = false; fs.focus();
+                    root.value = root.minimum + (root.maximum - root.minimum) * max(0.0, min(1.0, (ta.mouse-x - 10px) / max(1px, root.travel)));
+                    root.changed(root.value);
+                }
+            }
+            moved => {
+                if (self.pressed) {
+                    root.value = root.minimum + (root.maximum - root.minimum) * max(0.0, min(1.0, (ta.mouse-x - 10px) / max(1px, root.travel)));
+                    root.changed(root.value);
+                }
+            }
+        }
+    }
+}

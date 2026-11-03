@@ -1,0 +1,253 @@
+import { Theme } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+import { Tone, ToneStyle } from "tone.slint";
+import { Menu, MenuItem } from "menu.slint";
+
+/// A keycap for a keyboard shortcut ("Ctrl K"). Menus, palettes and tooltips use it.
+export component Kbd inherits Rectangle {
+    in property <string> text;
+    in property <bool> on-accent: false;
+    height: 22px;
+    preferred-width: label.preferred-width + 14px;
+    min-width: 22px;
+    border-radius: 6px;
+    background: on-accent ? Theme.on-accent.with-alpha(0.18) : Theme.ink.with-alpha(0.08);
+    border-width: 1px;
+    border-color: on-accent ? Theme.on-accent.with-alpha(0.25) : Theme.line;
+    label := Text { text: root.text; color: on-accent ? Theme.on-accent : Theme.muted; font-family: Theme.font-family; font-size: 11px; font-weight: Theme.weight-ui; horizontal-alignment: center; vertical-alignment: center; }
+}
+
+/// A row that picks one option out of several ("Where should it go?"): icon tile, text, check when chosen.
+export component ChoiceRow inherits Rectangle {
+    in property <string> icon;
+    in property <string> title;
+    in property <string> subtitle;
+    in property <bool> selected: false;
+    in property <bool> enabled: true;
+    callback clicked();
+    height: subtitle != "" ? 60px : 52px;
+    border-radius: Theme.radius-control;
+    background: selected ? Theme.accent-soft : area.pressed ? Theme.accent-soft : area.has-hover ? Theme.accent-wash : Theme.surface;
+    border-width: selected ? Theme.ring-width : 1px;
+    border-color: selected ? Theme.accent : Theme.line;
+    opacity: enabled ? 1.0 : Theme.alpha-disabled;
+    animate background { duration: Theme.dur-feedback; }
+    accessible-role: radio-button;
+    accessible-label: title;
+    accessible-checked: selected;
+    HorizontalLayout {
+        padding-left: 14px; padding-right: 14px; spacing: 12px;
+        VerticalLayout {
+            alignment: center;
+            Rectangle { width: 34px; height: 34px; border-radius: 10px; background: root.selected ? Theme.accent : Theme.accent-wash; Icon { name: root.icon; tint: root.selected ? Theme.on-accent : Theme.accent; size: 19px; x: 7.5px; y: 7.5px; } }
+        }
+        VerticalLayout {
+            alignment: center; horizontal-stretch: 1;
+            Text { text: root.title; color: Theme.ink; font-family: Theme.font-family; font-size: Theme.text-body; font-weight: Theme.weight-ui; overflow: elide; }
+            if root.subtitle != "": Text { text: root.subtitle; color: Theme.muted; font-family: Theme.font-family; font-size: Theme.text-body-sm; overflow: elide; }
+        }
+        if root.selected: VerticalLayout { alignment: center; Icon { name: "check"; tint: Theme.accent; size: 20px; } }
+    }
+    area := TouchArea { enabled: root.enabled; mouse-cursor: MouseCursor.pointer; clicked => { root.clicked(); } }
+}
+
+/// A settings row: icon, title, helper text, and your control (a Toggle, Segmented, Select...) on the right.
+export component SettingRow inherits Rectangle {
+    in property <string> icon;
+    in property <string> title;
+    in property <string> subtitle;
+    height: subtitle != "" ? 60px : 52px;
+    HorizontalLayout {
+        padding-left: 14px; padding-right: 14px; spacing: 12px;
+        if root.icon != "": VerticalLayout {
+            alignment: center;
+            Rectangle { width: 32px; height: 32px; border-radius: 9px; background: Theme.ink.with-alpha(0.07); Icon { name: root.icon; tint: Theme.muted; size: 18px; x: 7px; y: 7px; } }
+        }
+        VerticalLayout {
+            alignment: center; horizontal-stretch: 1;
+            Text { text: root.title; color: Theme.ink; font-family: Theme.font-family; font-size: Theme.text-body; font-weight: Theme.weight-ui; overflow: elide; }
+            if root.subtitle != "": Text { text: root.subtitle; color: Theme.muted; font-family: Theme.font-family; font-size: Theme.text-body-sm; overflow: elide; }
+        }
+        VerticalLayout { alignment: center; @children }
+    }
+}
+
+/// A dropdown: shows the current option; clicking opens a menu of the others.
+export component Select inherits Rectangle {
+    in property <[string]> options;
+    in-out property <int> current-index: 0;
+    in property <bool> enabled: true;
+    /// Documentation/testing aid: open the menu on start.
+    in property <bool> preview-open: false;
+    callback selected(int);
+    height: 36px;
+    min-width: 130px;
+    border-radius: Theme.radius-control;
+    background: area.pressed ? Theme.track : area.has-hover ? Theme.raised : Theme.surface;
+    border-width: 1px;
+    border-color: Theme.line-strong;
+    opacity: enabled ? 1.0 : Theme.alpha-disabled;
+    accessible-role: combobox;
+    animate background { duration: Theme.dur-feedback; }
+    init => { if (root.preview-open) { popup.show(); } }
+    HorizontalLayout {
+        padding-left: 14px; padding-right: 10px; spacing: 8px;
+        Text { text: root.current-index >= 0 && root.current-index < root.options.length ? root.options[root.current-index] : ""; color: Theme.ink; font-family: Theme.font-family; font-size: Theme.text-body; font-weight: Theme.weight-ui; vertical-alignment: center; horizontal-stretch: 1; overflow: elide; }
+        VerticalLayout { alignment: center; Icon { name: "chevron-down"; tint: Theme.muted; size: 16px; } }
+    }
+    area := TouchArea { enabled: root.enabled; mouse-cursor: MouseCursor.pointer; clicked => { popup.show(); } }
+    popup := PopupWindow {
+        x: 0px; y: root.height + 4px; width: max(root.width, 180px);
+        Menu {
+            for option[i] in root.options: MenuItem {
+                text: option;
+                checked: i == root.current-index;
+                clicked => { root.current-index = i; root.selected(i); popup.close(); }
+            }
+        }
+    }
+}
+
+/// The top of a wizard page: a small "STEP 2 OF 4" caption, a title and a line of help.
+export component StepHeader inherits Rectangle {
+    in property <string> step;
+    in property <string> title;
+    in property <string> text;
+    preferred-height: col.preferred-height;
+    col := VerticalLayout {
+        spacing: 4px;
+        if root.step != "": Text { text: root.step; color: Theme.accent; font-family: Theme.font-family; font-size: Theme.text-caption; font-weight: Theme.weight-title; }
+        Text { text: root.title; color: Theme.ink; font-family: Theme.font-family; font-size: Theme.text-headline; font-weight: Theme.weight-title; wrap: word-wrap; }
+        if root.text != "": Text { text: root.text; color: Theme.muted; font-family: Theme.font-family; font-size: Theme.text-body; wrap: word-wrap; }
+    }
+}
+
+/// A finished (or failed) state: a big round icon, a title, a line of text and your actions underneath.
+export component ResultView inherits Rectangle {
+    in property <string> icon: "check";
+    in property <Tone> tone: Tone.success;
+    in property <string> title;
+    in property <string> text;
+    preferred-height: col.preferred-height;
+    col := VerticalLayout {
+        alignment: center; spacing: 12px;
+        HorizontalLayout { alignment: center; Rectangle { width: 64px; height: 64px; border-radius: 32px; background: ToneStyle.wash(root.tone); border-width: 2px; border-color: ToneStyle.fg(root.tone); Icon { name: root.icon; tint: ToneStyle.fg(root.tone); size: 32px; x: 16px; y: 16px; } } }
+        Text { text: root.title; color: Theme.ink; font-family: Theme.font-family; font-size: Theme.text-title; font-weight: Theme.weight-title; horizontal-alignment: center; wrap: word-wrap; }
+        if root.text != "": Text { text: root.text; color: Theme.muted; font-family: Theme.font-family; font-size: Theme.text-body; horizontal-alignment: center; wrap: word-wrap; }
+        HorizontalLayout { alignment: center; spacing: 10px; @children }
+    }
+}
+
+/// A sortable column heading for lists and tables. The arrow shows the sort direction.
+export component ColumnHeader inherits Rectangle {
+    in property <string> text;
+    in property <bool> sorted: false;
+    in property <bool> ascending: true;
+    in property <bool> align-right: false;
+    callback clicked();
+    height: 32px;
+    border-radius: Theme.radius-sm;
+    background: area.has-hover ? Theme.accent-wash : transparent;
+    HorizontalLayout {
+        padding-left: 10px; padding-right: 10px; spacing: 4px; alignment: root.align-right ? end : start;
+        Text { text: root.text; color: root.sorted ? Theme.ink : Theme.muted; font-family: Theme.font-family; font-size: Theme.text-body-sm; font-weight: Theme.weight-ui; vertical-alignment: center; }
+        if root.sorted: VerticalLayout { alignment: center; Icon { name: root.ascending ? "chevron-up" : "chevron-down"; tint: Theme.accent; size: 14px; } }
+    }
+    area := TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.clicked(); } }
+}
+
+/// A "Kind  Folder" line of an inspector panel.
+export component PropertyRow inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    height: 30px;
+    Rectangle { y: parent.height - 1px; height: 1px; background: Theme.line; }
+    HorizontalLayout {
+        spacing: 12px;
+        Text { text: root.label; color: Theme.muted; font-family: Theme.font-family; font-size: Theme.text-body-sm; vertical-alignment: center; horizontal-stretch: 1; }
+        Text { text: root.value; color: Theme.ink; font-family: Theme.font-family; font-size: Theme.text-body-sm; font-weight: Theme.weight-ui; vertical-alignment: center; overflow: elide; }
+    }
+}
+
+/// The strip of document tabs above a window's content (Files: Documents | Pictures | +).
+export component DocumentTabs inherits Rectangle {
+    in property <[string]> tabs;
+    in-out property <int> current: 0;
+    callback selected(int);
+    callback closed(int);
+    callback added();
+    height: 40px;
+    Rectangle { y: parent.height - 1px; height: 1px; background: Theme.line; }
+    HorizontalLayout {
+        padding-left: 8px; padding-top: 6px; spacing: 4px; alignment: start;
+        for tab[i] in root.tabs: Rectangle {
+            width: 168px;
+            border-top-left-radius: 10px; border-top-right-radius: 10px;
+            background: i == root.current ? Theme.surface : t.has-hover ? Theme.accent-wash : transparent;
+            border-width: i == root.current ? 1px : 0px;
+            border-color: Theme.line;
+            if i == root.current: Rectangle { x: 0px; y: parent.height - 1px; width: parent.width; height: 2px; background: Theme.surface; }
+            Text { x: 14px; width: parent.width - 44px; text: tab; color: i == root.current ? Theme.ink : Theme.muted; font-family: Theme.font-family; font-size: Theme.text-body-sm; font-weight: Theme.weight-ui; vertical-alignment: center; overflow: elide; }
+            t := TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.current = i; root.selected(i); } }
+            Rectangle {
+                x: parent.width - 26px; width: 20px; height: 20px; y: (parent.height - 20px) / 2; border-radius: 10px;
+                background: x-area.has-hover ? Theme.ink.with-alpha(0.12) : transparent;
+                Icon { name: "close"; tint: Theme.muted; size: 12px; x: 4px; y: 4px; }
+                x-area := TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.closed(i); } }
+            }
+        }
+        Rectangle {
+            width: 32px; height: 28px; y: 4px; border-radius: 8px; background: add.has-hover ? Theme.accent-wash : transparent;
+            Icon { name: "plus"; tint: Theme.muted; size: 16px; x: 8px; y: 6px; }
+            add := TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.added(); } }
+        }
+    }
+}
+
+export struct PaletteItem { icon: string, title: string, hint: string, shortcut: string }
+
+/// A command palette: a search field on top and matching commands below. The app filters `items`.
+export component CommandPalette inherits Rectangle {
+    in-out property <string> query;
+    in property <string> placeholder: "Type a command";
+    in property <[PaletteItem]> items;
+    in-out property <int> current: 0;
+    callback activated(int);
+    callback edited(string);
+    width: 560px;
+    preferred-height: col.preferred-height;
+    background: Theme.raised;
+    border-radius: Theme.radius-window;
+    border-width: 1px;
+    border-color: Theme.line-strong;
+    drop-shadow-blur: 72px; drop-shadow-offset-y: 40px; drop-shadow-color: Theme.shadow-tint.with-alpha(Theme.shadow-4);
+    col := VerticalLayout {
+        HorizontalLayout {
+            padding: 16px; spacing: 12px; height: 56px;
+            VerticalLayout { alignment: center; Icon { name: "search"; tint: Theme.muted; size: 20px; } }
+            Rectangle {
+                horizontal-stretch: 1;
+                q := TextInput { x: 0px; y: (parent.height - self.height) / 2; width: parent.width; text <=> root.query; font-family: Theme.font-family; font-size: Theme.text-subtitle; color: Theme.ink; single-line: true; edited => { root.edited(self.text); } }
+                if root.query == "": Text { x: 0px; y: (parent.height - self.height) / 2; text: root.placeholder; color: Theme.muted.with-alpha(0.8); font-family: Theme.font-family; font-size: Theme.text-subtitle; }
+            }
+            VerticalLayout { alignment: center; Kbd { text: "Esc"; } }
+        }
+        Rectangle { height: 1px; background: Theme.line; }
+        VerticalLayout {
+            padding: 8px; spacing: 2px;
+            for item[i] in root.items: Rectangle {
+                height: 40px;
+                border-radius: Theme.radius-sm;
+                background: i == root.current ? Theme.accent : r.has-hover ? Theme.accent-wash : transparent;
+                HorizontalLayout {
+                    padding-left: 12px; padding-right: 12px; spacing: 10px;
+                    VerticalLayout { alignment: center; Icon { name: item.icon; tint: i == root.current ? Theme.on-accent : Theme.muted; size: 18px; } }
+                    Text { text: item.title; color: i == root.current ? Theme.on-accent : Theme.ink; font-family: Theme.font-family; font-size: Theme.text-body; font-weight: Theme.weight-ui; vertical-alignment: center; }
+                    Text { text: item.hint; color: i == root.current ? Theme.on-accent.with-alpha(0.75) : Theme.muted; font-family: Theme.font-family; font-size: Theme.text-body-sm; vertical-alignment: center; horizontal-stretch: 1; }
+                    if item.shortcut != "": VerticalLayout { alignment: center; Kbd { text: item.shortcut; on-accent: i == root.current; } }
+                }
+                r := TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.current = i; root.activated(i); } }
+            }
+        }
+    }
+}

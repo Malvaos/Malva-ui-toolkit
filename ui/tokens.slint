@@ -1,0 +1,136 @@
+// Malva design tokens for Slint.
+//
+// Every value here is the Malva OS "balanced" default (balance = 50) from docs/BALANCE.md and the
+// Rust `malva-theme` crate, written as a function of three switches you flip at runtime:
+//   Theme.dark       light / dark polarity
+//   Theme.balance    the Soft (0) .. Crisp (100) dial; 50 is the tuned middle
+//   Theme.high-contrast / reduce-motion / reduce-transparency   accessibility
+// Components read only from here, so changing a property here restyles the whole UI live.
+
+export global Theme {
+    in-out property <bool> dark: true;
+    in-out property <float> balance: 50;
+    in-out property <bool> high-contrast: false;
+    in-out property <bool> reduce-motion: false;
+    in-out property <bool> reduce-transparency: false;
+    in-out property <string> font-family: "Inter";
+    in-out property <string> font-family-mono: "JetBrains Mono";
+
+    // 0 (soft) .. 1 (crisp)
+    out property <float> p: balance / 100;
+
+    // ---- surfaces -------------------------------------------------------------------------
+    out property <color> bg: high-contrast ? (dark ? #000000 : #FFFFFF) : (dark ? #1D101C : #F6F0F6);
+    out property <color> surface: high-contrast ? (dark ? #1C0F1A : #F3EAF4) : (dark ? #2A1929 : #FBF8FB);
+    // One tonal step above `surface`: hovered rows, raised plates, popovers.
+    out property <color> raised: dark ? #33202F : #FFFFFF;
+    // Inset controls: text fields, tracks, segmented backgrounds.
+    out property <color> inset: dark ? #160A14 : #F1ECF2;
+    out property <color> track: dark ? #3A2639 : #E8DCE9;
+    // Translucent plate for windows, docks and menus (the compositor adds the backdrop blur).
+    out property <color> glass: surface.with-alpha((reduce-transparency || high-contrast) ? 1.0 : 0.79 + p * 0.05);
+
+    // ---- text -----------------------------------------------------------------------------
+    // Body text sits at 10-14:1 contrast, muted text at 5.5-8:1; the dial moves both a little.
+    out property <color> ink: high-contrast ? (dark ? #FFFFFF : #000000)
+        : (dark ? #F9F0F8.mix(#CDBBCB, p) : #240E20.mix(#4D3349, p));
+    out property <color> muted: high-contrast ? (dark ? #EBDDEA : #2A1226)
+        : (dark ? #C3AEC0.mix(#A892A5, p) : #5E3F59.mix(#7A5E76, p));
+    out property <color> disabled-ink: ink.with-alpha(alpha-disabled);
+
+    // ---- lines ----------------------------------------------------------------------------
+    out property <color> line: high-contrast ? ink : (dark ? #FFFFFF : #2A1226).with-alpha(0.06 + p * 0.12);
+    out property <color> line-strong: high-contrast ? ink : (dark ? #FFFFFF : #2A1226).with-alpha(0.14 + p * 0.14);
+
+    // ---- accent (dusty orchid in dark, plum in light; chroma-capped, never neon) ------------
+    out property <color> accent: dark ? #E072C8.mix(#C883B0, p) : #722C5F.mix(#8A4275, p);
+    out property <color> accent-hover: dark ? #E999D2 : accent.mix(#2A1226, 0.80);
+    out property <color> accent-pressed: dark ? accent.mix(#000000, 0.86) : accent.mix(#2A1226, 0.62);
+    out property <color> on-accent: dark ? #1A0817 : #FFFFFF;
+    out property <color> ring: dark ? #E999D2 : #7E376A;
+    out property <color> accent-wash: accent.with-alpha(dark ? 0.18 : 0.12);
+    out property <color> accent-soft: accent.with-alpha(dark ? 0.28 : 0.20);
+
+    // ---- status ---------------------------------------------------------------------------
+    out property <color> danger: dark ? #FF8A94 : #C0414E;
+    out property <color> danger-hover: dark ? danger.mix(#000000, 0.90) : danger.mix(#FFFFFF, 0.88);
+    out property <color> danger-pressed: danger.mix(#000000, 0.80);
+    out property <color> on-danger: dark ? #2A0A10 : #FFFFFF;
+    out property <color> success: dark ? #7BC74D : #3F7F1B;
+    out property <color> warning: dark ? #F2B04A : #9A5B00;
+    out property <color> leaf: dark ? #86AC6B : #2E451C;
+    out property <color> off: dark ? #9A8497 : #857082;
+    out property <color> scrim: #000000.with-alpha(0.48);
+
+    // ---- data series (charts, gauges): distinct hues that still belong to the palette ------
+    out property <color> series-1: accent;
+    out property <color> series-2: dark ? #A592F2 : #5B4BB5;
+    out property <color> series-3: success;
+    out property <color> series-4: warning;
+    out property <color> series-5: dark ? #72C9D8 : #1F7F95;
+    out property <color> series-6: danger;
+
+    // ---- brand constants (illustrations only; UI uses the roles above) --------------------
+    out property <color> brand-petal: #E6DAE8;
+    out property <color> brand-lilac: #DEC3E0;
+    out property <color> brand-orchid: #B84F9F;
+    out property <color> brand-plum: #8C3274;
+    out property <color> brand-leaf: #274903;
+
+    // ---- elevation (single drop shadow, plum-tinted; level 0 flat .. 4 modal) --------------
+    out property <color> shadow-tint: dark ? #000000 : #3C1432;
+    out property <float> shadow-1: 0.04 + p * 0.12;
+    out property <float> shadow-2: 0.08 + p * 0.20;
+    out property <float> shadow-3: 0.14 + p * 0.20;
+    out property <float> shadow-4: 0.18 + p * 0.24;
+
+    // ---- space (4 pt grid) ----------------------------------------------------------------
+    out property <length> space-xxs: 4px;
+    out property <length> space-xs: 8px;
+    out property <length> space-sm: 12px;
+    out property <length> space-md: 16px;
+    out property <length> space-lg: 24px;
+    out property <length> space-xl: 32px;
+    out property <length> space-xxl: 48px;
+
+    // ---- radii: controls 12 px and windows 20 px at balance 50; the dial moves both ---------
+    out property <length> radius-xs: 4px;
+    out property <length> radius-sm: 8px;
+    out property <length> radius-control: (8 + (100 - balance) * 0.08) * 1px;
+    out property <length> radius-card: radius-control + 4px;
+    out property <length> radius-window: (14 + (100 - balance) * 0.12) * 1px;
+    out property <length> radius-pill: 999px;
+
+    // ---- type: sizes are fixed, UI-label weight follows the dial (430 .. 570) --------------
+    out property <length> text-caption: 11px;
+    out property <length> text-body-sm: 13px;
+    out property <length> text-body: 14px;
+    out property <length> text-subtitle: 16px;
+    out property <length> text-title: 20px;
+    out property <length> text-headline: 28px;
+    out property <length> text-display: 36px;
+    out property <int> weight-body: 400;
+    out property <int> weight-ui: Math.round(430 + balance * 1.4);
+    out property <int> weight-title: 650;
+
+    // ---- state layers and sizing ----------------------------------------------------------
+    out property <float> alpha-disabled: 0.40;
+    out property <float> wash-hover: 0.08;
+    out property <float> wash-pressed: 0.14;
+    out property <float> press-scale: 0.96;
+    out property <length> ring-width: 2px;
+    out property <length> touch-target: 44px;
+    out property <length> control-height: 40px;
+    out property <length> control-height-sm: 32px;
+    out property <length> control-height-lg: 48px;
+
+    // ---- motion: 120 ms for state feedback, 240 ms for overlays; reduce-motion sets both to 0
+    out property <duration> dur-feedback: reduce-motion ? 0ms : 120ms;
+    out property <duration> dur-overlay: reduce-motion ? 0ms : 240ms;
+    out property <duration> dur-slow: reduce-motion ? 0ms : 420ms;
+}
+
+// cubic-bezier curves can not be stored in properties, so components write them out:
+//   standard  cubic-bezier(0.2, 0.8, 0.2, 1)        movement and state changes
+//   spring    cubic-bezier(0.34, 1.35, 0.64, 1)     things that arrive (overshoot ~4 %, settle)
+//   exit      cubic-bezier(0.4, 0, 1, 1)            things that leave

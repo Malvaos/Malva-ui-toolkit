@@ -1,0 +1,73 @@
+import { Theme, Label, TextRole, HStack, VStack, Card, Divider, Badge, Tone } from "../ui/malva.slint";
+import { PageFrame, Section, Cell } from "common.slint";
+
+component Swatch inherits Rectangle {
+    in property <color> tint;
+    in property <string> name;
+    preferred-width: 104px;
+    preferred-height: 70px;
+    VerticalLayout {
+        spacing: 6px;
+        Rectangle { height: 44px; border-radius: 10px; background: root.tint; border-width: 1px; border-color: Theme.line-strong; }
+        Label { text: root.name; role: TextRole.caption; }
+    }
+}
+
+export component PageTokens inherits PageFrame {
+    title: "Tokens";
+    lead: "The whole look comes from one global, Theme. Flip Theme.dark, Theme.balance or the accessibility switches and every component follows.";
+    VStack {
+        spacing: 18px;
+        Section {
+            title: "Colour roles";
+            note: "Dusty orchid in dark, plum in light. Surfaces are tinted toward plum, never grey.";
+            VStack {
+                spacing: 10px;
+                HStack { spacing: 12px; alignment: start;
+                    Swatch { tint: Theme.bg; name: "bg"; } Swatch { tint: Theme.surface; name: "surface"; } Swatch { tint: Theme.raised; name: "raised"; }
+                    Swatch { tint: Theme.inset; name: "inset"; } Swatch { tint: Theme.track; name: "track"; } Swatch { tint: Theme.ink; name: "ink"; } Swatch { tint: Theme.muted; name: "muted"; }
+                }
+                HStack { spacing: 12px; alignment: start;
+                    Swatch { tint: Theme.accent; name: "accent"; } Swatch { tint: Theme.accent-hover; name: "accent-hover"; } Swatch { tint: Theme.accent-pressed; name: "accent-pressed"; }
+                    Swatch { tint: Theme.ring; name: "ring"; } Swatch { tint: Theme.danger; name: "danger"; } Swatch { tint: Theme.success; name: "success"; } Swatch { tint: Theme.warning; name: "warning"; }
+                }
+                HStack { spacing: 12px; alignment: start;
+                    Swatch { tint: Theme.series-1; name: "series-1"; } Swatch { tint: Theme.series-2; name: "series-2"; } Swatch { tint: Theme.series-3; name: "series-3"; }
+                    Swatch { tint: Theme.series-4; name: "series-4"; } Swatch { tint: Theme.series-5; name: "series-5"; } Swatch { tint: Theme.series-6; name: "series-6"; } Swatch { tint: Theme.leaf; name: "leaf"; }
+                }
+            }
+        }
+        Section {
+            title: "Type";
+            HStack { spacing: 40px; alignment: start;
+                VStack { spacing: 6px;
+                    Label { text: "Display 36"; role: TextRole.display; }
+                    Label { text: "Headline 28"; role: TextRole.headline; }
+                    Label { text: "Title 20"; role: TextRole.title; }
+                    Label { text: "Subtitle 16 / UI label weight"; role: TextRole.subtitle; }
+                }
+                VStack { spacing: 6px;
+                    Label { text: "Body 14 - the quick plum fox jumps over the lazy dog"; }
+                    Label { text: "Body small 13 - secondary text"; role: TextRole.body-sm; muted: true; }
+                    Label { text: "CAPTION 11 - LABELS AND CAPTIONS"; role: TextRole.caption; }
+                    Label { text: "mono: let balance = 50;"; role: TextRole.mono; }
+                }
+            }
+        }
+        Section {
+            title: "Radius, elevation, motion";
+            HStack { spacing: 22px; alignment: start;
+                Cell { caption: "radius-control 12"; Rectangle { width: 96px; height: 56px; border-radius: Theme.radius-control; background: Theme.accent-soft; border-width: 1px; border-color: Theme.accent; } }
+                Cell { caption: "radius-window 20"; Rectangle { width: 96px; height: 56px; border-radius: Theme.radius-window; background: Theme.accent-soft; border-width: 1px; border-color: Theme.accent; } }
+                Cell { caption: "elevation 1"; Card { width: 96px; height: 56px; elevation: 1; } }
+                Cell { caption: "elevation 2"; Card { width: 96px; height: 56px; elevation: 2; } }
+                Cell { caption: "elevation 3"; Card { width: 96px; height: 56px; elevation: 3; } }
+                VStack { spacing: 4px;
+                    Label { text: "feedback 120 ms - overlays 240 ms - spring overshoot ~4 %"; role: TextRole.body-sm; muted: true; }
+                    Label { text: "press scales to 0.96 - disabled is 40 % - hover wash 8 %, pressed 14 %"; role: TextRole.body-sm; muted: true; }
+                    Label { text: "touch targets 44 px - focus ring 2 px accent + 2 px halo"; role: TextRole.body-sm; muted: true; }
+                }
+            }
+        }
+    }
+}

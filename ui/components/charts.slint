@@ -1,0 +1,84 @@
+import { Theme } from "../tokens.slint";
+import { ChartPath } from "chart-path.slint";
+
+/// A filled line chart. `values` run 0..1 (bottom..top, up to 64 points); `reference` is an optional dashed second series.
+export component AreaChart inherits Rectangle {
+    in property <[float]> values;
+    in property <[float]> reference;
+    in property <color> tint: Theme.accent;
+    in property <bool> grid: true;
+    in property <bool> fill-area: true;
+    private property <float> w: self.width / 1px;
+    private property <float> h: self.height / 1px;
+    clip: true;
+    if root.grid: Rectangle {
+        for i in 3: Rectangle { y: parent.height * (i + 1) / 4; height: 1px; background: Theme.line; }
+    }
+    if root.fill-area && root.values.length > 1: Path {
+        width: parent.width; height: parent.height;
+        viewbox-width: root.w; viewbox-height: root.h;
+        commands: ChartPath.area(root.values, root.w, root.h);
+        fill: @linear-gradient(180deg, root.tint.with-alpha(0.34) 0%, root.tint.with-alpha(0.02) 100%);
+    }
+    if root.values.length > 1: Path {
+        width: parent.width; height: parent.height;
+        viewbox-width: root.w; viewbox-height: root.h;
+        commands: ChartPath.line(root.values, root.w, root.h);
+        stroke: root.tint; stroke-width: 2px; stroke-line-cap: round; stroke-line-join: round;
+    }
+    if root.reference.length > 1: Path {
+        width: parent.width; height: parent.height;
+        viewbox-width: root.w; viewbox-height: root.h;
+        commands: ChartPath.line(root.reference, root.w, root.h);
+        stroke: root.tint.with-alpha(0.7); stroke-width: 1.5px; stroke-line-cap: round;
+    }
+}
+
+/// A circular gauge: `value` runs 0..1 clockwise from the top; the centre shows `label` and `caption`.
+export component RingGauge inherits Rectangle {
+    in property <float> value: 0;
+    in property <color> tint: Theme.accent;
+    in property <length> thickness: 9px;
+    in property <string> label;
+    in property <string> caption;
+    private property <float> v: max(0.001, min(0.9995, value));
+    private property <angle> a: v * 360deg;
+    private property <float> ex: 50 + 45 * Math.sin(a);
+    private property <float> ey: 50 - 45 * Math.cos(a);
+    width: 96px; height: 96px;
+    accessible-role: progress-indicator;
+    accessible-value: value;
+    Path {
+        width: parent.width; height: parent.height;
+        viewbox-width: 100; viewbox-height: 100;
+        commands: "M 50 5 A 45 45 0 1 1 49.99 5";
+        stroke: Theme.track; stroke-width: root.thickness; fill: transparent;
+    }
+    Path {
+        width: parent.width; height: parent.height;
+        viewbox-width: 100; viewbox-height: 100;
+        commands: "M 50 5 A 45 45 0 \{root.v > 0.5 ? 1 : 0} 1 \{root.ex} \{root.ey}";
+        stroke: root.tint; stroke-width: root.thickness; stroke-line-cap: round; fill: transparent;
+    }
+    VerticalLayout {
+        alignment: center; spacing: 0px;
+        Text { text: root.label; color: Theme.ink; font-family: Theme.font-family; font-size: root.height * 0.22; font-weight: Theme.weight-title; horizontal-alignment: center; }
+        if root.caption != "": Text { text: root.caption; color: Theme.muted; font-family: Theme.font-family; font-size: Theme.text-caption; horizontal-alignment: center; }
+    }
+}
+
+export struct Segment { value: float, color: color }
+
+/// A bar split into proportional segments (memory in use / cached / free, storage by kind...).
+export component StackedBar inherits Rectangle {
+    in property <[Segment]> segments;
+    in property <length> thickness: 10px;
+    height: thickness;
+    border-radius: thickness / 2;
+    background: Theme.track;
+    clip: true;
+    HorizontalLayout {
+        spacing: 2px;
+        for seg in root.segments: Rectangle { horizontal-stretch: seg.value; background: seg.color; }
+    }
+}

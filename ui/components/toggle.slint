@@ -1,0 +1,52 @@
+import { Theme } from "../tokens.slint";
+import { FocusRing } from "focus-ring.slint";
+
+/// An on/off switch. The knob arrives with the Malva spring (a ~4 % overshoot).
+export component Toggle inherits Rectangle {
+    in-out property <bool> checked: false;
+    in property <bool> enabled: true;
+    in property <string> label;
+    /// Documentation/testing aid: "hover", "pressed" or "focus" draws that state without a pointer.
+    in property <string> preview-state;
+    callback toggled(bool);
+    out property <bool> hovered: ta.has-hover || preview-state == "hover";
+    private property <bool> kb: false;
+
+    width: 44px;
+    height: 26px;
+    border-radius: 13px;
+    background: checked ? Theme.accent : Theme.track;
+    border-width: 1px;
+    border-color: checked ? Theme.accent : Theme.line-strong;
+    opacity: enabled ? 1.0 : Theme.alpha-disabled;
+    accessible-role: switch;
+    accessible-label: label;
+    accessible-checked: checked;
+    animate background { duration: Theme.dur-feedback; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+    knob := Rectangle {
+        x: root.checked ? root.width - self.width - 3px : 3px;
+        y: (root.height - self.height) / 2;
+        width: (ta.pressed || root.preview-state == "pressed") ? 24px : 20px;
+        height: 20px;
+        border-radius: 10px;
+        background: #FFFFFF;
+        drop-shadow-blur: 3px;
+        drop-shadow-offset-y: 1px;
+        drop-shadow-color: #000000.with-alpha(0.30);
+        animate x { duration: Theme.dur-overlay; easing: cubic-bezier(0.34, 1.35, 0.64, 1); }
+        animate width { duration: Theme.dur-feedback; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+    }
+    fs := FocusScope {
+        enabled: root.enabled;
+        key-pressed(e) => { if (e.text == " " || e.text == Key.Return) { root.kb = true; root.checked = !root.checked; root.toggled(root.checked); return accept; } return reject; }
+        focus-gained(reason) => { root.kb = reason == FocusReason.tab-navigation; }
+        ta := TouchArea {
+            enabled: root.enabled;
+            mouse-cursor: root.enabled ? MouseCursor.pointer : MouseCursor.default;
+            pointer-event(e) => { if (e.kind == PointerEventKind.down) { root.kb = false; } }
+            clicked => { fs.focus(); root.checked = !root.checked; root.toggled(root.checked); }
+        }
+    }
+    FocusRing { active: (fs.has-focus && root.kb) || root.preview-state == "focus"; corner: 13px; width: parent.width; height: parent.height; }
+}

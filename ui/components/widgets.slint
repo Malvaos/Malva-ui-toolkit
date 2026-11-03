@@ -1,0 +1,78 @@
+import { Theme } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+import { Card } from "card.slint";
+import { Badge } from "badge.slint";
+import { Tone } from "tone.slint";
+import { AreaChart, RingGauge, StackedBar, Segment } from "charts.slint";
+import { ProgressBar } from "progress.slint";
+
+/// The standard widget plate: tinted icon, title, an optional trailing badge, then your content.
+export component WidgetCard inherits Rectangle {
+    in property <string> title;
+    in property <string> icon;
+    in property <color> tint: Theme.accent;
+    in property <string> badge;
+    in property <Tone> badge-tone: Tone.neutral;
+    preferred-height: card.preferred-height;
+    card := Card {
+        elevation: 1;
+        content-padding: 16px;
+        VerticalLayout {
+            spacing: 12px;
+            HorizontalLayout {
+                spacing: 10px;
+                Rectangle { width: 32px; height: 32px; border-radius: 10px; background: root.tint.with-alpha(0.16); Icon { name: root.icon; tint: root.tint; size: 18px; x: 7px; y: 7px; } }
+                Text { text: root.title; color: Theme.ink; font-family: Theme.font-family; font-size: Theme.text-body; font-weight: Theme.weight-ui; vertical-alignment: center; horizontal-stretch: 1; }
+                if root.badge != "": VerticalLayout { alignment: center; Badge { text: root.badge; tone: root.badge-tone; } }
+            }
+            @children
+        }
+    }
+}
+
+/// A headline number with a sparkline: CPU 31 %, Network 143 Mb/s...
+export component StatTile inherits Rectangle {
+    in property <string> title;
+    in property <string> icon;
+    in property <string> value;
+    in property <string> unit;
+    in property <string> caption;
+    in property <color> tint: Theme.accent;
+    in property <[float]> history;
+    preferred-height: 150px;
+    WidgetCard {
+        title: root.title; icon: root.icon; tint: root.tint;
+        VerticalLayout {
+            spacing: 4px;
+            HorizontalLayout {
+                spacing: 4px; alignment: start;
+                Text { text: root.value; color: Theme.ink; font-family: Theme.font-family; font-size: 30px; font-weight: Theme.weight-title; vertical-alignment: bottom; }
+                Text { text: root.unit; color: Theme.muted; font-family: Theme.font-family; font-size: Theme.text-body; vertical-alignment: bottom; y: -4px; }
+            }
+            if root.caption != "": Text { text: root.caption; color: Theme.muted; font-family: Theme.font-family; font-size: Theme.text-body-sm; }
+            AreaChart { height: 44px; values: root.history; tint: root.tint; grid: false; }
+        }
+    }
+}
+
+/// A line in a list of metrics: icon, name, value and a thin bar ("Top processes").
+export component MetricRow inherits Rectangle {
+    in property <string> icon;
+    in property <string> name;
+    in property <string> value;
+    in property <float> fraction: 0;
+    in property <color> tint: Theme.accent;
+    height: 44px;
+    HorizontalLayout {
+        spacing: 12px;
+        VerticalLayout { alignment: center; Icon { name: root.icon; tint: Theme.muted; size: 18px; } }
+        VerticalLayout {
+            alignment: center; spacing: 6px; horizontal-stretch: 1;
+            HorizontalLayout {
+                Text { text: root.name; color: Theme.ink; font-family: Theme.font-family; font-size: Theme.text-body; font-weight: Theme.weight-ui; horizontal-stretch: 1; }
+                Text { text: root.value; color: Theme.muted; font-family: Theme.font-family; font-size: Theme.text-body-sm; }
+            }
+            Rectangle { height: 4px; border-radius: 2px; background: Theme.track; clip: true; Rectangle { x: 0px; y: 0px; width: parent.width * max(0.0, min(1.0, root.fraction)); height: parent.height; background: root.tint; border-radius: 2px; } }
+        }
+    }
+}

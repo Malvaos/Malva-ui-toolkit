@@ -1,0 +1,58 @@
+import { TextField, ProgressBar, Spinner, Badge, Tone, Card, Theme, Label, TextRole, HStack, VStack, Divider, Button } from "../ui/malva.slint";
+import { PageFrame, Section, Cell } from "common.slint";
+
+export component PageInputs inherits PageFrame {
+    title: "Inputs and feedback";
+    lead: "Fields validate after you leave them, never while you type. Colour is always paired with text or an icon.";
+    VStack {
+        spacing: 24px;
+        Section {
+            title: "TextField";
+            HStack {
+                spacing: 22px; alignment: start;
+                Cell { caption: "default"; TextField { width: 220px; placeholder: "Device name"; } }
+                Cell { caption: "focus"; TextField { width: 220px; text: "Studio laptop"; preview-state: "focus"; } }
+                Cell { caption: "error"; TextField { width: 220px; text: "Studio laptop"; error: "Name already used"; preview-state: "error"; } }
+                Cell { caption: "disabled"; TextField { width: 220px; placeholder: "Disabled"; enabled: false; } }
+            }
+            HStack {
+                spacing: 22px; alignment: start;
+                Cell { caption: "with label and hint"; TextField { width: 220px; label: "Hostname"; placeholder: "malva-desktop"; hint: "Letters, numbers and dashes."; } }
+                Cell { caption: "search"; TextField { width: 220px; leading-icon: "search"; placeholder: "Search settings"; } }
+                Cell { caption: "password"; TextField { width: 220px; password: true; text: "hunter2hunter2"; } }
+            }
+        }
+        Section {
+            title: "Progress";
+            HStack {
+                spacing: 28px; alignment: start;
+                Cell { caption: "30 %"; ProgressBar { width: 200px; value: 0.3; } }
+                Cell { caption: "70 % success"; ProgressBar { width: 200px; value: 0.7; tone: Tone.success; } }
+                Cell { caption: "warning"; ProgressBar { width: 200px; value: 0.85; tone: Tone.warning; } }
+                Cell { caption: "danger"; ProgressBar { width: 200px; value: 0.95; tone: Tone.danger; } }
+                Cell { caption: "spinner"; Spinner { } }
+            }
+        }
+        Section {
+            title: "Badge";
+            HStack {
+                spacing: 12px; alignment: start;
+                Badge { text: "Neutral"; }
+                Badge { text: "Accent"; tone: Tone.accent; }
+                Badge { text: "Healthy"; icon: "check-circle"; tone: Tone.success; }
+                Badge { text: "2 high impact"; icon: "alert-triangle"; tone: Tone.warning; }
+                Badge { text: "Failed"; icon: "x-circle"; tone: Tone.danger; }
+            }
+        }
+        Section {
+            title: "Card";
+            HStack {
+                spacing: 20px; alignment: start;
+                Card { width: 220px; elevation: 0; Label { text: "Flat"; role: TextRole.subtitle; } Label { text: "Level 0, a hairline only."; muted: true; } }
+                Card { width: 220px; elevation: 1; Label { text: "Raised"; role: TextRole.subtitle; } Label { text: "Level 1, subtle lift."; muted: true; } }
+                Card { width: 220px; elevation: 2; interactive: true; Label { text: "Floating"; role: TextRole.subtitle; } Label { text: "Level 2, hover me."; muted: true; } }
+                Card { width: 220px; elevation: 1; selected: true; Label { text: "Selected"; role: TextRole.subtitle; } Label { text: "Accent border."; muted: true; } }
+            }
+        }
+    }
+}

@@ -1,0 +1,609 @@
+import { Theme, Motion } from "../theme.slint";
+import { MenuEntry, TrayItem, WifiNetwork, BtDevice, AudioDevice, CalCell, CalEvent, QuickTile, Notice, Weather, Media, Fact } from "../types.slint";
+import { MenuBar } from "bar.slint";
+import { MenuPanel } from "menu.slint";
+import { WifiPopover, BluetoothPopover, BatteryPopover, VolumePopover, CalendarPopover } from "popovers.slint";
+import { ControlCenter } from "control-center.slint";
+import { NotificationCenter, ToastItem } from "notifications.slint";
+import { Osd } from "osd.slint";
+import { PowerDialog } from "power.slint";
+
+// Everything that lives at the top of the screen, as one piece: the bar, what drops from it (menus,
+// popovers, the Control Center, the Notification Center), toasts, the volume display and the power
+// dialog. One thing from the bar is open at a time; while one is open the pointer sweeping along the
+// bar opens each item it reaches; the arrow keys walk the bar and the menus. `MenubarWindow` repeats
+// this component's properties flat for a backend; read that file's comments first.
+export component MenubarPanel inherits Rectangle {
+    // ---- the bar ----
+    in property <[string]> menus;
+    in property <[TrayItem]> tray;
+    in property <string> layout-text: "";
+    in property <string> clock-text: "";
+    in property <bool> has-battery: true;
+    in property <bool> show-battery-percent: false;
+    in property <int> unread: 0;
+    // ---- what is open ----
+    in-out property <string> popup: "";
+    in-out property <int> popup-index: -1;
+    // Where the open thing grows from; -1 means "under its item on the bar" (see fixed-x).
+    in-out property <length> anchor-center: -1px;
+    in-out property <length> anchor-left: -1px;
+    // ---- menus (the system menu, the app's menus, a tray item's, the keyboard layouts) ----
+    in property <[MenuEntry]> menu-entries;
+    // ---- Wi-Fi ----
+    in-out property <bool> wifi-enabled: true;
+    in property <bool> wifi-connected: true;
+    in property <int> wifi-strength: 3;
+    in property <[WifiNetwork]> wifi-networks;
+    // ---- Bluetooth ----
+    in-out property <bool> bluetooth-enabled: true;
+    in property <[BtDevice]> bluetooth-devices;
+    // ---- battery ----
+    in property <int> battery: 80;
+    in property <bool> charging: false;
+    in property <string> battery-status: "On battery";
+    in property <string> battery-detail: "";
+    in property <string> battery-source: "";
+    in property <[string]> power-modes: ["Saver", "Balanced", "Performance"];
+    in-out property <int> power-mode: 1;
+    in property <[Fact]> battery-facts;
+    // ---- sound and light ----
+    in-out property <float> volume: 0.5;
+    in-out property <bool> muted: false;
+    in property <[AudioDevice]> audio-outputs;
+    in-out property <float> brightness: 0.7;
+    // ---- the calendar (the clock's popover and the notification centre's widget) ----
+    in property <string> cal-title: "";
+    in property <[string]> cal-weekdays;
+    in property <[string]> cal-weekdays-short;
+    in property <[CalCell]> cal-cells;
+    in property <string> cal-day-title: "";
+    in property <[CalEvent]> cal-events;
+    // ---- Control Center ----
+    in property <[QuickTile]> quick-tiles;
+    in property <Media> media;
+    // ---- notifications ----
+    in property <[Notice]> notices;
+    in-out property <bool> dnd: false;
+    in property <string> date-text: "";
+    in property <Weather> weather;
+    in property <[Notice]> toasts;
+    // ---- power ----
+    in-out property <bool> power-open: false;
+    in property <string> power-user: "";
+    in property <int> power-countdown: 30;
+    // ---- design previews ----
+    in property <string> preview-hover: "";
+    in property <int> preview-menu-cursor: -1;
+    in property <int> preview-menu-sub: -1;
+    in property <length> preview-menu-sub-y: 0px;
+    in property <bool> preview-osd: false;
+    in property <string> preview-power-hover: "";
+    in property <string> preview-power-pending: "";
+    in property <int> preview-power-remaining: 0;
+    in property <bool> preview-toasts: false;
+
+    // ---- what it says ----
+    callback popup-changed(string);
+    // A menu is about to open: fill `menu-entries` for it ("system", "menu-0", "tray-1", "layout").
+    callback menu-requested(string);
+    callback menu-chosen(string, int);
+    callback wifi-toggled(bool);
+    callback wifi-network-clicked(int);
+    callback wifi-settings();
+    callback bluetooth-toggled(bool);
+    callback bluetooth-device-clicked(int);
+    callback bluetooth-settings();
+    callback power-mode-picked(int);
+    callback battery-settings();
+    callback volume-edited(float);
+    callback mute-toggled(bool);
+    callback output-clicked(int);
+    callback sound-settings();
+    callback brightness-edited(float);
+    callback calendar-previous();
+    callback calendar-next();
+    callback calendar-today();
+    callback calendar-picked(int);
+    callback calendar-open();
+    callback tile-toggled(int);
+    callback tile-detail(int);
+    // "screenshot", "lock" or "settings"
+    callback control-action(string);
+    callback media-previous();
+    callback media-play-pause();
+    callback media-next();
+    callback notice-clicked(int);
+    callback notice-action(int, int);
+    callback notice-removed(int);
+    callback group-cleared(string);
+    callback notices-cleared();
+    callback dnd-toggled(bool);
+    callback toast-clicked(int);
+    callback toast-action(int, int);
+    callback toast-closed(int);
+    callback toast-expired(int);
+    callback power-chosen(string);
+    callback power-cancelled();
+
+    // ---- what it says about itself (for a backend that shapes its input region, and for tests) ----
+    // The open menu's card, in window coordinates, and which row the highlight is on (-1: none); `menu-sub` is
+    // the row whose flyout is open, with the flyout's card and highlight.
+    out property <length> menu-x: menu.x;
+    out property <length> menu-y: menu.y;
+    out property <length> menu-width: menu.width;
+    out property <length> menu-height: menu.height;
+    out property <int> menu-cursor: menu.cursor;
+    out property <int> menu-sub: menu.sub-open;
+    out property <int> menu-sub-cursor: menu.sub-cursor;
+    out property <length> flyout-x: menu.x + menu.flyout-x;
+    out property <length> flyout-y: menu.y + menu.flyout-y;
+    // The volume display: whether it is up, what it shows, and how full.
+    out property <bool> osd-showing: osd.showing;
+    out property <string> osd-kind: osd.kind;
+    out property <float> osd-value: osd.value;
+    // The power dialog: what is counting down ("" while choosing) and the seconds left.
+    out property <string> power-pending: power.pending;
+    out property <int> power-remaining: power.remaining;
+    // What the dialog draws: while it fades out after a cancel or a choice, the countdown it showed.
+    out property <string> power-view: power.view;
+    // How tall the stack of banners under the bar is now (0 when there are none).
+    out property <length> toasts-height: toast-stack.preferred-height;
+
+    // ---- derived ----
+    property <bool> is-status: popup == "wifi" || popup == "bluetooth" || popup == "volume" || popup == "battery" || popup == "control" || popup == "bell" || popup == "clock";
+    property <bool> is-menu: popup != "" && !is-status;
+    property <int> bar-count: bar.clock-index + 1;
+    // The popup is being switched for another while the pointer sweeps along the bar.
+    property <bool> hot: false;
+
+    pure function fixed-x(name: string) -> length {
+        return name == "wifi" ? bar.wifi-x : name == "bluetooth" ? bar.bluetooth-x : name == "volume" || name == "battery" ? bar.volume-x
+            : name == "control" ? bar.control-x : name == "bell" ? bar.bell-x : name == "clock" ? bar.clock-x : 60px;
+    }
+    pure function center(name: string) -> length {
+        return anchor-center >= 0px ? anchor-center : fixed-x(name);
+    }
+    pure function place(c: length, w: length) -> length {
+        return min(max(c - w / 2, 8px), root.width - w - 8px);
+    }
+
+    // ---- opening and closing ----
+    function open-from-bar(name: string, index: int, c: length, l: length) {
+        root.hot = root.popup != "";
+        root.popup = name;
+        root.popup-index = index;
+        root.anchor-center = c;
+        root.anchor-left = l;
+        root.popup-changed(name);
+        if root.is-menu {
+            menu.reset();
+            root.menu-requested(name);
+        }
+        fs.focus();
+    }
+    public function dismiss() {
+        if root.popup != "" {
+            root.popup = "";
+            root.popup-changed("");
+        }
+    }
+    // Opens one of the fixed items without the pointer ("wifi", "bell", "control", ...).
+    public function show-popup(name: string) {
+        root.hot = root.popup != "";
+        root.popup = name;
+        root.anchor-center = -1px;
+        root.anchor-left = -1px;
+        root.popup-index = name == "system" ? 0 : name == "layout" ? bar.layout-index : name == "bluetooth" ? bar.bluetooth-index
+            : name == "wifi" ? bar.wifi-index : name == "volume" ? bar.volume-index : name == "battery" ? bar.battery-index
+            : name == "control" ? bar.control-index : name == "bell" ? bar.bell-index : bar.clock-index;
+        root.popup-changed(name);
+        if root.is-menu {
+            menu.reset();
+            root.menu-requested(name);
+        }
+        fs.focus();
+    }
+    public function show-osd(kind: string, value: float, label: string) {
+        osd.show(kind, value, label);
+    }
+    public function open-power() {
+        root.dismiss();
+        root.power-open = true;
+        fs.focus();
+    }
+    // Opens it already counting down for "restart", "logout" or "shutdown" (a menu's "Restart…").
+    public function ask-power(action: string) {
+        root.dismiss();
+        root.power-open = true;
+        power.pick(action);
+        fs.focus();
+    }
+    // Moves along the bar by one (the arrow keys): a step of 1 or -1, wrapping round. The item at the
+    // new place opens itself when it sees the nonce change.
+    property <int> nav-target: -1;
+    property <int> nav-nonce: 0;
+    function walk(step: int) {
+        root.nav-target = mod(root.popup-index + step + root.bar-count, root.bar-count);
+        root.nav-nonce += 1;
+    }
+
+    fs := FocusScope {
+        width: parent.width;
+        height: parent.height;
+        key-pressed(event) => {
+            if root.power-open {
+                if event.text == Key.Escape {
+                    power.cancel();
+                    return accept;
+                }
+                return reject;
+            }
+            if root.popup == "" {
+                return reject;
+            }
+            if event.text == Key.Escape {
+                root.dismiss();
+                return accept;
+            }
+            if event.text == Key.LeftArrow {
+                if !(root.is-menu && menu.nav("left")) {
+                    root.walk(-1);
+                }
+                return accept;
+            }
+            if event.text == Key.RightArrow {
+                if !(root.is-menu && menu.nav("right")) {
+                    root.walk(1);
+                }
+                return accept;
+            }
+            if root.is-menu {
+                if event.text == Key.DownArrow {
+                    menu.nav("down");
+                    return accept;
+                }
+                if event.text == Key.UpArrow {
+                    menu.nav("up");
+                    return accept;
+                }
+                if event.text == Key.Return || event.text == " " {
+                    menu.nav("enter");
+                    return accept;
+                }
+            }
+            return reject;
+        }
+
+        // A click anywhere outside closes what is open.
+        TouchArea {
+            enabled: root.popup != "";
+            clicked => {
+                root.dismiss();
+            }
+        }
+
+        bar := MenuBar {
+            x: 0px;
+            y: 0px;
+            width: parent.width;
+            menus: root.menus;
+            tray: root.tray;
+            layout-text: root.layout-text;
+            clock-text: root.clock-text;
+            bluetooth-enabled: root.bluetooth-enabled;
+            wifi-enabled: root.wifi-enabled;
+            wifi-connected: root.wifi-connected;
+            wifi-strength: root.wifi-strength;
+            volume: root.volume;
+            muted: root.muted;
+            battery: root.battery;
+            charging: root.charging;
+            show-battery-percent: root.show-battery-percent;
+            has-battery: root.has-battery;
+            dnd: root.dnd;
+            unread: root.unread;
+            open-name: root.popup;
+            nav-index: root.nav-target;
+            nav-nonce: root.nav-nonce;
+            preview-hover: root.preview-hover;
+            activated(n, i, c, l) => {
+                root.open-from-bar(n, i, c, l);
+            }
+            pressed(n, i, c, l) => {
+                if root.popup == n {
+                    root.dismiss();
+                } else {
+                    root.open-from-bar(n, i, c, l);
+                }
+            }
+        }
+
+        // ---- menus ----
+        menu := MenuPanel {
+            // Menus of the bar's left side hang from their title; the others (a tray item's, the layouts) centre on theirs.
+            property <length> want: root.popup-index >= 0 && root.popup-index <= root.menus.length
+                ? (root.anchor-left >= 0px ? root.anchor-left - 4px : 60px)
+                : root.place(root.center(root.popup), self.width);
+            x: min(max(self.want, 6px), root.width - self.width - 6px);
+            animate x { duration: root.hot ? Motion.glide : 0ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+            y: Theme.bar-height + 4px;
+            entries: root.menu-entries;
+            open: root.is-menu;
+            origin-x: (root.anchor-center >= 0px ? root.anchor-center : self.x + 20px) - self.x;
+            flyout-left: self.x + self.width + 200px > root.width;
+            preview-cursor: root.preview-menu-cursor;
+            preview-sub: root.preview-menu-sub;
+            preview-sub-y: root.preview-menu-sub-y;
+            chosen(i) => {
+                root.menu-chosen(root.popup, i);
+                root.dismiss();
+            }
+        }
+
+        // ---- popovers ----
+        wifi-pop := WifiPopover {
+            x: root.place(root.center("wifi"), self.width);
+            y: Theme.bar-height + 6px;
+            open: root.popup == "wifi";
+            origin-x: root.center("wifi") - self.x;
+            enabled <=> root.wifi-enabled;
+            networks: root.wifi-networks;
+            toggled(c) => {
+                root.wifi-toggled(c);
+            }
+            network-clicked(i) => {
+                root.wifi-network-clicked(i);
+            }
+            settings => {
+                root.wifi-settings();
+                root.dismiss();
+            }
+        }
+        bt-pop := BluetoothPopover {
+            x: root.place(root.center("bluetooth"), self.width);
+            y: Theme.bar-height + 6px;
+            open: root.popup == "bluetooth";
+            origin-x: root.center("bluetooth") - self.x;
+            enabled <=> root.bluetooth-enabled;
+            devices: root.bluetooth-devices;
+            toggled(c) => {
+                root.bluetooth-toggled(c);
+            }
+            device-clicked(i) => {
+                root.bluetooth-device-clicked(i);
+            }
+            settings => {
+                root.bluetooth-settings();
+                root.dismiss();
+            }
+        }
+        battery-pop := BatteryPopover {
+            x: root.place(root.center("battery"), self.width);
+            y: Theme.bar-height + 6px;
+            open: root.popup == "battery";
+            origin-x: root.center("battery") - self.x;
+            percent: root.battery;
+            charging: root.charging;
+            status: root.battery-status;
+            detail: root.battery-detail;
+            source: root.battery-source;
+            modes: root.power-modes;
+            mode <=> root.power-mode;
+            facts: root.battery-facts;
+            mode-picked(i) => {
+                root.power-mode-picked(i);
+            }
+            settings => {
+                root.battery-settings();
+                root.dismiss();
+            }
+        }
+        volume-pop := VolumePopover {
+            x: root.place(root.center("volume"), self.width);
+            y: Theme.bar-height + 6px;
+            open: root.popup == "volume";
+            origin-x: root.center("volume") - self.x;
+            volume <=> root.volume;
+            muted <=> root.muted;
+            outputs: root.audio-outputs;
+            volume-edited(v) => {
+                root.volume-edited(v);
+            }
+            mute-toggled(m) => {
+                root.mute-toggled(m);
+            }
+            output-clicked(i) => {
+                root.output-clicked(i);
+            }
+            settings => {
+                root.sound-settings();
+                root.dismiss();
+            }
+        }
+        calendar-pop := CalendarPopover {
+            x: root.place(root.center("clock"), self.width);
+            y: Theme.bar-height + 6px;
+            open: root.popup == "clock";
+            origin-x: root.center("clock") - self.x;
+            title: root.cal-title;
+            weekdays: root.cal-weekdays;
+            cells: root.cal-cells;
+            day-title: root.cal-day-title;
+            events: root.cal-events;
+            previous => {
+                root.calendar-previous();
+            }
+            next => {
+                root.calendar-next();
+            }
+            today => {
+                root.calendar-today();
+            }
+            picked(i) => {
+                root.calendar-picked(i);
+            }
+            open-calendar => {
+                root.calendar-open();
+                root.dismiss();
+            }
+        }
+        control-center := ControlCenter {
+            x: root.place(root.center("control"), self.width);
+            y: Theme.bar-height + 6px;
+            open: root.popup == "control";
+            origin-x: root.center("control") - self.x;
+            tiles: root.quick-tiles;
+            brightness <=> root.brightness;
+            volume <=> root.volume;
+            muted: root.muted;
+            media: root.media;
+            tile-toggled(i) => {
+                root.tile-toggled(i);
+            }
+            tile-detail(i) => {
+                // Wi-Fi and Bluetooth have a popover of their own: go there.
+                if root.quick-tiles[i].id == "wifi" {
+                    root.show-popup("wifi");
+                } else if root.quick-tiles[i].id == "bluetooth" {
+                    root.show-popup("bluetooth");
+                }
+                root.tile-detail(i);
+            }
+            brightness-edited(v) => {
+                root.brightness-edited(v);
+            }
+            volume-edited(v) => {
+                root.volume-edited(v);
+            }
+            media-previous => {
+                root.media-previous();
+            }
+            media-play-pause => {
+                root.media-play-pause();
+            }
+            media-next => {
+                root.media-next();
+            }
+            action(a) => {
+                root.control-action(a);
+                root.dismiss();
+            }
+        }
+
+        // ---- the notification centre, against the right edge ----
+        center := NotificationCenter {
+            x: root.width - 408px;
+            y: Theme.bar-height + 8px;
+            width: 400px;
+            height: root.height - Theme.bar-height - 16px;
+            open: root.popup == "bell";
+            notices: root.notices;
+            dnd <=> root.dnd;
+            date-text: root.date-text;
+            weather: root.weather;
+            media: root.media;
+            month-title: root.cal-title;
+            weekdays: root.cal-weekdays-short.length > 0 ? root.cal-weekdays-short : root.cal-weekdays;
+            cells: root.cal-cells;
+            notice-clicked(i) => {
+                root.notice-clicked(i);
+            }
+            notice-action(i, a) => {
+                root.notice-action(i, a);
+            }
+            notice-removed(i) => {
+                root.notice-removed(i);
+            }
+            group-cleared(g) => {
+                root.group-cleared(g);
+            }
+            cleared => {
+                root.notices-cleared();
+            }
+            dnd-toggled(d) => {
+                root.dnd-toggled(d);
+            }
+            media-previous => {
+                root.media-previous();
+            }
+            media-play-pause => {
+                root.media-play-pause();
+            }
+            media-next => {
+                root.media-next();
+            }
+            calendar-previous => {
+                root.calendar-previous();
+            }
+            calendar-next => {
+                root.calendar-next();
+            }
+            calendar-picked(i) => {
+                root.calendar-picked(i);
+            }
+        }
+
+        // ---- toasts, top right, under the bar ----
+        toast-stack := VerticalLayout {
+            x: root.width - 380px;
+            y: Theme.bar-height + 10px;
+            width: 368px;
+            height: max(root.height - Theme.bar-height - 20px, 0px);
+            alignment: start;
+            opacity: root.popup == "bell" ? 0.0 : 1.0;
+            animate opacity { duration: 160ms; }
+            for t[i] in root.toasts: ToastItem {
+                notice: t;
+                preview-shown: root.preview-toasts;
+                clicked => {
+                    root.toast-clicked(i);
+                }
+                action(a) => {
+                    root.toast-action(i, a);
+                }
+                closed => {
+                    root.toast-closed(i);
+                }
+                expired => {
+                    root.toast-expired(i);
+                }
+            }
+        }
+
+        osd := Osd {
+            x: (root.width - self.width) / 2;
+            y: root.height - self.height - 84px;
+            preview-shown: root.preview-osd;
+        }
+
+        power := PowerDialog {
+            x: 0px;
+            y: 0px;
+            width: parent.width;
+            height: parent.height;
+            open: root.power-open;
+            user-name: root.power-user;
+            countdown: root.power-countdown;
+            preview-hover: root.preview-power-hover;
+            pending: root.preview-power-pending;
+            remaining: root.preview-power-remaining;
+            chosen(a) => {
+                root.power-open = false;
+                root.power-chosen(a);
+            }
+            cancelled => {
+                root.power-open = false;
+                root.power-cancelled();
+            }
+        }
+    }
+
+    Timer {
+        interval: 260ms;
+        running: root.hot;
+        triggered => {
+            root.hot = false;
+        }
+    }
+}

@@ -1,0 +1,22 @@
+import { Theme } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+import { Tone, ToneStyle } from "tone.slint";
+
+/// A small pill that labels a status or a count. Pair the colour with the text (or an icon).
+export component Badge inherits Rectangle {
+    in property <string> text;
+    in property <string> icon;
+    in property <Tone> tone: Tone.neutral;
+    height: 22px;
+    preferred-width: row.preferred-width;
+    border-radius: 11px;
+    background: ToneStyle.wash(tone);
+    row := HorizontalLayout {
+        padding-left: 9px; padding-right: 9px; spacing: 4px; alignment: center;
+        if root.icon != "": VerticalLayout { alignment: center; Icon { name: root.icon; tint: ToneStyle.fg(root.tone); size: 13px; } }
+        Text {
+            text: root.text; color: ToneStyle.fg(root.tone);
+            font-family: Theme.font-family; font-size: Theme.text-caption; font-weight: Theme.weight-ui; vertical-alignment: center;
+        }
+    }
+}

@@ -1,0 +1,77 @@
+import { Theme } from "../tokens.slint";
+import { Icon } from "../icons.slint";
+import { Tooltip } from "feedback.slint";
+
+export struct DockItem { icon: string, label: string, tint: color, running: bool, badge: int }
+
+/// The dock: a floating glass shelf of app tiles. Icons magnify toward the pointer (a cosine of the
+/// distance, up to 1.65x within 130 px) and push their neighbours aside; the label floats above.
+/// Everything follows `icon-size` (32, 48, 64 or 80).
+export component Dock inherits Rectangle {
+    in property <[DockItem]> items;
+    in property <length> icon-size: 52px;
+    in property <bool> magnify: true;
+    /// Documentation/testing aid: a pointer position (from the dock's left edge) to draw the magnified state without a mouse; -1px = off.
+    in property <length> preview-x: -1px;
+    callback activated(int);
+
+    private property <length> gap: icon-size * 0.2;
+    private property <length> pad: icon-size * 0.2;
+    private property <length> pitch: icon-size + gap;
+    private property <length> rest-width: pad * 2 + items.length * icon-size + max(0, items.length - 1) * gap;
+    private property <length> x0: (self.width - rest-width) / 2 + pad;
+    private property <bool> near: (area.has-hover && magnify) || preview-x >= 0px;
+    private property <float> k: icon-size / pitch;
+    private property <length> px: preview-x >= 0px ? preview-x : area.mouse-x - (self.width - rest-width) / 2;
+    private property <length> shelf-h: icon-size + pad * 2;
+    private property <int> hit: Math.floor((px - pad + gap / 2) / pitch);
+
+    min-width: rest-width + icon-size * 2;
+    height: icon-size * 1.65 + pad * 2 + 34px;
+
+    shelf := Rectangle {
+        x: (parent.width - (rest-width + (root.near ? root.k * 84px * (root.icon-size / 52px) : 0px))) / 2;
+        width: rest-width + (root.near ? root.k * 84px * (root.icon-size / 52px) : 0px);
+        y: parent.height - root.shelf-h; height: root.shelf-h;
+        border-radius: root.icon-size * 0.38;
+        background: Theme.glass;
+        border-width: 1px; border-color: Theme.line-strong;
+        drop-shadow-blur: 40px; drop-shadow-offset-y: 14px; drop-shadow-color: Theme.shadow-tint.with-alpha(Theme.shadow-3);
+        animate x { duration: 140ms; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+        animate width { duration: 140ms; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+    }
+    for item[i] in items: Rectangle {
+        private property <length> rest-c: root.pad + i * root.pitch + root.icon-size / 2;
+        private property <length> u: rest-c - root.px;
+        private property <length> uc: min(130px, max(-130px, u));
+        private property <float> s: root.near && abs(u) < 130px ? 1 + 0.65 * 0.5 * (1 + Math.cos(abs(u) / 130px * 180deg)) : 1.0;
+        private property <length> shift: root.near ? root.k * 0.325 * (uc + 130px / 3.14159 * Math.sin(uc / 130px * 180deg)) : 0px;
+        private property <length> size: root.icon-size * s * ((area.pressed && root.hit == i) ? 0.92 : 1.0);
+        x: (root.width - root.rest-width) / 2 + rest-c + shift - size / 2;
+        y: root.height - root.pad - size;
+        width: size; height: size;
+        animate x { duration: 90ms; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+        animate y { duration: 90ms; }
+        animate width { duration: 90ms; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+        animate height { duration: 90ms; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+        Rectangle {
+            border-radius: parent.width * 0.26;
+            background: @linear-gradient(160deg, item.tint.brighter(0.35) 0%, item.tint 100%);
+            drop-shadow-blur: 10px; drop-shadow-offset-y: 4px; drop-shadow-color: #00000055;
+            border-width: 1px; border-color: #FFFFFF30;
+            Rectangle { y: 0px; height: parent.height * 0.5; border-radius: parent.border-radius; background: @linear-gradient(180deg, #FFFFFF38 0%, #FFFFFF00 100%); }
+            Icon { name: item.icon; tint: #FFFFFF; size: parent.width * 0.52; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; }
+        }
+        if item.badge > 0: Rectangle {
+            x: parent.width - 14px; y: -4px; width: 20px; height: 20px; border-radius: 10px; background: Theme.danger;
+            Text { text: item.badge; color: Theme.on-danger; font-family: Theme.font-family; font-size: 11px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+        }
+        if item.running: Rectangle { x: (parent.width - 5px) / 2; y: parent.height + root.pad * 0.35; width: 5px; height: 5px; border-radius: 2.5px; background: Theme.muted; }
+        if root.near && s > 1.45: Tooltip { x: (parent.width - self.width) / 2; y: -38px; text: item.label; }
+    }
+    area := TouchArea {
+        mouse-cursor: MouseCursor.pointer;
+        clicked => { if (root.hit >= 0 && root.hit < root.items.length) { root.activated(root.hit); } }
+    }
+}

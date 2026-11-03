@@ -1,0 +1,48 @@
+import { Theme } from "../tokens.slint";
+import { Tone, ToneStyle } from "tone.slint";
+
+/// A determinate (0..1) or indeterminate progress bar.
+export component ProgressBar inherits Rectangle {
+    in property <float> value: 0;
+    in property <bool> indeterminate: false;
+    in property <Tone> tone: Tone.accent;
+    in property <length> thickness: 8px;
+    private property <float> phase: Math.mod(animation-tick() / 1400ms, 1.0);
+
+    height: thickness;
+    min-width: 40px;
+    border-radius: thickness / 2;
+    background: Theme.track;
+    clip: true;
+    accessible-role: progress-indicator;
+    accessible-value: value;
+    accessible-value-minimum: 0;
+    accessible-value-maximum: 1;
+
+    Rectangle {
+        x: root.indeterminate ? -root.width * 0.4 + root.width * 1.4 * root.phase : 0px;
+        width: root.indeterminate ? root.width * 0.4 : root.width * max(0.0, min(1.0, root.value));
+        height: parent.height;
+        border-radius: parent.border-radius;
+        background: ToneStyle.fg(root.tone == Tone.neutral ? Tone.accent : root.tone);
+        animate width { duration: Theme.dur-overlay; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+    }
+}
+
+/// A spinning arc for work of unknown length.
+export component Spinner inherits Rectangle {
+    in property <length> size: 24px;
+    in property <color> tint: Theme.accent;
+    width: size; height: size;
+    accessible-role: progress-indicator;
+    Path {
+        width: parent.width; height: parent.height;
+        viewbox-width: 24; viewbox-height: 24;
+        commands: "M 12 2.5 A 9.5 9.5 0 0 1 21.5 12";
+        stroke: root.tint;
+        stroke-width: 2.5px;
+        stroke-line-cap: round;
+        fill: transparent;
+        transform-rotation: Math.mod(animation-tick() / 900ms, 1.0) * 360deg;
+    }
+}

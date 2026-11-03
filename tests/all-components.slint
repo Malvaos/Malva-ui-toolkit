@@ -1,0 +1,20 @@
+// Compile check and smoke test: every public component, instantiated once.
+//   slint-viewer tests/all-components.slint
+import {
+    Theme, Icon, Label, Button, IconButton, Toggle, Checkbox, RadioGroup, Slider, TextField, Card, Divider, Spacer, VStack, HStack,
+    ProgressBar, Spinner, Badge, Picture, ScrollView, Segmented, TabBar, Sidebar, SidebarItem, ListRow, Toolbar, WindowFrame,
+    Menu, MenuItem, Dialog, Tooltip, Toast, Banner, Chip, Avatar, Stepper, AreaChart, RingGauge, StackedBar, WidgetCard, StatTile, MetricRow, Dock, MenubarWindow
+} from "../ui/malva.slint";
+
+export component AllComponents inherits Window {
+    width: 900px; height: 700px; background: Theme.bg;
+    VStack {
+        padding: 24px;
+        HStack { Button { text: "Button"; } IconButton { icon: "star"; } Toggle { } Checkbox { text: "Checkbox"; } RadioGroup { options: ["A", "B"]; } Badge { text: "Badge"; } Chip { text: "Chip"; } Spinner { } Avatar { initials: "M"; } }
+        HStack { Slider { width: 160px; } ProgressBar { width: 160px; value: 0.4; } TextField { width: 200px; placeholder: "Field"; } Segmented { width: 200px; options: ["A", "B"]; } RingGauge { value: 0.5; label: "50"; } }
+        AreaChart { height: 60px; values: [0.2, 0.5, 0.3, 0.8]; }
+        StackedBar { segments: [{ value: 1, color: Theme.accent }, { value: 2, color: Theme.series-2 }]; }
+        Stepper { steps: ["One", "Two", "Three"]; current: 1; }
+        Banner { title: "Banner"; }
+    }
+}

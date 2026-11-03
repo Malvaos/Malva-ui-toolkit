@@ -1,0 +1,39 @@
+import { Theme } from "../tokens.slint";
+
+/// A vertical scroll area with a thin overlay bar that brightens near the pointer.
+/// Children are stacked top to bottom inside the scrolling content.
+export component ScrollView inherits Rectangle {
+    in property <length> content-padding: 0px;
+    in-out property <length> offset: 0px;
+    out property <length> content-height: fl.content-height;
+    private property <length> max-scroll: max(0px, fl.content-height - self.height);
+    private property <length> thumb-h: max(36px, (self.height - 8px) * min(1.0, self.height / max(self.height, fl.content-height)));
+    private property <float> glance: (bar.has-hover || bar.pressed) ? 1.0 : 0.35;
+    private property <length> origin;
+    clip: true;
+    animate glance { duration: 400ms; }
+
+    fl := Flickable {
+        content-y <=> root.offset;
+        VerticalLayout { alignment: start; padding: root.content-padding; @children }
+    }
+    Rectangle {
+        x: parent.width - 14px; width: 14px; height: parent.height;
+        visible: root.max-scroll > 0px;
+        Rectangle {
+            x: parent.width - 4px - 3px - 2px * root.glance;
+            y: 4px + (root.height - 8px - root.thumb-h) * (root.max-scroll > 0px ? min(1.0, max(0.0, -root.offset / root.max-scroll)) : 0.0);
+            width: 4px + 2px * root.glance; height: root.thumb-h;
+            border-radius: self.width / 2;
+            background: Theme.ink.with-alpha(0.16 + 0.24 * root.glance);
+        }
+        bar := TouchArea {
+            changed pressed => { if (self.pressed) { root.origin = -root.offset; } }
+            moved => {
+                if (self.pressed && root.height - 8px > root.thumb-h) {
+                    root.offset = -min(root.max-scroll, max(0px, root.origin + (self.mouse-y - self.pressed-y) * root.max-scroll / (root.height - 8px - root.thumb-h)));
+                }
+            }
+        }
+    }
+}

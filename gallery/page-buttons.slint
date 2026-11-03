@@ -1,0 +1,59 @@
+import { Button, ButtonVariant, ControlSize, IconButton, IconButtonStyle, Theme, Label, TextRole, HStack, VStack, Divider } from "../ui/malva.slint";
+import { PageFrame, Section, Cell } from "common.slint";
+
+component VariantRow inherits HStack {
+    in property <ButtonVariant> variant;
+    in property <string> name;
+    spacing: 20px;
+    alignment: start;
+    Cell { caption: "default"; Button { text: root.name; variant: root.variant; } }
+    Cell { caption: "hover"; Button { text: root.name; variant: root.variant; preview-state: "hover"; } }
+    Cell { caption: "pressed"; Button { text: root.name; variant: root.variant; preview-state: "pressed"; } }
+    Cell { caption: "focus"; Button { text: root.name; variant: root.variant; preview-state: "focus"; } }
+    Cell { caption: "disabled"; Button { text: root.name; variant: root.variant; enabled: false; } }
+}
+
+export component PageButtons inherits PageFrame {
+    title: "Buttons";
+    lead: "Primary for the one main action, Secondary beside it, Ghost for quiet actions, Delete for what cannot be undone.";
+    VStack {
+        spacing: 22px;
+        Section {
+            title: "Button";
+            VStack {
+                spacing: 18px;
+                VariantRow { variant: ButtonVariant.primary; name: "Primary"; }
+                VariantRow { variant: ButtonVariant.secondary; name: "Secondary"; }
+                VariantRow { variant: ButtonVariant.ghost; name: "Ghost"; }
+                VariantRow { variant: ButtonVariant.danger; name: "Delete"; }
+            }
+        }
+        Section {
+            title: "Sizes and icons";
+            HStack {
+                spacing: 16px; alignment: start;
+                Button { text: "Small"; size: ControlSize.sm; }
+                Button { text: "Medium"; }
+                Button { text: "Large"; size: ControlSize.lg; }
+                Button { text: "Save changes"; icon: "check"; }
+                Button { text: "Share"; icon: "share"; variant: ButtonVariant.secondary; }
+                Button { text: "Remove"; icon: "trash"; variant: ButtonVariant.danger; }
+                Button { text: "More"; icon: "more"; variant: ButtonVariant.ghost; }
+            }
+        }
+        Section {
+            title: "IconButton";
+            HStack {
+                spacing: 20px; alignment: start;
+                Cell { caption: "default"; IconButton { icon: "star"; } }
+                Cell { caption: "hover"; IconButton { icon: "star"; preview-state: "hover"; } }
+                Cell { caption: "pressed"; IconButton { icon: "star"; preview-state: "pressed"; } }
+                Cell { caption: "focus"; IconButton { icon: "star"; preview-state: "focus"; } }
+                Cell { caption: "disabled"; IconButton { icon: "star"; enabled: false; } }
+                Cell { caption: "selected"; IconButton { icon: "star"; selected: true; } }
+                Cell { caption: "tonal"; IconButton { icon: "heart"; look: IconButtonStyle.tonal; } }
+                Cell { caption: "filled"; IconButton { icon: "plus"; look: IconButtonStyle.filled; } }
+            }
+        }
+    }
+}

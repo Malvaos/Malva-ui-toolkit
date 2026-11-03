@@ -1,0 +1,58 @@
+import { Dock, DockItem, Theme, Label, TextRole, HStack, VStack, Card, WindowFrame, Sidebar, SidebarItem, SidebarHeading, Toolbar, IconButton, TextField, ListRow, Segmented, Button, ButtonVariant } from "../ui/malva.slint";
+import { PageFrame, Section } from "common.slint";
+
+export component PageShell inherits PageFrame {
+    title: "Windows and dock";
+    lead: "A window, toolbar, sidebar and list composed from the kit, and the dock with its cosine magnification.";
+    in property <length> dock-pointer: -1px;
+    property <[DockItem]> apps: [
+        { icon: "folder", label: "Files", tint: #7B6CF0, running: true, badge: 0 },
+        { icon: "globe", label: "Browser", tint: #D47ABC, running: true, badge: 0 },
+        { icon: "terminal", label: "Terminal", tint: #3A2639, running: false, badge: 0 },
+        { icon: "settings", label: "Settings", tint: #8A7C95, running: false, badge: 0 },
+        { icon: "music", label: "Music", tint: #E0607A, running: true, badge: 0 },
+        { icon: "image", label: "Photos", tint: #4FA3C8, running: false, badge: 0 },
+        { icon: "mail", label: "Mail", tint: #5B8DEF, running: true, badge: 4 },
+        { icon: "calendar", label: "Calendar", tint: #E5714F, running: false, badge: 0 },
+        { icon: "trash", label: "Bin", tint: #6B5A6E, running: false, badge: 0 },
+    ];
+    VStack {
+        spacing: 12px;
+        Rectangle {
+            height: 350px;
+            WindowFrame {
+                x: 0px; width: 760px; height: 340px; title: "Pictures";
+                HorizontalLayout {
+                    Sidebar {
+                        content-width: 200px;
+                        SidebarHeading { text: "PLACES"; }
+                        SidebarItem { icon: "home"; text: "Home"; }
+                        SidebarItem { icon: "image"; text: "Pictures"; active: true; count: 24; }
+                        SidebarItem { icon: "music"; text: "Music"; }
+                        SidebarItem { icon: "trash"; text: "Bin"; }
+                    }
+                    VerticalLayout {
+                        Toolbar {
+                            IconButton { icon: "arrow-left"; }
+                            IconButton { icon: "arrow-right"; enabled: false; }
+                            TextField { width: 220px; leading-icon: "search"; placeholder: "Search Pictures"; }
+                            Rectangle { horizontal-stretch: 1; }
+                            Segmented { width: 96px; options: ["Grid", "List"]; current-index: 1; }
+                        }
+                        VerticalLayout {
+                            padding: 10px; spacing: 2px; alignment: start;
+                            ListRow { icon: "image"; title: "Golden hour.jpg"; subtitle: "4.2 MB - today"; trailing: "3840 x 2160"; }
+                            ListRow { icon: "image"; title: "Orchid.png"; subtitle: "1.1 MB - yesterday"; trailing: "2048 x 1365"; selected: true; }
+                            ListRow { icon: "folder"; title: "Screenshots"; subtitle: "58 items"; chevron: true; icon-tint: Theme.series-4; }
+                            ListRow { icon: "image"; title: "Plum dusk.jpg"; subtitle: "2.8 MB - Mon"; trailing: "2560 x 1440"; }
+                        }
+                    }
+                }
+            }
+        }
+        Rectangle {
+            height: 190px;
+            Dock { x: 20px; width: 960px; items: root.apps; icon-size: 56px; preview-x: root.dock-pointer; }
+        }
+    }
+}

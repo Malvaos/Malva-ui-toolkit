@@ -1,0 +1,14 @@
+import { Theme } from "../tokens.slint";
+
+export enum PictureShape { rect, squircle, circle }
+
+/// An image clipped to a shape, cropped to fill.
+export component Picture inherits Rectangle {
+    in property <image> source;
+    in property <PictureShape> shape: PictureShape.squircle;
+    in property <length> corner: Theme.radius-control;
+    border-radius: shape == PictureShape.circle ? min(self.width, self.height) / 2 : shape == PictureShape.squircle ? corner : 0px;
+    background: Theme.track;
+    clip: true;
+    Image { width: parent.width; height: parent.height; source: root.source; image-fit: ImageFit.cover; }
+}

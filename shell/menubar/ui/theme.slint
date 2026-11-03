@@ -1,0 +1,113 @@
+// Design tokens of the menu bar and everything that drops from it, mapped onto the Malva tokens.
+//
+// The menu bar was designed (as the Cutefish menu bar) with its own palette; this file keeps every
+// property name the bar's components read, but each value now comes from `Theme` in ../../../ui/tokens.slint.
+// So flipping `Theme.dark`, `Theme.balance` or `Theme.reduce-motion` restyles the bar like everything else.
+//
+//   standard   cubic-bezier(0.2, 0, 0, 1)        most movement: quick start, long soft landing
+//   soft       cubic-bezier(0.4, 0, 0.2, 1)      fades in and out
+//   overshoot  cubic-bezier(0.34, 1.35, 0.64, 1) things that arrive: rises ~4% past, settles
+//   exit       cubic-bezier(0.4, 0, 1, 1)        things that leave: accelerate away
+
+import { Theme as M } from "../../../ui/tokens.slint";
+
+export global Theme {
+    in-out property <bool> dark <=> M.dark;
+    // A backend may still override the accent (e.g. from a system setting); by default it is Malva's.
+    in-out property <color> accent: M.accent;
+    in-out property <color> on-accent: M.on-accent;
+
+    out property <color> bg: M.bg;
+    out property <color> second: M.surface;
+    out property <color> text: M.ink;
+    out property <color> disabled: M.off;
+
+    out property <length> radius-small: M.radius-sm;
+    out property <length> radius-medium: M.radius-control - 2px;
+    out property <length> radius-big: M.radius-control;
+    out property <length> radius-panel: M.radius-card;
+    out property <length> font-size: 12px;
+
+    // ---- the bar: a strip of glass along the top, with a hairline under it ----
+    out property <length> bar-height: 30px;
+    out property <color> bar-top: M.surface.with-alpha(dark ? 0.84 : 0.72);
+    out property <color> bar-bottom: M.surface.with-alpha(dark ? 0.80 : 0.62);
+    out property <float> bar-hairline: dark ? 0.60 : 0.16;
+    out property <float> bar-sheen: dark ? 0.12 : 0.85;
+    out property <float> item-hover: dark ? 0.11 : 0.075;
+    out property <float> item-open: dark ? 0.20 : 0.14;
+
+    // ---- popovers, menus and panels: dense glass, so text never fights the wallpaper ----
+    out property <color> pop-bg: M.surface.with-alpha(0.95);
+    out property <color> panel-top: M.raised.with-alpha(dark ? 0.90 : 0.91);
+    out property <color> panel-bottom: M.surface.with-alpha(dark ? 0.92 : 0.89);
+    out property <float> pop-edge: dark ? 0.14 : 0.10;
+    out property <float> pop-shadow: dark ? 0.60 : 0.26;
+    out property <float> panel-rim: dark ? 0.16 : 0.85;
+    out property <color> separator: M.line;
+    out property <color> danger: M.danger;
+    out property <color> ok: M.success;
+    out property <color> warn: M.warning;
+
+    // ---- surfaces inside a panel: tiles, fields, tracks ----
+    out property <color> tile: dark ? M.ink.with-alpha(0.08) : #FFFFFFB3;
+    out property <color> tile-hover: dark ? M.ink.with-alpha(0.13) : #FFFFFFE6;
+    out property <color> field: dark ? M.ink.with-alpha(0.09) : M.ink.with-alpha(0.05);
+    out property <color> track: dark ? M.ink.with-alpha(0.17) : M.ink.with-alpha(0.13);
+    out property <color> text-2: M.muted;
+    out property <color> text-3: M.muted.with-alpha(0.72);
+    // The knob of a switch and of a slider: white in both.
+    out property <color> knob: #FFFFFF;
+
+    // ---- hover plate and selection, as in Files ----
+    out property <float> plate-alpha: dark ? 0.09 : 0.06;
+    out property <float> sel-top: dark ? 0.36 : 0.24;
+    out property <float> sel-bottom: dark ? 0.20 : 0.12;
+
+    out property <color> badge: dark ? #FF6F7D : #C0414E;
+
+    // The four colours events and calendars come in.
+    pure public function tone(i: int) -> color {
+        return i == 1 ? M.success : i == 2 ? M.warning : i == 3 ? M.series-2 : i == 4 ? M.danger : M.accent;
+    }
+}
+
+export global Motion {
+    out property <duration> hover-in: M.reduce-motion ? 0ms : 120ms;
+    out property <duration> hover-out: M.reduce-motion ? 0ms : 200ms;
+    out property <duration> press: M.reduce-motion ? 0ms : 90ms;
+    // A menu or popover growing out of its item, and shrinking back into it.
+    out property <duration> pop-in: M.reduce-motion ? 0ms : 220ms;
+    out property <duration> pop-out: M.reduce-motion ? 0ms : 140ms;
+    // The rows of a menu arriving one after another.
+    out property <duration> menu-stagger: M.reduce-motion ? 0ms : 14ms;
+    // A popover sliding from one bar item to the next while the pointer sweeps along.
+    out property <duration> glide: M.reduce-motion ? 0ms : 200ms;
+    out property <duration> flyout-delay: M.reduce-motion ? 0ms : 180ms;
+    out property <duration> switch: M.reduce-motion ? 0ms : 200ms;
+    out property <duration> slider: M.reduce-motion ? 0ms : 90ms;
+    // Panels that slide in from the edge.
+    out property <duration> panel-in: M.reduce-motion ? 0ms : 340ms;
+    out property <duration> panel-out: M.reduce-motion ? 0ms : 220ms;
+    // A toast arriving, living and leaving.
+    out property <duration> toast-in: M.reduce-motion ? 0ms : 380ms;
+    out property <duration> toast-out: M.reduce-motion ? 0ms : 260ms;
+    out property <duration> toast-life: M.reduce-motion ? 0ms : 5200ms;
+    out property <duration> card-stagger: M.reduce-motion ? 0ms : 26ms;
+    out property <duration> card-dismiss: M.reduce-motion ? 0ms : 240ms;
+    // The on-screen display for volume and brightness.
+    out property <duration> osd-in: M.reduce-motion ? 0ms : 200ms;
+    out property <duration> osd-life: M.reduce-motion ? 0ms : 1500ms;
+    out property <duration> osd-out: M.reduce-motion ? 0ms : 320ms;
+    out property <duration> dialog-in: M.reduce-motion ? 0ms : 260ms;
+    out property <duration> badge: M.reduce-motion ? 0ms : 260ms;
+}
+
+// The screen the glass sits on: a blurred copy of the wallpaper, as big as the screen, for glass to
+// show. Set by the window from its `backdrop` properties; plates read it.
+export global Screen {
+    in-out property <image> backdrop;
+    in-out property <bool> has-backdrop: false;
+    in-out property <length> width: 0px;
+    in-out property <length> height: 0px;
+}
