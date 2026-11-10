@@ -313,7 +313,7 @@ def superellipse(cx, cy, a, b, n=5.0, steps=160):
 def part_squircle():
     d = superellipse(64, 64, 62, 62)
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">\n'
-            f'<!-- The squircle: |x|^5 + |y|^5 = 1. App icons are cut from it; a plain rounded rectangle is the fallback. -->\n'
+            f'<!-- The squircle: |x|^5 + |y|^5 = 1. A tile outline for building app pictures; the Malva theme tiles in svg/app have their own outline. -->\n'
             f'<path d="{d}" fill="{TOK["brand"]["orchid"]}"/>\n</svg>\n')
 
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Turns svg/icons, svg/app and svg/logo into the icon lookups of each language and the icon sheets.
+(The artwork in svg/icons and svg/app comes from the Malva icon theme: tools/apply_malva_theme.py.)
 
     python3 tools/gen_icons.py            write
     python3 tools/gen_icons.py --check    exit 1 if anything on disk differs
@@ -127,7 +128,7 @@ def sheet():
         y0 = mi * H1
         o.append(f'<rect x="0" y="{y0}" width="{W}" height="{H1}" fill="{bg}"/>')
         o.append(f'<text x="{pad}" y="{y0 + 52}" font-size="24" font-weight="700" fill="{fg}">Malva icons — {title}</text>')
-        o.append(f'<text x="{pad}" y="{y0 + 76}" font-size="13" fill="{sub}">{len(icons)} symbols · 24-unit grid · 1.8 stroke · round caps and joins · currentColor</text>')
+        o.append(f'<text x="{pad}" y="{y0 + 76}" font-size="13" fill="{sub}">{len(icons)} symbols · 24-unit grid · 2 stroke · round caps and joins · currentColor</text>')
         for i, (n, svg) in enumerate(icons.items()):
             attrs, body = inner(svg)
             attrs = re.sub(r'\s+xmlns(:\w+)?="[^"]*"', "", attrs)
@@ -142,8 +143,10 @@ def sheet():
 def docs():
     L = [f"<!-- {HEADER} -->", "# Malva icons", "",
          f"{len(icons)} one-colour symbols, {len(apps)} application pictures and {len(logos)} brand lock-ups.", "",
-         "Symbols are drawn on a 24-unit grid with a 1.8 stroke, round caps and joins, and use `currentColor`, so they take the",
+         "Symbols are drawn on a 24-unit grid with a 2 stroke, round caps and joins, and use `currentColor`, so they take the",
          "colour of the text they sit in (CSS), `tint` (Slint `Icon`), or [`svg_with_color`] (Rust). Sizes: 16 / 20 / 24.", "",
+         "The symbols and application pictures come from the Malva icon theme (`svg/malva-theme`, applied by",
+         "`tools/apply_malva_theme.py`); the symbols the theme has no equivalent for keep the kit's own drawing, at the same stroke.", "",
          "![icons](../svg/icons-sheet.svg)", "", "## Symbols", "", ", ".join(f"`{n}`" for n in icons), "", "## Application pictures", "",
          ", ".join(f"`{n}`" for n in apps), "", "## Logos", "", ", ".join(f"`{n}`" for n in logos), ""]
     return "\n".join(L)

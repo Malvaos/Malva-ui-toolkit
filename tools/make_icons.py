@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Draws the icons that the kit adds to the 73 menu-bar symbols, into svg/icons/.
 
-Every icon is on a 24-unit grid, one colour (currentColor), 1.8 stroke, round caps and joins. Every shape is
-drawn here from primitives; nothing is traced from an existing icon theme. The files in svg/icons/ are the
-source of truth: this script only (re)creates the ones listed here, and fixes the brand mark so that it
-takes the colour it is given.
+Every icon is on a 24-unit grid, one colour (currentColor), round caps and joins. The shapes drawn here are
+the kit's own; where the Malva icon theme has an equivalent glyph, tools/apply_malva_theme.py replaces the
+drawing with it (stroke 2) when this script finishes, so what is left of the drawings are the symbols the theme does
+not have. The files in svg/icons/ are the source of truth: this script only (re)creates the ones listed here, and
+fixes the brand mark so that it takes the colour it is given.
 
     python3 tools/make_icons.py"""
 import math, os, re
@@ -100,3 +101,14 @@ if os.path.exists(mark):
     s = open(mark).read().replace('"#2A1226"', '"currentColor"')
     open(mark, "w").write(s)
 print("icons:", len([f for f in os.listdir(OUT) if f.endswith('.svg')]))
+
+# The Malva icon theme replaces every symbol / picture it has an equivalent for; what is drawn above is what the theme
+# does not cover (see tools/apply_malva_theme.py). Without this, running this script would bring the old drawings back.
+import sys
+sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".")))
+try:
+    import apply_malva_theme
+except ImportError:
+    print("note: tools/apply_malva_theme.py was not found, so the Malva theme icons were not applied")
+else:
+    apply_malva_theme.apply(['svg-icons'])

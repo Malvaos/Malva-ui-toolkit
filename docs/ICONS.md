@@ -3,8 +3,11 @@
 
 130 one-colour symbols, 20 application pictures and 11 brand lock-ups.
 
-Symbols are drawn on a 24-unit grid with a 1.8 stroke, round caps and joins, and use `currentColor`, so they take the
+Symbols are drawn on a 24-unit grid with a 2 stroke, round caps and joins, and use `currentColor`, so they take the
 colour of the text they sit in (CSS), `tint` (Slint `Icon`), or [`svg_with_color`] (Rust). Sizes: 16 / 20 / 24.
+
+The symbols and application pictures come from the Malva icon theme (`svg/malva-theme`, applied by
+`tools/apply_malva_theme.py`); the symbols the theme has no equivalent for keep the kit's own drawing, at the same stroke.
 
 ![icons](../svg/icons-sheet.svg)
 

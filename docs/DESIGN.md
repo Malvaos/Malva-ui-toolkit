@@ -64,9 +64,10 @@ The brand palette itself (petal `#E6DAE8`, lilac `#DEC3E0`, orchid `#B84F9F`, pl
 | Control height | 32 / 40 / 48 (small, medium, large); fields 42 | A control is never shorter than 32 |
 | Touch | switch 52 x 30, checkbox 26, radio 28, slider thumb 22 | |
 
-App icons are cut from a squircle (`svg/parts/squircle.svg`, |x|^5 + |y|^5 = 1) with a vertical gradient, a soft gloss
-over the upper half, a light inner edge and a dark outer hairline. Symbols are a 24-unit grid, 1.8 stroke, round caps and
-joins, one colour (`currentColor`).
+App icons are the Malva icon theme's tiles (`svg/malva-theme`): a squircle with a two-stop gradient, a soft highlight and
+a lilac symbol. Symbols are the theme's glyphs: a 24-unit grid, 2 stroke, round caps and joins, one colour
+(`currentColor`). `svg/parts/squircle.svg` is the kit's own squircle part for building other tiles; it is not the exact
+outline of the theme's tiles.
 
 ## 3. Type
 

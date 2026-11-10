@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""Writes the dock's SVG icon set into ui/icons. Every icon is drawn here from primitives; nothing is
-traced from any existing icon theme. Run from the project root: python3 tools/make-icons.py"""
+"""Writes the dock's SVG icon set into ui/icons. The drawings here are the dock's own; where the Malva icon theme
+has an equivalent, tools/apply_malva_theme.py (in the toolkit's tools/ folder) replaces the file with the theme's when this
+script finishes, so what stays drawn here is the part the theme does not cover (the trash parts and the symbols
+it has no glyph for). Run from the project root: python3 tools/make-icons.py"""
 import math, os
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ui", "icons")
@@ -184,3 +186,14 @@ symbol("folder", '<path d="M3.5 7.5a2 2 0 0 1 2-2H10l2 2h6.5a2 2 0 0 1 2 2V17a2 
 symbol("add", '<path d="M12 5v14M5 12h14"/>')
 
 print("icons written to", os.path.abspath(OUT))
+
+# The Malva icon theme replaces every symbol / picture it has an equivalent for; what is drawn above is what the theme
+# does not cover (see tools/apply_malva_theme.py). Without this, running this script would bring the old drawings back.
+import sys
+sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../tools")))
+try:
+    import apply_malva_theme
+except ImportError:
+    print("note: tools/apply_malva_theme.py was not found, so the Malva theme icons were not applied")
+else:
+    apply_malva_theme.apply(['dock-symbols', 'dock-app'])

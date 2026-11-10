@@ -77,7 +77,7 @@ Accent is dusty orchid/plum, never neon; surfaces tint toward plum, never grey. 
 - **One drop shadow per element**, so Malva's two-layer elevation is approximated by a single tuned shadow plus the 1 px hairline.
 - **Charts take at most 64 points.** Slint cannot loop inside a `Path`, so `ChartPath` builds the path string with a generated, unrolled function.
 - **`Dock` magnification** uses the resting-position cosine and displaces neighbours with its integral; it is exact for equal-size icons, approximate otherwise.
-- The shell's own `Symbol`/app-icon art is yours and is not re-drawn in Malva style.
+- The icons (symbols and application pictures, in the kit and in the apps) are the Malva icon theme's, vendored in `svg/malva-theme`; `python3 tools/apply_malva_theme.py` applies them. Symbols the theme has no equivalent for keep the kit's drawing at the theme's stroke. The screenshots in `docs/screenshots` still show the earlier icons until they are re-rendered with the Slint toolchain.
 
 ## Verification
 All files compile with the Slint 1.18.1 compiler (Python interpreter) **and** the 1.18.1 native `slint-compiler` from the C++ SDK. The screenshots in `screenshots/` were rendered by the 1.18.1 interpreter (femtovg renderer on Mesa software GL) from these exact files. Not verified here: running the Windows `slint-viewer.exe` (same version, not run), and Rust `build.rs` / CMake integration (no Rust toolchain or CMake in the build environment) - the `-L` form above was verified with the native compiler.

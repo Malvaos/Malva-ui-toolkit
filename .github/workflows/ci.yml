@@ -10,6 +10,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: python3 tools/gen_tokens.py --check
       - run: python3 tools/gen_icons.py --check
+      - run: python3 tools/apply_malva_theme.py --check
       - run: python3 tools/make_svg_parts.py --check
       - run: python3 tools/make_svg_screens.py --check
       - run: python3 tools/gen_components_doc.py --check

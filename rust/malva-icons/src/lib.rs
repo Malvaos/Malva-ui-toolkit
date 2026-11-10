@@ -1,6 +1,6 @@
 //! The Malva icon set as SVG text.
 //!
-//! * [`symbol`]: one-colour symbols on a 24-unit grid (1.8 stroke, round caps and joins). Stroke and fill are
+//! * [`symbol`]: one-colour symbols on a 24-unit grid (2 stroke, round caps and joins). Stroke and fill are
 //!   `currentColor`, so [`svg_with_color`] can tint one.
 //! * [`app`]: coloured application pictures.
 //! * [`logo`]: the brand lock-ups (mark, wordmark, horizontal, stacked, bloom).

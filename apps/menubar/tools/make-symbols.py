@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Writes the menu bar's SVG symbols into ui/icons: 24-unit, one-colour, round-ended strokes (tinted by
-the theme), and the four coloured weather pictures. Every shape is drawn here from primitives; nothing
-is traced from an existing icon theme. Run from the project root: python3 tools/make-symbols.py"""
+the theme), and the four coloured weather pictures. The drawings here are the menu bar's own; where the Malva icon
+theme has an equivalent, tools/apply_malva_theme.py (in the toolkit's tools/ folder) replaces the file with the theme's
+when this script finishes, so what stays drawn here is what the theme does not cover (the weather pictures and the
+symbols it has no glyph for). Run from the project root: python3 tools/make-symbols.py"""
 import math, os
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ui", "icons")
@@ -188,3 +190,14 @@ n_s, n_a = emit_icon_slint()
 print("icon.slint:", n_s, "symbols,", n_a, "pictures")
 
 print("symbols:", len(os.listdir(os.path.join(OUT, "symbols"))), "pictures:", len([f for f in os.listdir(os.path.join(OUT, "app")) if f.startswith("weather")]))
+
+# The Malva icon theme replaces every symbol / picture it has an equivalent for; what is drawn above is what the theme
+# does not cover (see tools/apply_malva_theme.py). Without this, running this script would bring the old drawings back.
+import sys
+sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../tools")))
+try:
+    import apply_malva_theme
+except ImportError:
+    print("note: tools/apply_malva_theme.py was not found, so the Malva theme icons were not applied")
+else:
+    apply_malva_theme.apply(['menubar-symbols', 'menubar-app'])
